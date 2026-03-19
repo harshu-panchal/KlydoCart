@@ -96,7 +96,7 @@ export default function AdminHeader({
             className="hover:opacity-80 transition-opacity">
             <img
               src={kosilLogo}
-              alt="Kosil"
+              alt="KlydoCart"
               className="h-10 sm:h-12 w-auto object-contain cursor-pointer"
               style={{ maxWidth: "200px" }}
             />

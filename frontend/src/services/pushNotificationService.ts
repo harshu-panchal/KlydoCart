@@ -182,7 +182,7 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
         // while the user is actively using the app.
         if (Notification.permission === 'granted' && payload.notification) {
             const { title, body } = payload.notification;
-            const notificationTitle = title || 'Kosil Notification';
+            const notificationTitle = title || 'KlydoCart Notification';
             const notificationOptions = {
                 body: body,
                 icon: '/favicon.ico',

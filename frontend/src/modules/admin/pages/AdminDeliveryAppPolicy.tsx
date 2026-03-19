@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 export default function AdminDeliveryAppPolicy() {
-  const [policyContent, setPolicyContent] = useState(`Welcome to Kosil - 10 Minute App Delivery Partner Program!
+  const [policyContent, setPolicyContent] = useState(`Welcome to KlydoCart - 10 Minute App Delivery Partner Program!
 
 By using our delivery app, you agree to the following terms and conditions:
 

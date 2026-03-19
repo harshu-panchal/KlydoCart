@@ -30,7 +30,7 @@ export const PRODUCTS_MOCK: ProductMock[] = [
       {
         variationId: 16,
         productName: "Maggi Masala 2 Minutes Instant Noodles",
-        sellerName: "Kosil store",
+        sellerName: "KlydoCart store",
         productImage: "/assets/product-mtr-poha.jpg",
         brandName: "Amul",
         category: "Instant Food",
@@ -43,7 +43,7 @@ export const PRODUCTS_MOCK: ProductMock[] = [
       {
         variationId: 18,
         productName: "Maggi Masala 2 Minutes Instant Noodles",
-        sellerName: "Kosil store",
+        sellerName: "KlydoCart store",
         productImage: "/assets/product-mtr-poha.jpg",
         brandName: "Amul",
         category: "Instant Food",
@@ -61,7 +61,7 @@ export const PRODUCTS_MOCK: ProductMock[] = [
       {
         variationId: 3,
         productName: "Maggi 2 - Minute Instant Noodles (Pack of 12)",
-        sellerName: "Kosil store",
+        sellerName: "KlydoCart store",
         productImage: "/assets/product-mtr-poha.jpg",
         brandName: "Amul",
         category: "Instant Food",
@@ -78,7 +78,7 @@ export const PRODUCTS_MOCK: ProductMock[] = [
       {
         variationId: 39,
         productName: "Safal Frozen Green Peas",
-        sellerName: "Kosil store",
+        sellerName: "KlydoCart store",
         productImage: "/assets/category-fruits-veg.png",
         brandName: "",
         category: "Instant Food",
@@ -95,7 +95,7 @@ export const PRODUCTS_MOCK: ProductMock[] = [
       {
         variationId: 14,
         productName: "Sumeru Grated Coconut",
-        sellerName: "Kosil store",
+        sellerName: "KlydoCart store",
         productImage: "/assets/category-fruits-veg.png",
         brandName: "Amul",
         category: "Instant Food",
@@ -123,7 +123,7 @@ export const STOCK_ITEMS_MOCK: StockItemMock[] = [
   {
     variationId: 3,
     name: "Maggi 2 - Minute Instant Noodles (Pack of 12)",
-    seller: "Kosil store",
+    seller: "KlydoCart store",
     image: "/assets/product-mtr-poha.jpg",
     variation: "840 g (12 x 70 g)",
     stock: 134,
@@ -133,7 +133,7 @@ export const STOCK_ITEMS_MOCK: StockItemMock[] = [
   {
     variationId: 14,
     name: "Sumeru Grated Coconut (Frozen)",
-    seller: "Kosil store",
+    seller: "KlydoCart store",
     image: "/assets/category-fruits-veg.png",
     variation: "200 g",
     stock: 67,
@@ -143,7 +143,7 @@ export const STOCK_ITEMS_MOCK: StockItemMock[] = [
   {
     variationId: 16,
     name: "Maggi Masala 2 Minutes Instant Noodles",
-    seller: "Kosil store",
+    seller: "KlydoCart store",
     image: "/assets/product-mtr-poha.jpg",
     variation: "100g",
     stock: "Unlimited",
@@ -153,7 +153,7 @@ export const STOCK_ITEMS_MOCK: StockItemMock[] = [
   {
     variationId: 17,
     name: "Abbie's Pure Maple Syrup",
-    seller: "Kosil store",
+    seller: "KlydoCart store",
     image: "/assets/category-sweet-tooth.png",
     variation: "250 ml",
     stock: 47,
@@ -163,7 +163,7 @@ export const STOCK_ITEMS_MOCK: StockItemMock[] = [
   {
     variationId: 18,
     name: "Maggi Masala 2 Minutes Instant Noodles",
-    seller: "Kosil store",
+    seller: "KlydoCart store",
     image: "/assets/product-mtr-poha.jpg",
     variation: "200g",
     stock: 47,
@@ -173,7 +173,7 @@ export const STOCK_ITEMS_MOCK: StockItemMock[] = [
   {
     variationId: 21,
     name: "Yoga Bar Chocolate Chunk Nut Multigrain Protein Bar (35 g)",
-    seller: "Kosil store",
+    seller: "KlydoCart store",
     image: "/assets/category-snacks.png",
     variation: "35 g",
     stock: 6,

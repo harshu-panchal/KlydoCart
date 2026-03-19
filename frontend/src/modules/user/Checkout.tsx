@@ -1967,7 +1967,7 @@ export default function Checkout() {
         </button>
       </div>
 
-      {/* Made with love by Kosil */}
+      {/* Made with love by KlydoCart */}
       <div className="px-4 py-2">
         <div className="w-full flex flex-col items-center justify-center">
           <div className="flex items-center gap-1.5 text-neutral-500">
@@ -1980,7 +1980,7 @@ export default function Checkout() {
             </motion.span>
             <span className="text-[10px] font-medium">by</span>
             <span className="text-[10px] font-semibold text-green-600">
-              Kosil
+              KlydoCart
             </span>
           </div>
         </div>

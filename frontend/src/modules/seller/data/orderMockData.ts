@@ -316,7 +316,7 @@ export const getOrderDetailById = (id: number): SellerOrderDetail | null => {
         items.push({
           srNo: srNo++,
           product: product.name,
-          soldBy: "Kosil Store",
+          soldBy: "KlydoCart Store",
           unit: product.unit,
           price: product.basePrice,
           tax: itemTax,
@@ -336,7 +336,7 @@ export const getOrderDetailById = (id: number): SellerOrderDetail | null => {
         items.push({
           srNo: srNo++,
           product: product.name,
-          soldBy: "Kosil Store",
+          soldBy: "KlydoCart Store",
           unit: product.unit,
           price: product.basePrice,
           tax: lastTax,
@@ -357,7 +357,7 @@ export const getOrderDetailById = (id: number): SellerOrderDetail | null => {
       items.push({
         srNo: 1,
         product: product.name,
-        soldBy: "Kosil Store",
+        soldBy: "KlydoCart Store",
         unit: product.unit,
         price: product.basePrice,
         tax: itemTax,

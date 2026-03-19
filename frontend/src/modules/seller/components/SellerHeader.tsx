@@ -112,7 +112,7 @@ export default function SellerHeader({
             className="hover:opacity-80 transition-opacity">
             <img
               src={kosilLogo}
-              alt="Kosil"
+              alt="KlydoCart"
               className="h-10 sm:h-12 w-auto object-contain cursor-pointer"
               style={{ maxWidth: "200px" }}
             />
@@ -146,29 +146,26 @@ export default function SellerHeader({
         <div className="hidden md:flex items-center gap-4 lg:gap-6">
           <button
             onClick={() => navigate("/seller/orders")}
-            className={`relative px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors ${
-              isActive("/seller/orders")
+            className={`relative px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors ${isActive("/seller/orders")
                 ? "text-neutral-900"
                 : "text-neutral-600 hover:text-neutral-900"
-            }`}>
+              }`}>
             Orders
           </button>
           <button
             onClick={() => navigate("/seller/return-order")}
-            className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-              isActive("/seller/return-order")
+            className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${isActive("/seller/return-order")
                 ? "text-neutral-900"
                 : "text-neutral-600 hover:text-neutral-900"
-            }`}>
+              }`}>
             Return Order
           </button>
           <button
             onClick={() => navigate("/seller/wallet")}
-            className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-              isActive("/seller/wallet")
+            className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${isActive("/seller/wallet")
                 ? "text-neutral-900"
                 : "text-neutral-600 hover:text-neutral-900"
-            }`}>
+              }`}>
             Wallet
           </button>
         </div>
