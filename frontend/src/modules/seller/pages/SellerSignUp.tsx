@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   register,
   sendOTP,
@@ -13,7 +14,6 @@ import {
   HeaderCategory,
 } from "../../../services/api/headerCategoryService";
 import LocationPickerMap from "../../../components/LocationPickerMap";
-import { useEffect } from "react";
 
 export default function SellerSignUp() {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ export default function SellerSignUp() {
     searchLocation: "",
     latitude: "",
     longitude: "",
-    serviceRadiusKm: "10", // Default 10km
+    serviceRadiusKm: "10",
     accountName: "",
     bankName: "",
     branch: "",
@@ -69,12 +69,8 @@ export default function SellerSignUp() {
         [name]: value.replace(/\D/g, "").slice(0, 10),
       }));
     } else if (name === "serviceRadiusKm") {
-      // Allow only numbers and a single decimal point
       const cleanedValue = value.replace(/[^0-9.]/g, "");
-      // Ensure only one decimal point
-      const parts = cleanedValue.split(".");
-      const finalValue =
-        parts.length > 2 ? `${parts[0]}.${parts[1]}` : cleanedValue;
+      const finalValue = cleanedValue.split(".").length > 2 ? cleanedValue.substring(0, cleanedValue.lastIndexOf(".")) : cleanedValue;
 
       setFormData((prev) => ({
         ...prev,
@@ -105,59 +101,29 @@ export default function SellerSignUp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields (password removed - not needed during signup)
-    if (!formData.sellerName) {
-      setError("Please enter your name");
-      return;
-    }
-    if (!formData.mobile) {
-      setError("Please enter your mobile number");
-      return;
-    }
-    if (!formData.email) {
-      setError("Please enter your email address");
-      return;
-    }
-    if (!formData.storeName) {
-      setError("Please enter your store name");
-      return;
-    }
-    if (formData.categories.length === 0) {
-      setError("Please select at least one category");
-      return;
-    }
-    if (!formData.address && !formData.searchLocation) {
-      setError("Please select your store location");
-      return;
-    }
-    if (!formData.city) {
-      setError("Please enter your city");
-      return;
-    }
-
-    if (formData.mobile.length !== 10) {
-      setError("Please enter a valid 10-digit mobile number");
-      return;
-    }
+    if (!formData.sellerName) { setError("Please enter your name"); return; }
+    if (!formData.mobile) { setError("Please enter your mobile number"); return; }
+    if (!formData.email) { setError("Please enter your email address"); return; }
+    if (!formData.storeName) { setError("Please enter your store name"); return; }
+    if (formData.categories.length === 0) { setError("Please select at least one category"); return; }
+    if (!formData.address && !formData.searchLocation) { setError("Please select your store location"); return; }
+    if (!formData.city) { setError("Please enter your city"); return; }
+    if (formData.mobile.length !== 10) { setError("Please enter a valid 10-digit mobile number"); return; }
 
     setLoading(true);
     setError("");
 
     try {
-      // Validate location is selected
-      if (
-        !formData.searchLocation ||
-        !formData.latitude ||
-        !formData.longitude
-      ) {
-        setError("Please select your store location using the location search");
+      if (!formData.latitude || !formData.longitude) {
+        setError("Please select your store location using the location search or map");
+        setLoading(false);
         return;
       }
 
-      // Validate service radius
       const radius = parseFloat(formData.serviceRadiusKm);
       if (isNaN(radius) || radius < 0.1 || radius > 100) {
         setError("Service radius must be between 0.1 and 100 kilometers");
+        setLoading(false);
         return;
       }
 
@@ -166,7 +132,7 @@ export default function SellerSignUp() {
         mobile: formData.mobile,
         email: formData.email,
         storeName: formData.storeName,
-        category: formData.categories[0], // primary
+        category: formData.categories[0], 
         categories: formData.categories,
         address: formData.address || formData.searchLocation,
         city: formData.city,
@@ -177,24 +143,17 @@ export default function SellerSignUp() {
       });
 
       if (response.success) {
-        // Clear token from registration (we'll get it after OTP verification)
         localStorage.removeItem("authToken");
         localStorage.removeItem("userData");
-        // Registration successful, now send OTP for verification
         try {
           await sendOTP(formData.mobile);
           setShowOTP(true);
         } catch (otpErr: any) {
-          setError(
-            otpErr.response?.data?.message ||
-              "Registration successful but failed to send OTP."
-          );
+          setError(otpErr.response?.data?.message || "Registration successful but failed to send OTP.");
         }
       }
     } catch (err: any) {
-      setError(
-        err.response?.data?.message || "Registration failed. Please try again."
-      );
+      setError(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -207,7 +166,6 @@ export default function SellerSignUp() {
     try {
       const response = await verifyOTP(formData.mobile, otp);
       if (response.success && response.data) {
-        // Update auth context with seller data
         login(response.data.token, {
           id: response.data.user.id,
           name: response.data.user.sellerName,
@@ -219,7 +177,6 @@ export default function SellerSignUp() {
           address: response.data.user.address,
           city: response.data.user.city,
         });
-        // Navigate to seller dashboard
         navigate("/seller", { replace: true });
       }
     } catch (err: any) {
@@ -230,511 +187,314 @@ export default function SellerSignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-green-50 flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 font-sans">
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
-        className="absolute top-4 left-4 z-10 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-neutral-50 transition-colors"
+        className="fixed top-6 left-6 z-20 w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center hover:bg-slate-50 transition-all active:scale-95 border border-slate-100"
         aria-label="Back">
         <svg
           width="20"
           height="20"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M15 18L9 12L15 6"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round">
+          <path d="M15 18L9 12L15 6" />
         </svg>
       </button>
 
       {/* Sign Up Card */}
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
-        {/* Header Section */}
-        <div
-          className="px-6 py-4 text-center border-b border-green-700"
-          style={{
-            backgroundColor: "rgb(21 178 74 / var(--tw-bg-opacity, 1))",
-          }}>
-          <div className="mb-0 -mt-4">
-            <img
-              src="/assets/kosil1.png"
-              alt="KlydoCart"
-              className="h-44 w-full max-w-xs mx-auto object-fill object-bottom"
-            />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="w-full max-w-[420px] my-6 relative z-10"
+      >
+        <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(13,148,136,0.1)] border border-teal-100 overflow-hidden">
+          {/* Header Section */}
+          <div className="bg-gradient-to-b from-teal-50/50 to-transparent p-6 pb-4 flex flex-col items-center text-center relative border-b border-teal-50">
+            {/* Ambient glows */}
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-teal-200/20 rounded-full blur-3xl" />
+            
+            <div className="relative z-10 w-full flex flex-col items-center">
+              <div className="mb-4">
+                <img
+                  src="/assets/login/KlydoCardLatest.png"
+                  alt="KlydoCart"
+                  className="h-10 w-auto object-contain"
+                />
+              </div>
+              <h1 className="text-xl font-black text-slate-800 tracking-tight">
+                Join KlydoCart
+              </h1>
+              <p className="text-teal-600/70 text-[9px] font-black mt-0.5 tracking-[0.2em] uppercase">
+                Merchant Onboarding Portal
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1 -mt-12">
-            Seller Sign Up
-          </h1>
-          <p className="text-green-50 text-sm -mt-2">
-            Create your seller account
-          </p>
-        </div>
 
-        {/* Sign Up Form */}
-        <div
-          className="p-6 space-y-4 seller-signup-form"
-          style={{
-            maxHeight: "70vh",
-            overflowY: "auto",
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}>
-          <style>{`
-            .seller-signup-form::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
-          {!showOTP ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Required Fields Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-neutral-700 border-b pb-2">
-                  Required Information
-                </h3>
+          {/* Form Section */}
+          <div className="p-6">
+            <AnimatePresence mode="wait">
+              {!showOTP ? (
+                <motion.form 
+                  key="signup-form"
+                  onSubmit={handleSubmit}
+                  className="space-y-4"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                  <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-3 scrollbar-thin scrollbar-thumb-teal-100 scrollbar-track-transparent">
+                    {/* Basic Details */}
+                    <div className="space-y-3">
+                      <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-1.5">
+                        Basic Details
+                      </h3>
+                      
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-700 ml-1">Seller Name *</label>
+                        <input
+                          type="text"
+                          name="sellerName"
+                          value={formData.sellerName}
+                          onChange={handleInputChange}
+                          placeholder="Your full name"
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          disabled={loading}
+                        />
+                      </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Seller Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="sellerName"
-                    value={formData.sellerName}
-                    onChange={handleInputChange}
-                    placeholder="Enter your name"
-                    required
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                    disabled={loading}
-                  />
-                </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-teal-800/60 uppercase tracking-[0.1em] ml-1">Mobile Number *</label>
+                        <div className="relative flex items-center bg-slate-50 rounded-xl border border-transparent focus-within:border-teal-500 focus-within:bg-white transition-all overflow-hidden group">
+                          <div className="pl-3 pr-2 py-2 flex items-center border-r border-slate-200">
+                            <span className="text-teal-600 font-bold text-xs">+91</span>
+                          </div>
+                          <input
+                            type="tel"
+                            name="mobile"
+                            value={formData.mobile}
+                            onChange={handleInputChange}
+                            placeholder="00000 00000"
+                            maxLength={10}
+                            className="w-full px-3 py-2 bg-transparent text-slate-900 placeholder:text-slate-400 focus:outline-none text-sm font-bold"
+                            disabled={loading}
+                          />
+                        </div>
+                      </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Mobile Number <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex items-center bg-white border border-neutral-300 rounded-lg overflow-hidden focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-200">
-                    <div className="px-3 py-2.5 text-sm font-medium text-neutral-600 border-r border-neutral-300 bg-neutral-50">
-                      +91
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-700 ml-1">Email Address *</label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          placeholder="email@example.com"
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          disabled={loading}
+                        />
+                      </div>
                     </div>
-                    <input
-                      type="tel"
-                      name="mobile"
-                      value={formData.mobile}
-                      onChange={handleInputChange}
-                      placeholder="Enter mobile number"
-                      required
-                      maxLength={10}
-                      className="flex-1 px-3 py-2.5 text-sm placeholder:text-neutral-400 focus:outline-none"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="Enter email address"
-                    required
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                    disabled={loading}
-                  />
-                </div>
+                    {/* Store Information */}
+                    <div className="space-y-4 pt-4">
+                      <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-2">
+                        Store Details
+                      </h3>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Store Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="storeName"
-                    value={formData.storeName}
-                    onChange={handleInputChange}
-                    placeholder="Enter store name"
-                    required
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                    disabled={loading}
-                  />
-                </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-700 ml-1">Store Name *</label>
+                        <input
+                          type="text"
+                          name="storeName"
+                          value={formData.storeName}
+                          onChange={handleInputChange}
+                          placeholder="Your business name"
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          disabled={loading}
+                        />
+                      </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Categories <span className="text-red-500">*</span>
-                  </label>
-                  {categories.length === 0 ? (
-                    <div className="text-sm text-neutral-500 py-2">
-                      Loading categories...
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto p-2 border border-neutral-200 rounded-lg">
-                      {categories.map((cat) => {
-                        const checked = formData.categories.includes(cat.name);
-                        return (
-                          <label
-                            key={cat._id}
-                            className="flex items-center gap-2 text-sm text-neutral-700">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleCategory(cat.name)}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 ml-1">Business Categories *</label>
+                        <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 rounded-xl border border-transparent">
+                          {categories.map((cat) => (
+                            <label key={cat._id} className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer hover:text-teal-600 transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={formData.categories.includes(cat.name)}
+                                onChange={() => toggleCategory(cat.name)}
+                                disabled={loading}
+                                className="h-4 w-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
+                              />
+                              <span>{cat.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 ml-1">Store Location *</label>
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <GoogleMapsAutocomplete
+                              value={formData.searchLocation}
+                              onChange={(address, lat, lng, placeName, components) => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  searchLocation: address,
+                                  latitude: lat.toString(),
+                                  longitude: lng.toString(),
+                                  address: address,
+                                  city: components?.city || prev.city,
+                                }));
+                              }}
+                              placeholder="Search address..."
                               disabled={loading}
-                              className="h-4 w-4 text-teal-600 border-neutral-300 rounded focus:ring-teal-500"
                             />
-                            <span>{cat.name}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {formData.categories.length === 0 &&
-                    categories.length > 0 && (
-                      <p className="text-xs text-red-600 mt-1">
-                        Select at least one category
-                      </p>
-                    )}
-                </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (navigator.geolocation) {
+                                setLoading(true);
+                                navigator.geolocation.getCurrentPosition(
+                                  (pos) => {
+                                    const { latitude, longitude } = pos.coords;
+                                    setFormData(p => ({ 
+                                      ...p, 
+                                      latitude: latitude.toString(), 
+                                      longitude: longitude.toString(),
+                                      searchLocation: "Your Location",
+                                      address: "Your Current Location"
+                                    }));
+                                    setLoading(false);
+                                  },
+                                  () => { setError("Location access denied"); setLoading(false); }
+                                );
+                              }
+                            }}
+                            className="p-3 bg-teal-50 text-teal-600 rounded-xl border border-teal-100 hover:bg-teal-100 transition-all shadow-sm">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3m-7-10H2m20 0h-3"/>
+                            </svg>
+                          </button>
+                        </div>
+                        {formData.latitude && (
+                           <div className="mt-3 rounded-xl overflow-hidden border border-slate-100">
+                             <LocationPickerMap
+                               initialLat={parseFloat(formData.latitude)}
+                               initialLng={parseFloat(formData.longitude)}
+                               onLocationSelect={(lat, lng) => setFormData(p => ({ ...p, latitude: lat.toString(), longitude: lng.toString() }))}
+                             />
+                           </div>
+                        )}
+                      </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Store Location <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-2 items-start">
-                    <div className="flex-1">
-                      <GoogleMapsAutocomplete
-                        value={formData.searchLocation}
-                        onChange={(
-                          address: string,
-                          lat: number,
-                          lng: number,
-                          placeName: string,
-                          components?: { city?: string; state?: string }
-                        ) => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            searchLocation: address,
-                            latitude: lat.toString(),
-                            longitude: lng.toString(),
-                            address: address,
-                            city: components?.city || prev.city,
-                          }));
-                        }}
-                        placeholder="Search your store location..."
-                        disabled={loading}
-                        required
-                      />
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-700 ml-1">Service Radius (KM) *</label>
+                        <input
+                          type="number"
+                          name="serviceRadiusKm"
+                          value={formData.serviceRadiusKm}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          disabled={loading}
+                          min="0.1"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-700 ml-1">City *</label>
+                        <input
+                          type="text"
+                          name="city"
+                          value={formData.city}
+                          onChange={handleInputChange}
+                          placeholder="Your city"
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          disabled={loading}
+                        />
+                      </div>
                     </div>
+
+                    {/* Optional Details */}
+                    <div className="space-y-4 pt-4">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-2">
+                        Banking & Tax (Optional)
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          name="panCard"
+                          value={formData.panCard}
+                          onChange={handleInputChange}
+                          placeholder="PAN Card"
+                          className="px-4 py-3 bg-slate-50 border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:border-teal-500 outline-none transition-all placeholder:text-slate-300"
+                        />
+                        <input
+                          name="taxNumber"
+                          value={formData.taxNumber}
+                          onChange={handleInputChange}
+                          placeholder="GST Number"
+                          className="px-4 py-3 bg-slate-50 border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:border-teal-500 outline-none transition-all placeholder:text-slate-300"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] font-medium text-red-600 bg-red-50 p-3 rounded-xl border border-red-100 italic">
+                      {error}
+                    </motion.div>
+                  )}
+
+                  <div className="flex justify-center">
                     <button
-                      type="button"
-                      onClick={() => {
-                        if (navigator.geolocation) {
-                          setLoading(true);
-                          navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                              const lat = position.coords.latitude;
-                              const lng = position.coords.longitude;
-                              const locationStr = `${lat.toFixed(
-                                6
-                              )}, ${lng.toFixed(6)}`;
-                              setFormData((prev) => ({
-                                ...prev,
-                                latitude: lat.toString(),
-                                longitude: lng.toString(),
-                                searchLocation: locationStr,
-                                address: prev.address || locationStr, // Ensure address is not empty
-                              }));
-                              setLoading(false);
-                            },
-                            (error) => {
-                              console.error(error);
-                              setError("Unable to retrieve your location");
-                              setLoading(false);
-                            }
-                          );
-                        } else {
-                          setError(
-                            "Geolocation is not supported by your browser"
-                          );
-                        }
-                      }}
-                      className="p-2.5 bg-teal-50 text-teal-600 rounded-lg border border-teal-200 hover:bg-teal-100 transition-colors"
-                      title="Use Current Location">
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round">
-                        <path d="M12 2a10 10 0 1 0 10 10 10 10 0 0 0-10-10zm0 16a6 6 0 1 1 6-6 6 6 0 0 1-6 6z" />
-                        <path d="M12 8v8" />
-                        <path d="M8 12h8" />
-                      </svg>
+                      type="submit"
+                      disabled={loading}
+                      className="px-8 py-2.5 bg-[#0d9488] text-white rounded-lg font-bold text-[10px] tracking-[0.1em] shadow-lg shadow-teal-900/5 hover:bg-[#0f766e] active:scale-[0.98] transition-all disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none uppercase"
+                    >
+                      {loading ? "PROCESSING..." : "REGISTER MERCHANT ACCOUNT"}
                     </button>
                   </div>
 
-                  {formData.latitude && formData.longitude ? (
-                    <div className="mt-4 animate-fadeIn">
-                      <p className="text-sm font-medium text-neutral-700 mb-2">
-                        Exact Location{" "}
-                        <span className="text-teal-600 text-xs font-normal">
-                          (Move the map to place the pin on your store's
-                          entrance)
-                        </span>
-                      </p>
-                      <LocationPickerMap
-                        initialLat={parseFloat(formData.latitude)}
-                        initialLng={parseFloat(formData.longitude)}
-                        onLocationSelect={(lat, lng) => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            latitude: lat.toString(),
-                            longitude: lng.toString(),
-                          }));
-                        }}
-                      />
-                      <p className="mt-1 text-xs text-neutral-500 text-center">
-                        Selected Coordinates: {formData.latitude},{" "}
-                        {formData.longitude}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mt-2 text-xs text-neutral-500 bg-neutral-50 p-2 rounded border border-neutral-100 text-center">
-                      Search for a location or use the location button to view
-                      the map and set exact coordinates.
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Delivery/Service Radius (KM){" "}
-                    <span className="text-red-500">*</span>
-                    <span className="text-xs font-normal text-neutral-500 ml-1">
-                      (Distance you can deliver)
-                    </span>
-                  </label>
-                  <input
-                    type="number"
-                    name="serviceRadiusKm"
-                    value={formData.serviceRadiusKm}
-                    onChange={handleInputChange}
-                    onKeyDown={(e) => {
-                      if (["e", "E", "+", "-"].includes(e.key)) {
-                        e.preventDefault();
-                      }
-                    }}
-                    placeholder="Enter service radius in KM (e.g. 10)"
-                    required
-                    min="0.1"
-                    max="100"
-                    step="0.1"
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                    disabled={loading}
-                  />
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Only customers within this radius can see and order your
-                    products
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    City <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    placeholder="Enter city"
-                    required
-                    className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                    disabled={loading}
-                  />
-                </div>
-
-                {/* Hidden fields for coordinates */}
-                <input
-                  type="hidden"
-                  name="latitude"
-                  value={formData.latitude}
-                />
-                <input
-                  type="hidden"
-                  name="longitude"
-                  value={formData.longitude}
-                />
-              </div>
-
-              {/* Optional Fields Section */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-sm font-semibold text-neutral-700 border-b pb-2">
-                  Optional Information
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      PAN Card
-                    </label>
-                    <input
-                      type="text"
-                      name="panCard"
-                      value={formData.panCard}
-                      onChange={handleInputChange}
-                      placeholder="PAN Card Number"
-                      className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                      disabled={loading}
-                    />
+                  <div className="text-center pt-2">
+                    <p className="text-xs text-slate-500 font-medium font-sans">
+                      Already a partner?{" "}
+                      <button type="button" onClick={() => navigate("/seller/login")} className="text-teal-600 font-bold ml-1 hover:underline">Login here</button>
+                    </p>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Tax Name
-                    </label>
-                    <input
-                      type="text"
-                      name="taxName"
-                      value={formData.taxName}
-                      onChange={handleInputChange}
-                      placeholder="Tax Name"
-                      className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                      disabled={loading}
-                    />
+                </motion.form>
+              ) : (
+                <motion.div 
+                  key="otp-step"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-6"
+                >
+                  <div className="text-center space-y-1">
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">Verify Mobile</p>
+                    <p className="text-sm font-bold text-slate-900">+91 {formData.mobile}</p>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Tax Number
-                    </label>
-                    <input
-                      type="text"
-                      name="taxNumber"
-                      value={formData.taxNumber}
-                      onChange={handleInputChange}
-                      placeholder="Tax Number"
-                      className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                      disabled={loading}
-                    />
+                  <OTPInput onComplete={handleOTPComplete} disabled={loading} />
+                  {error && <div className="text-[10px] text-red-600 bg-red-50 p-3 rounded-xl border border-red-100 text-center">{error}</div>}
+                  <div className="flex gap-3">
+                    <button onClick={() => setShowOTP(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all border border-slate-200 uppercase tracking-widest">Go Back</button>
+                    <button onClick={async () => { setLoading(true); try { await sendOTP(formData.mobile); } finally { setLoading(false); } }} className="flex-1 py-3 bg-teal-600 text-white rounded-xl font-bold text-xs hover:bg-teal-700 transition-all shadow-md shadow-teal-600/20 uppercase tracking-widest">Resend</button>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      IFSC Code
-                    </label>
-                    <input
-                      type="text"
-                      name="ifsc"
-                      value={formData.ifsc}
-                      onChange={handleInputChange}
-                      placeholder="IFSC Code"
-                      className="w-full px-3 py-2.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-2 rounded text-center">
-                  {error}
-                </div>
+                </motion.div>
               )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors ${
-                  !loading
-                    ? "bg-teal-600 text-white hover:bg-teal-700 shadow-md"
-                    : "bg-neutral-300 text-neutral-500 cursor-not-allowed"
-                }`}>
-                {loading ? "Creating Account..." : "Sign Up"}
-              </button>
-
-              {/* Login Link */}
-              <div className="text-center pt-2 border-t border-neutral-200">
-                <p className="text-sm text-neutral-600">
-                  Already have a seller account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => navigate("/seller/login")}
-                    className="text-teal-600 hover:text-teal-700 font-semibold">
-                    Login
-                  </button>
-                </p>
-              </div>
-            </form>
-          ) : (
-            /* OTP Verification Form */
-            <div className="space-y-4">
-              <div className="text-center">
-                <p className="text-sm text-neutral-600 mb-2">
-                  Enter the 4-digit OTP sent to
-                </p>
-                <p className="text-sm font-semibold text-neutral-800">
-                  +91 {formData.mobile}
-                </p>
-              </div>
-
-              <OTPInput onComplete={handleOTPComplete} disabled={loading} />
-
-              {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-2 rounded text-center">
-                  {error}
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowOTP(false);
-                    setError("");
-                  }}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors border border-neutral-300">
-                  Back
-                </button>
-                <button
-                  onClick={async () => {
-                    setLoading(true);
-                    setError("");
-                    try {
-                      await sendOTP(formData.mobile);
-                    } catch (err: any) {
-                      setError(
-                        err.response?.data?.message || "Failed to resend OTP."
-                      );
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-teal-600 text-white hover:bg-teal-700 transition-colors">
-                  {loading ? "Sending..." : "Resend OTP"}
-                </button>
-              </div>
-            </div>
-          )}
+            </AnimatePresence>
+          </div>
         </div>
-      </div>
-
-      {/* Footer Text */}
-      <p className="mt-6 text-xs text-neutral-500 text-center max-w-md">
-        By continuing, you agree to KlydoCart's Terms of Service and Privacy Policy
-      </p>
+        <p className="mt-8 text-[10px] text-slate-400 text-center font-bold tracking-widest uppercase opacity-70">
+          KlydoCart Merchant Program
+        </p>
+      </motion.div>
     </div>
   );
 }
