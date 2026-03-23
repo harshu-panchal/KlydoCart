@@ -6,6 +6,7 @@ import {
   getAddresses,
   updateAddress,
 } from "../../services/api/customerAddressService";
+import { useThemeContext } from "../../context/ThemeContext";
 
 const iconStyle = "w-5 h-5 text-amber-600 flex-shrink-0";
 
@@ -22,6 +23,7 @@ function buildAddressLine(address: Address) {
 
 export default function AddressBook() {
   const navigate = useNavigate();
+  const { currentTheme } = useThemeContext();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -115,34 +117,39 @@ export default function AddressBook() {
 
   return (
     <div className="min-h-screen bg-white md:bg-neutral-50 pb-24 md:pb-10">
-      <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 px-4 py-3 flex items-center gap-3">
+      <div 
+        className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3 shadow-md"
+        style={{
+          background: `linear-gradient(to right, ${currentTheme.primary[0]}, ${currentTheme.primary[1]})`,
+        }}
+      >
         <button
           onClick={() => navigate(-1)}
           aria-label="Back"
-          className="p-2 rounded-full hover:bg-neutral-100 text-neutral-700"
+          className="p-1.5 rounded-full hover:bg-white/20 text-white transition-colors"
         >
           <svg
             viewBox="0 0 24 24"
-            className="w-5 h-5"
+            className="w-6 h-6"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M15 18 9 12l6-6" />
+            <path d="M15 18L9 12L15 6" />
           </svg>
         </button>
         <div>
-          <p className="text-xs text-neutral-500">Your saved addresses</p>
-          <h1 className="text-base font-semibold text-neutral-900">
+          <p className="text-[10px] text-white/80 font-medium">Your saved addresses</p>
+          <h1 className="text-base font-bold text-white">
             Address book
           </h1>
         </div>
         <div className="ml-auto">
           <button
             onClick={() => navigate("/checkout/address")}
-            className="px-3 py-1.5 text-sm font-semibold text-white bg-teal-600 rounded-full hover:bg-teal-700"
+            className="px-3 py-1.5 text-sm font-bold text-teal-800 bg-white rounded-full hover:bg-neutral-50 shadow-sm"
           >
             Add new
           </button>

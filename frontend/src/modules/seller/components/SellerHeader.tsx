@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import kosilLogo from "@assets/kosil1.png";
+import kosilLogo from "@assets/login/KlydoCardLatest.png";
 import { useAuth } from "../../../context/AuthContext";
 
 interface SellerHeaderProps {

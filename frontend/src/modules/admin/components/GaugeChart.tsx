@@ -19,7 +19,7 @@ export default function GaugeChart({ value, maxValue, label }: GaugeChartProps) 
 
   return (
     <div className="flex flex-col items-center">
-      <svg width="240" height="160" viewBox="0 0 240 160" className="w-full h-auto">
+      <svg width="240" height="160" viewBox="0 0 240 160" className="w-full h-auto max-w-[240px]">
         <defs>
           <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#eab308" />

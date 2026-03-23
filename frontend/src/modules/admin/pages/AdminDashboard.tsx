@@ -441,9 +441,9 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       {/* KPI Cards Grid - 2 columns on mobile, 4 on desktop */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-2.5 sm:gap-3">
         <DashboardCard
           icon={userIcon}
           title="Total User"
@@ -507,13 +507,13 @@ export default function AdminDashboard() {
       </div>
 
       {/* Sales Section - Top Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
         {/* Total Sales Today */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-neutral-200 p-4 sm:p-6">
-          <h3 className="text-lg font-semibold text-neutral-900 mb-2">
+        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-neutral-200 p-3 sm:p-4">
+          <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-1 sm:mb-2">
             Total Sales Today
           </h3>
-          <div className="mb-4">
+          <div className="mb-2 sm:mb-3">
             <p className="text-3xl font-bold text-neutral-900">
               ₹{salesToday.toFixed(2)}
             </p>
@@ -537,10 +537,10 @@ export default function AdminDashboard() {
         </div>
 
         {/* Sales by Location & Gauge */}
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-3 sm:space-y-4">
           {/* Sales by Location */}
-          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-4 sm:p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-4">
+          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-2 sm:mb-3">
               Sales by Location
             </h3>
             <div className="space-y-3">
@@ -566,8 +566,8 @@ export default function AdminDashboard() {
           </div>
 
           {/* Avg. Completed Order Value */}
-          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-4 sm:p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-4">
+          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-3 sm:p-4">
+            <h3 className="text-base sm:text-lg font-semibold text-neutral-900 mb-2 sm:mb-3">
               Avg. Completed Order Value
             </h3>
             <GaugeChart
@@ -580,7 +580,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <ErrorBoundary fallback={<div className="text-sm text-red-600 p-4">Chart failed to load</div>}>
           <OrderChart
             title="Order - Dec 2025"
@@ -600,7 +600,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Tables Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         {/* View New Orders Table */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
           <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">

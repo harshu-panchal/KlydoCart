@@ -3,8 +3,12 @@ import { getHomeContent } from "../../services/api/customerHomeService";
 import { useLocation } from "../../hooks/useLocation";
 import CategoryTileSection from "./components/CategoryTileSection";
 import ProductCard from "./components/ProductCard";
+import { useNavigate } from "react-router-dom";
+import { useThemeContext } from "../../context/ThemeContext";
 
 export default function Categories() {
+  const navigate = useNavigate();
+  const { currentTheme } = useThemeContext();
   const { location } = useLocation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,8 +70,27 @@ export default function Categories() {
   return (
     <div className="pb-4 md:pb-8 bg-white min-h-screen">
       {/* Page Header */}
-      <div className="px-4 py-4 md:px-6 md:py-6 bg-white border-b border-neutral-200 sticky top-0 z-10 shadow-sm">
-        <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Categories</h1>
+      <div 
+        className="px-4 py-3 md:px-6 md:py-4 sticky top-0 z-10 shadow-md flex items-center relative"
+        style={{
+          background: `linear-gradient(to right, ${currentTheme.primary[0]}, ${currentTheme.primary[1]})`,
+        }}
+      >
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute left-4 md:left-6 text-white hover:bg-white/20 p-1.5 rounded-full transition-colors flex-shrink-0 z-10"
+          aria-label="Back">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M15 18L9 12L15 6"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+        <h1 className="w-full text-center text-xl md:text-2xl font-bold text-white">Categories</h1>
       </div>
 
       <div className="bg-neutral-50 pt-1 space-y-5 md:space-y-8 md:pt-4">

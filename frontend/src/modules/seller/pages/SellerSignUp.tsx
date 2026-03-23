@@ -33,7 +33,7 @@ export default function SellerSignUp() {
     searchLocation: "",
     latitude: "",
     longitude: "",
-    serviceRadiusKm: "10",
+    serviceRadiusKm: "10", 
     accountName: "",
     bankName: "",
     branch: "",
@@ -70,7 +70,9 @@ export default function SellerSignUp() {
       }));
     } else if (name === "serviceRadiusKm") {
       const cleanedValue = value.replace(/[^0-9.]/g, "");
-      const finalValue = cleanedValue.split(".").length > 2 ? cleanedValue.substring(0, cleanedValue.lastIndexOf(".")) : cleanedValue;
+      const parts = cleanedValue.split(".");
+      const finalValue =
+        parts.length > 2 ? `${parts[0]}.${parts[1]}` : cleanedValue;
 
       setFormData((prev) => ({
         ...prev,
@@ -114,8 +116,8 @@ export default function SellerSignUp() {
     setError("");
 
     try {
-      if (!formData.latitude || !formData.longitude) {
-        setError("Please select your store location using the location search or map");
+      if (!formData.searchLocation || !formData.latitude || !formData.longitude) {
+        setError("Please select your store location using the location search");
         setLoading(false);
         return;
       }
@@ -187,24 +189,10 @@ export default function SellerSignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 font-sans">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-6 left-6 z-20 w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center hover:bg-slate-50 transition-all active:scale-95 border border-slate-100"
-        aria-label="Back">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round">
-          <path d="M15 18L9 12L15 6" />
-        </svg>
-      </button>
+    <div className="min-h-screen bg-gradient-to-br from-teal-50/60 via-slate-50 to-teal-100/40 flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
+      {/* Background Blobs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-teal-100/30 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-[40rem] h-[40rem] bg-emerald-100/30 rounded-full blur-3xl" />
 
       {/* Sign Up Card */}
       <motion.div 
@@ -219,13 +207,16 @@ export default function SellerSignUp() {
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-teal-200/20 rounded-full blur-3xl" />
             
             <div className="relative z-10 w-full flex flex-col items-center">
-              <div className="mb-4">
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                className="mb-4"
+              >
                 <img
                   src="/assets/login/KlydoCardLatest.png"
                   alt="KlydoCart"
                   className="h-10 w-auto object-contain"
                 />
-              </div>
+              </motion.div>
               <h1 className="text-xl font-black text-slate-800 tracking-tight">
                 Join KlydoCart
               </h1>
@@ -248,7 +239,7 @@ export default function SellerSignUp() {
                   exit={{ opacity: 0, y: -10 }}
                 >
                   <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-3 scrollbar-thin scrollbar-thumb-teal-100 scrollbar-track-transparent">
-                    {/* Basic Details */}
+                    {/* Required Information */}
                     <div className="space-y-3">
                       <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-1.5">
                         Basic Details
@@ -269,8 +260,8 @@ export default function SellerSignUp() {
 
                       <div className="space-y-1">
                         <label className="text-[9px] font-black text-teal-800/60 uppercase tracking-[0.1em] ml-1">Mobile Number *</label>
-                        <div className="relative flex items-center bg-slate-50 rounded-xl border border-transparent focus-within:border-teal-500 focus-within:bg-white transition-all overflow-hidden group">
-                          <div className="pl-3 pr-2 py-2 flex items-center border-r border-slate-200">
+                        <div className="relative flex items-center bg-slate-50 rounded-xl border border-transparent focus-within:border-teal-500 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(20,184,166,0.1)] transition-all overflow-hidden group">
+                          <div className="pl-3 pr-2 py-2 flex items-center border-r border-slate-200 group-focus-within:border-teal-100 transition-colors">
                             <span className="text-teal-600 font-bold text-xs">+91</span>
                           </div>
                           <input
@@ -302,7 +293,7 @@ export default function SellerSignUp() {
 
                     {/* Store Information */}
                     <div className="space-y-4 pt-4">
-                      <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-2">
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-2">
                         Store Details
                       </h3>
 
@@ -322,18 +313,21 @@ export default function SellerSignUp() {
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-700 ml-1">Business Categories *</label>
                         <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 rounded-xl border border-transparent">
-                          {categories.map((cat) => (
-                            <label key={cat._id} className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer hover:text-teal-600 transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={formData.categories.includes(cat.name)}
-                                onChange={() => toggleCategory(cat.name)}
-                                disabled={loading}
-                                className="h-4 w-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
-                              />
-                              <span>{cat.name}</span>
-                            </label>
-                          ))}
+                          {categories.map((cat) => {
+                            const checked = formData.categories.includes(cat.name);
+                            return (
+                              <label key={cat._id} className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer hover:text-teal-600 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleCategory(cat.name)}
+                                  disabled={loading}
+                                  className="h-4 w-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
+                                />
+                                <span>{cat.name}</span>
+                              </label>
+                            );
+                          })}
                         </div>
                       </div>
 
@@ -406,6 +400,7 @@ export default function SellerSignUp() {
                           disabled={loading}
                           min="0.1"
                         />
+                        <p className="text-[9px] text-slate-400 ml-1">Only customers in this range can order</p>
                       </div>
 
                       <div className="space-y-1">
@@ -442,6 +437,13 @@ export default function SellerSignUp() {
                           placeholder="GST Number"
                           className="px-4 py-3 bg-slate-50 border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:border-teal-500 outline-none transition-all placeholder:text-slate-300"
                         />
+                        <input
+                          name="ifsc"
+                          value={formData.ifsc}
+                          onChange={handleInputChange}
+                          placeholder="IFSC Code"
+                          className="col-span-2 px-4 py-3 bg-slate-50 border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:border-teal-500 outline-none transition-all placeholder:text-slate-300"
+                        />
                       </div>
                     </div>
                   </div>
@@ -477,22 +479,22 @@ export default function SellerSignUp() {
                   className="space-y-6"
                 >
                   <div className="text-center space-y-1">
-                    <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">Verify Mobile</p>
+                    <p className="text-xs text-slate-500 font-medium">Verify your mobile</p>
                     <p className="text-sm font-bold text-slate-900">+91 {formData.mobile}</p>
                   </div>
                   <OTPInput onComplete={handleOTPComplete} disabled={loading} />
                   {error && <div className="text-[10px] text-red-600 bg-red-50 p-3 rounded-xl border border-red-100 text-center">{error}</div>}
                   <div className="flex gap-3">
-                    <button onClick={() => setShowOTP(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all border border-slate-200 uppercase tracking-widest">Go Back</button>
-                    <button onClick={async () => { setLoading(true); try { await sendOTP(formData.mobile); } finally { setLoading(false); } }} className="flex-1 py-3 bg-teal-600 text-white rounded-xl font-bold text-xs hover:bg-teal-700 transition-all shadow-md shadow-teal-600/20 uppercase tracking-widest">Resend</button>
+                    <button onClick={() => setShowOTP(false)} className="flex-1 py-3 bg-slate-50 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-100 transition-all border border-slate-200 uppercase tracking-widest">Go Back</button>
+                    <button onClick={async () => { setLoading(true); try { await sendOTP(formData.mobile); } finally { setLoading(false); } }} className="flex-1 py-3 bg-teal-600 text-white rounded-xl font-bold text-xs hover:bg-teal-700 transition-all shadow-md shadow-teal-600/20 uppercase tracking-widest">Resend OTP</button>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </div>
-        <p className="mt-8 text-[10px] text-slate-400 text-center font-bold tracking-widest uppercase opacity-70">
-          KlydoCart Merchant Program
+        <p className="mt-8 text-[10px] text-slate-400 text-center font-bold tracking-widest uppercase">
+          KlydoCart Merchant Program • 2024
         </p>
       </motion.div>
     </div>

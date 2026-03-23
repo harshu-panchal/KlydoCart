@@ -8,9 +8,11 @@ import { useToast } from '../../context/ToastContext';
 import Button from '../../components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { calculateProductPrice } from '../../utils/priceUtils';
+import { useThemeContext } from '../../context/ThemeContext';
 
 export default function Wishlist() {
   const navigate = useNavigate();
+  const { currentTheme } = useThemeContext();
   const { location } = useLocation();
   const { addToCart } = useCart();
   const { showToast } = useToast();
@@ -57,11 +59,21 @@ export default function Wishlist() {
 
   return (
     <div className="pb-24 md:pb-8 bg-white min-h-screen">
-      <div className="px-4 py-4 bg-white border-b border-neutral-200 mb-4 sticky top-0 z-10 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-1">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      <div 
+        className="px-4 py-4 mb-4 sticky top-0 z-10 flex items-center relative shadow-md"
+        style={{
+          background: `linear-gradient(to right, ${currentTheme.primary[0]}, ${currentTheme.primary[1]})`,
+        }}
+      >
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute left-4 md:left-6 text-white hover:bg-white/20 p-1.5 rounded-full transition-colors flex-shrink-0 z-10"
+          aria-label="Back">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
-        <h1 className="text-xl font-bold text-neutral-900">My Wishlist</h1>
+        <h1 className="w-full text-center text-xl font-bold text-white">My Wishlist</h1>
       </div>
 
       <div className="px-4">

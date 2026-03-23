@@ -56,35 +56,38 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50/60 via-slate-50 to-teal-100/40 flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
-      {/* Background Blobs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-emerald-200/20 rounded-full blur-3xl animate-pulse" />
+      {/* Background Decorative Blobs behind the card */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 w-[30rem] h-[30rem] bg-emerald-200/20 rounded-full blur-3xl" />
 
-      {/* Admin Login Card */}
+      {/* Back Button REMOVED */}
+
+      {/* Login Card */}
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-[320px] relative z-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-[320px]"
       >
-        <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-teal-100 overflow-hidden">
+        <div className="bg-teal-50/70 backdrop-blur-lg rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-teal-100 overflow-hidden">
           {/* Header Section */}
-          <div className="bg-white/40 backdrop-blur-xl p-5 pb-6 flex flex-col items-center text-center relative border-b border-teal-100/50">
-            <div className="absolute top-[-20px] left-[-20px] w-32 h-32 bg-teal-50/50 rounded-full blur-2xl" />
-            <div className="absolute bottom-[-20px] right-[-20px] w-32 h-32 bg-emerald-50/50 rounded-full blur-2xl" />
+          <div className="bg-white/40 backdrop-blur-xl p-6 pb-8 flex flex-col items-center text-center relative border-b border-teal-100/50">
+            {/* Subtle decorative elements */}
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-50/50 rounded-full blur-2xl" />
+            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-yellow-50/50 rounded-full blur-2xl" />
             
             <div className="relative z-10 w-full flex flex-col items-center">
-              <div className="mb-3">
+              <div className="mb-4">
                 <img
                   src="/assets/login/KlydoCardLatest.png"
                   alt="KlydoCart"
-                  className="h-10 w-auto object-contain"
+                  className="h-12 w-auto object-contain"
                 />
               </div>
               <h1 className="text-xl font-black text-slate-800 tracking-tight">
                 Admin Panel
               </h1>
-              <p className="text-teal-600/70 text-[9px] font-black mt-1 tracking-[0.2em] uppercase">
-                System Controls Center
+              <p className="text-slate-500 text-[10px] font-medium mt-1">
+                Management & Operations
               </p>
             </div>
           </div>
@@ -101,12 +104,12 @@ export default function AdminLogin() {
                   className="space-y-4"
                 >
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider ml-1">
                       Mobile Number
                     </label>
-                    <div className="relative flex items-center bg-slate-50 rounded-xl border border-transparent focus-within:border-teal-500 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(20,184,166,0.1)] transition-all overflow-hidden">
-                      <div className="pl-3 pr-2 py-2 flex items-center border-r border-slate-100">
-                         <span className="text-teal-600 font-bold text-xs">+91</span>
+                    <div className="relative flex items-center bg-slate-50 rounded-xl border border-transparent focus-within:border-teal-500 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(20,184,166,0.1)] transition-all overflow-hidden group">
+                      <div className="pl-3 pr-2 py-2.5 flex items-center border-r border-slate-200 group-focus-within:border-teal-100 transition-colors">
+                         <span className="text-slate-600 font-bold text-xs">+91</span>
                       </div>
                       <input
                         type="tel"
@@ -117,7 +120,7 @@ export default function AdminLogin() {
                           )
                         }
                         placeholder="00000 00000"
-                        className="w-full px-3 py-2 bg-transparent text-slate-900 placeholder:text-slate-300 focus:outline-none text-sm font-bold"
+                        className="w-full px-3 py-2.5 bg-transparent text-slate-900 placeholder:text-slate-400 focus:outline-none text-sm font-bold"
                         maxLength={10}
                         disabled={loading}
                       />
@@ -128,7 +131,7 @@ export default function AdminLogin() {
                     <motion.div 
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
-                      className="text-[10px] font-medium text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-100 italic"
+                      className="text-[10px] font-medium text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-100"
                     >
                       {error}
                     </motion.div>
@@ -137,12 +140,20 @@ export default function AdminLogin() {
                   <button
                     onClick={handleMobileLogin}
                     disabled={mobileNumber.length !== 10 || loading}
-                    className={`w-full py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md active:scale-[0.98] ${
+                    className={`w-full py-3 rounded-xl font-bold text-xs transition-all shadow-lg active:scale-[0.98] ${
                       mobileNumber.length === 10 && !loading
-                        ? "bg-teal-600 text-white shadow-teal-600/20 hover:bg-teal-700"
+                        ? "bg-teal-600 text-white shadow-teal-600/20 hover:bg-teal-700 hover:shadow-teal-600/40"
                         : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
                     }`}>
-                    {loading ? "FETCHING OTP..." : "VERIFY & CONTINUE"}
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-3 w-3 text-current" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Sending...
+                      </span>
+                    ) : "Verify & Continue"}
                   </button>
                 </motion.div>
               ) : (
@@ -151,13 +162,13 @@ export default function AdminLogin() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-6"
+                  className="space-y-4"
                 >
                   <div className="text-center space-y-1">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">
-                      Verify Administrator
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Enter the 4-digit OTP sent to
                     </p>
-                    <p className="text-base font-black text-teal-900 tracking-tight">
+                    <p className="text-sm font-bold text-slate-900">
                       +91 {mobileNumber}
                     </p>
                   </div>
@@ -170,7 +181,7 @@ export default function AdminLogin() {
                     <motion.div 
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
-                      className="text-[10px] font-bold text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-100 text-center"
+                      className="text-[10px] font-medium text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-100 text-center"
                     >
                       {error}
                     </motion.div>
@@ -183,14 +194,14 @@ export default function AdminLogin() {
                         setError("");
                       }}
                       disabled={loading}
-                      className="flex-1 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all">
-                      Back
+                      className="flex-1 py-2.5 rounded-xl font-bold text-[10px] text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all border border-slate-200">
+                      Change
                     </button>
                     <button
                       onClick={handleMobileLogin}
                       disabled={loading}
-                      className="flex-1 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest text-white bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-600/20 transition-all text-center">
-                      Resend
+                      className="flex-1 py-2.5 rounded-xl font-bold text-[10px] text-white bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-600/20 transition-all">
+                      {loading ? "Re-sending..." : "Resend"}
                     </button>
                   </div>
                 </motion.div>
@@ -200,15 +211,10 @@ export default function AdminLogin() {
         </div>
 
         {/* Footer Text */}
-        <div className="mt-8 flex flex-col items-center gap-2">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping" />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Administrator Mode</span>
-          </div>
-          <p className="text-[9px] text-slate-300 text-center max-w-[200px] font-medium leading-relaxed uppercase tracking-widest">
-            Internal Access Only. IP Registered.
-          </p>
-        </div>
+        <p className="mt-8 text-[10px] text-slate-400 text-center font-medium leading-relaxed">
+          SECURE ADMINISTRATOR ACCESS<br />
+          By continuing, you agree to KlydoCart's Admin Terms of Service
+        </p>
       </motion.div>
     </div>
   );
