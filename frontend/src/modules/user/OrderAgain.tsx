@@ -1,12 +1,12 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import HomeHero from './components/HomeHero';
 import { useOrders } from '../../hooks/useOrders';
 import { useCart } from '../../context/CartContext';
 import { getProducts } from '../../services/api/customerProductService';
 import WishlistButton from '../../components/WishlistButton';
 import { calculateProductPrice } from '../../utils/priceUtils';
+import { useThemeContext } from '../../context/ThemeContext';
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -36,6 +36,7 @@ const getStatusColor = (status: string) => {
 
 export default function OrderAgain() {
   const { orders } = useOrders();
+  const { currentTheme } = useThemeContext();
   const { cart, addToCart, updateQuantity } = useCart();
   const navigate = useNavigate();
   const [addedOrders, setAddedOrders] = useState<Set<string>>(new Set());
@@ -108,13 +109,38 @@ export default function OrderAgain() {
   return (
     <div className="pb-4">
       {/* BESSELLERS SECTION REMOVED - If you see this comment, new code is loaded */}
-      {/* Header - Same as Home page */}
-      <HomeHero />
+      {/* Global Theme Context */}
+      <div 
+        className="pb-2 pt-6 shadow-md relative overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, ${currentTheme?.primary?.[0] || '#0d9488'}, ${currentTheme?.primary?.[1] || '#0f766e'})`,
+        }}
+      >
+        {/* Decorative background element */}
+        <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-40 h-40 bg-black/5 rounded-full blur-3xl" />
+
+        <div className="px-4 md:px-6 lg:px-8 relative z-10">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-white hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95 flex-shrink-0 bg-white/10 backdrop-blur-sm"
+              aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18L9 12L15 6" />
+              </svg>
+            </button>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-black text-white tracking-tight">Your Previous Order</h1>
+              <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-0.5">Quick Reorder Portal</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Orders Section - Show when orders exist */}
       {hasOrders && (
         <div className="px-4 mt-2 mb-2">
-          <h2 className="text-sm font-semibold text-neutral-900 mb-2">Your Previous Orders</h2>
           <div className="space-y-1.5">
             {orders.map((order) => {
               const shortId = order.id.split('-').slice(-1)[0];

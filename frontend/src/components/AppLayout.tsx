@@ -324,8 +324,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </AnimatePresence>
           </main>
 
-          {/* Floating Cart Pill */}
-          <FloatingCartPill />
+          {/* Floating Cart Pill - Hidden on Order Again page */}
+          {location.pathname !== '/order-again' && <FloatingCartPill />}
             </>
           )}
 
