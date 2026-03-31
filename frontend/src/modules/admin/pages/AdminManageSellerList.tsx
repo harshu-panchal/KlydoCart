@@ -15,6 +15,7 @@ interface Seller {
     balance: number;
     commission: number;
     categories: string[];
+    categoryCount: number;
     status: 'Approved' | 'Pending' | 'Rejected';
     needApproval: boolean;
     // Additional fields from signup
@@ -56,6 +57,7 @@ const mapSellerToFrontend = (seller: SellerType): Seller => {
         balance: seller.balance || 0,
         commission: seller.commission || 0,
         categories: seller.categories || [],
+        categoryCount: seller.categoryCount || 0,
         status: seller.status,
         needApproval: seller.status === 'Pending',
         category: seller.category,
@@ -502,7 +504,7 @@ export default function AdminManageSellerList() {
                                             </div>
                                         </th>
                                         <th className="p-4">
-                                            Category
+                                            Categories
                                         </th>
                                         <th
                                             className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors"
@@ -551,13 +553,16 @@ export default function AdminManageSellerList() {
                                             <td className="p-4 align-middle">
                                                 <button
                                                     onClick={() => handleViewCategories(seller)}
-                                                    className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium rounded transition-colors flex items-center gap-1"
+                                                    className="px-3 py-1.5 bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 group"
                                                 >
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                                        <circle cx="12" cy="12" r="3"></circle>
+                                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-teal-600 text-[10px] text-white font-bold group-hover:scale-110 transition-transform">
+                                                        {seller.categoryCount || seller.categories.length}
+                                                    </span>
+                                                    <span>View Details</span>
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">
+                                                        <path d="M5 12h14"></path>
+                                                        <path d="M12 5l7 7-7 7"></path>
                                                     </svg>
-                                                    View ({seller.categories.length})
                                                 </button>
                                             </td>
                                             <td className="p-4 align-middle">
@@ -715,17 +720,14 @@ export default function AdminManageSellerList() {
                         {/* Modal Body */}
                         <div className="p-6 overflow-y-auto flex-1">
                             {selectedSeller.categories.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="flex flex-wrap gap-2">
                                     {selectedSeller.categories.map((category, index) => (
                                         <div
                                             key={index}
-                                            className="flex items-center gap-2 px-4 py-3 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 border border-teal-100 rounded-full text-teal-700 text-xs font-bold shadow-sm"
                                         >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-teal-600 flex-shrink-0">
-                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                            </svg>
-                                            <span className="text-sm font-medium text-teal-900">{category}</span>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+                                            {category}
                                         </div>
                                     ))}
                                 </div>

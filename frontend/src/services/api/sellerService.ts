@@ -16,6 +16,7 @@ export interface Seller {
   balance: number;
   commission: number;
   categories: string[];
+  categoryCount?: number;
   status: "Approved" | "Pending" | "Rejected";
   category?: string;
   address?: string;

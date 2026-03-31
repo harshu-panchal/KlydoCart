@@ -264,6 +264,12 @@ const AdminProfile = lazy(() => import("./modules/admin/pages/AdminProfile"));
 const AdminBillingSettings = lazy(
   () => import("./modules/admin/pages/AdminBillingSettings"),
 );
+const SellerList = lazy(
+  () => import("./modules/admin/pages/sellers/SellerList"),
+);
+const SellerDetails = lazy(
+  () => import("./modules/admin/pages/sellers/SellerDetails"),
+);
 
 import { initializePushNotifications, setupForegroundNotificationHandler, registerFCMToken } from "./services/pushNotificationService";
 
@@ -565,6 +571,14 @@ function AppContent() {
                                     <Route
                                       path="manage-seller/list"
                                       element={<AdminManageSellerList />}
+                                    />
+                                    <Route
+                                      path="sellers"
+                                      element={<SellerList />}
+                                    />
+                                    <Route
+                                      path="sellers/:sellerId"
+                                      element={<SellerDetails />}
                                     />
                                     <Route
                                       path="manage-seller/transaction"

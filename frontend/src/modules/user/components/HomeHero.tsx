@@ -359,27 +359,21 @@ export default function HomeHero({
       <div>
         <div
           ref={topSectionRef}
-          className="px-4 md:px-6 lg:px-8 pt-2 md:pt-3 pb-0">
-          <div className="flex items-start justify-between mb-2 md:mb-2">
+          className="px-4 md:px-6 lg:px-8 pt-4 md:pt-5 pb-2">
+          <div className="flex items-center justify-between">
             {/* Left: Text content */}
-            <div className="flex-1 pr-2">
-              {/* Service name - small, dark */}
-              <div className="text-neutral-800 font-medium text-[10px] md:text-xs mb-0 leading-tight">
+            <div className="flex-1">
+              <h1 className="text-neutral-900 font-extrabold text-xl md:text-2xl tracking-tight leading-tight">
                 KlydoCart E-Commerce
-              </div>
-              {/* Delivery time - large, bold, dark grey/black */}
-              <div className="text-neutral-900 font-extrabold text-2xl md:text-xl mb-0 md:mb-0.5 leading-tight">
-                {appConfig.estimatedDeliveryTime}
-              </div>
-              {/* Location with dropdown indicator - only show if location is provided */}
+              </h1>
               {locationDisplayText && (
-                <div className="text-neutral-700 text-[10px] md:text-xs flex items-center gap-0.5 leading-tight">
+                <div className="text-neutral-800 text-[10px] md:text-xs flex items-center gap-1 mt-1 opacity-90">
                   <span className="line-clamp-1" title={locationDisplayText}>
                     {locationDisplayText}
                   </span>
                   <svg
-                    width="10"
-                    height="10"
+                    width="12"
+                    height="12"
                     viewBox="0 0 24 24"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
@@ -387,13 +381,24 @@ export default function HomeHero({
                     <path
                       d="M6 9l6 6 6-6"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                   </svg>
                 </div>
               )}
+            </div>
+            
+            {/* Right: Logo */}
+            <div className="flex-shrink-0 ml-4 relative -top-3 md:-top-4">
+              <div className="bg-white/20 backdrop-blur-md p-1.5 rounded-xl border border-white/30 shadow-lg transition-transform hover:scale-105 active:scale-95 duration-300">
+                <img 
+                  src="/assets/login/KlydoCardLatest.png" 
+                  alt="KlydoCart Logo" 
+                  className="h-12 w-12 md:h-14 md:w-14 object-contain drop-shadow-xl" 
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -461,13 +466,12 @@ export default function HomeHero({
                 return (
                   <div
                     key={suggestion}
-                    className={`absolute inset-0 flex items-center transition-all duration-500 ${
-                      isActive
+                    className={`absolute inset-0 flex items-center transition-all duration-500 ${isActive
                         ? "translate-y-0 opacity-100"
                         : isPrev
                           ? "-translate-y-full opacity-0"
                           : "translate-y-full opacity-0"
-                    }`}>
+                      }`}>
                     <span
                       className={`text-xs md:text-xs`}
                       style={{

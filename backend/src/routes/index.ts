@@ -31,6 +31,7 @@ import customerCartRoutes from "./customerCartRoutes";
 import wishlistRoutes from "./wishlistRoutes";
 import productReviewRoutes from "./productReviewRoutes";
 import adminRoutes from "./adminRoutes";
+import adminSellerManagementRoutes from "./adminSellerManagementRoutes";
 import customerTrackingRoutes from "../modules/customer/routes/trackingRoutes";
 import deliveryTrackingRoutes from "../modules/delivery/routes/trackingRoutes";
 import customerBannerRoutes from "./customerBannerRoutes";
@@ -129,6 +130,7 @@ router.use("/banners", customerBannerRoutes);
 
 // Admin routes (protected, admin only)
 router.use("/admin", adminRoutes);
+router.use("/admin/sellers-manage", authenticate, requireUserType("Admin"), adminSellerManagementRoutes);
 router.use("/admin", adminWithdrawalRoutes);
 
 // Upload routes (protected)
