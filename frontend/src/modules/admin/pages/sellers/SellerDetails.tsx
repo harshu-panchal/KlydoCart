@@ -73,7 +73,13 @@ export default function SellerDetails() {
     if (loading) return <div className="p-12 text-center text-neutral-500">Loading details...</div>;
     if (!seller) return <div className="p-12 text-center text-red-500">Seller not found</div>;
 
-    const uniqueCategories = Array.from(new Set(products.map(p => p.category?.name))).filter(Boolean);
+    const uniqueCategories = [
+        ...new Set([
+            ...(categories || []).map(c => c.name),
+            ...products.map(p => p.category?.name)
+        ])
+    ].filter(Boolean);
+
     const filteredProducts = activeTab === 'all' 
         ? products 
         : products.filter(p => p.category?.name === activeTab);

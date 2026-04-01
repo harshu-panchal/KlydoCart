@@ -165,6 +165,7 @@ export default function ProductModal({ isOpen, onClose, sellerId, product, categ
                                     onChange={handleChange}
                                     className="w-full px-4 py-2 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all"
                                     placeholder="Enter product name"
+                                    autoComplete="off"
                                 />
                             </div>
 

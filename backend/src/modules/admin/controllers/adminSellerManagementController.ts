@@ -49,8 +49,47 @@ export const getSellerDetails = asyncHandler(async (req: Request, res: Response)
         .populate("category", "name")
         .sort({ category: 1, productName: 1 });
 
-    // Fetch top-level parent categories for product form
-    const categories = await Category.find({ status: "Active", parentId: null }).select("name");
+    // Fetch categories selected by the seller
+    const sellerCategories = seller.categories || [];
+    const usedCategoryIds = await Product.distinct("category", { seller: id });
+    
+    let categoryQuery: any = { status: "Active" };
+    
+    const hasSelections = sellerCategories.length > 0 || seller.category || usedCategoryIds.length > 0;
+
+    if (hasSelections) {
+        const matchCriteria: any[] = [];
+        
+        if (sellerCategories.length > 0) {
+            matchCriteria.push({ name: { $in: sellerCategories } });
+            const validIds = sellerCategories.filter(id => mongoose.Types.ObjectId.isValid(id));
+            if (validIds.length > 0) matchCriteria.push({ _id: { $in: validIds } });
+        }
+        
+        if (seller.category) {
+            matchCriteria.push({ name: seller.category });
+            if (mongoose.Types.ObjectId.isValid(seller.category)) {
+                matchCriteria.push({ _id: seller.category });
+            }
+        }
+        
+        if (usedCategoryIds.length > 0) {
+            matchCriteria.push({ _id: { $in: usedCategoryIds } });
+        }
+
+        categoryQuery.$or = matchCriteria;
+    } else {
+        // Return empty list if no categories selected and no products yet
+        categoryQuery._id = { $in: [] };
+    }
+
+    const categories = await Category.find(categoryQuery).select("name parentId");
+    
+    // If the categories found are subcategories, we should include their parents too
+    // or just return the list as is if that's what the user wants.
+    // The previous request said "Category Selection", which usually top-level.
+    // Let's filter to only those that are either parent categories OR are the ones explicitly used.
+    // BUT to keep it simple and fulfill "wahi categories", we'll return all unique ones found.
 
     return res.status(200).json({
         success: true,
