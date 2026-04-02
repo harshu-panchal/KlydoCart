@@ -359,12 +359,12 @@ export default function HomeHero({
       <div>
         <div
           ref={topSectionRef}
-          className="px-4 md:px-6 lg:px-8 pt-4 md:pt-5 pb-2">
+          className="px-4 md:px-6 lg:px-8 pt-2 md:pt-3 pb-2">
           <div className="flex items-center justify-between">
             {/* Left: Text content */}
             <div className="flex-1">
               <h1 className="text-neutral-900 font-extrabold text-xl md:text-2xl tracking-tight leading-tight">
-                KlydoCart E-Commerce
+                KlydoCart
               </h1>
               {locationDisplayText && (
                 <div className="text-neutral-800 text-[10px] md:text-xs flex items-center gap-1 mt-1 opacity-90">
@@ -391,18 +391,16 @@ export default function HomeHero({
             </div>
             
             {/* Right: Logo */}
-            <div className="flex-shrink-0 ml-4 relative -top-3 md:-top-4">
-              <div className="bg-white/20 backdrop-blur-md p-1.5 rounded-xl border border-white/30 shadow-lg transition-transform hover:scale-105 active:scale-95 duration-300">
+            <div className="flex-shrink-0 ml-4 transition-transform hover:scale-105 active:scale-95 duration-300">
                 <img 
                   src="/assets/login/KlydoCardLatest.png" 
                   alt="KlydoCart Logo" 
-                  className="h-12 w-12 md:h-14 md:w-14 object-contain drop-shadow-xl" 
+                  className="h-12 w-12 md:h-14 md:w-14 object-contain" 
                 />
               </div>
-            </div>
-          </div>
         </div>
       </div>
+    </div>
 
       {/* Sticky section: Search Bar and Category Tabs - Always sticky */}
       <div

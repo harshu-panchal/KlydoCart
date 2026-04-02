@@ -70,7 +70,7 @@ export default function AdminLogin() {
       >
         <div className="bg-teal-50/70 backdrop-blur-lg rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-teal-100 overflow-hidden">
           {/* Header Section */}
-          <div className="bg-white/40 backdrop-blur-xl p-6 pb-8 flex flex-col items-center text-center relative border-b border-teal-100/50">
+          <div className="p-6 pb-8 flex flex-col items-center text-center relative">
             {/* Subtle decorative elements */}
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-50/50 rounded-full blur-2xl" />
             <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-yellow-50/50 rounded-full blur-2xl" />

@@ -82,7 +82,7 @@ export default function SellerLogin() {
       >
         <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-teal-100 overflow-hidden">
           {/* Header Section */}
-          <div className="bg-white/40 backdrop-blur-xl p-5 pb-6 flex flex-col items-center text-center relative border-b border-teal-100/50">
+          <div className="p-5 pb-6 flex flex-col items-center text-center relative">
             {/* Subtle decorative elements */}
             <div className="absolute top-[-20px] left-[-20px] w-32 h-32 bg-blue-50/50 rounded-full blur-2xl" />
             <div className="absolute bottom-[-20px] right-[-20px] w-32 h-32 bg-yellow-50/50 rounded-full blur-2xl" />

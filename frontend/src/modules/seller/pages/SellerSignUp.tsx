@@ -214,7 +214,7 @@ export default function SellerSignUp() {
       >
         <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(13,148,136,0.1)] border border-teal-100 overflow-hidden">
           {/* Header Section */}
-          <div className="bg-gradient-to-b from-teal-50/50 to-transparent p-6 pb-4 flex flex-col items-center text-center relative border-b border-teal-50">
+          <div className="p-6 pb-4 flex flex-col items-center text-center relative">
             {/* Ambient glows */}
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-teal-200/20 rounded-full blur-3xl" />
 
