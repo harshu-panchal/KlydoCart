@@ -857,7 +857,7 @@ export default function OrderDetail() {
               <ArrowLeftIcon className="w-6 h-6" />
             </motion.button>
           </Link>
-          <h2 className="font-semibold text-lg">KlydoCart</h2>
+          <h2 className="font-semibold text-lg uppercase">KLYDO CART</h2>
           <motion.button
             className="w-10 h-10 flex items-center justify-center"
             whileTap={{ scale: 0.9 }}

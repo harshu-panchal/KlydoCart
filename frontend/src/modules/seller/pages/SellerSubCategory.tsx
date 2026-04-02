@@ -83,8 +83,24 @@ export default function SellerSubCategory() {
         </span>
     );
 
+    // Helper to generate pagination numbers with a sliding window of 5
+    const getPageNumbers = () => {
+        const pages = [];
+        let start = Math.max(1, currentPage - 2);
+        let end = Math.min(displayTotalPages, start + 4);
+
+        if (end - start < 4) {
+            start = Math.max(1, end - 4);
+        }
+
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+        return pages;
+    };
+
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full max-w-full overflow-hidden">
             {/* Page Header */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-semibold text-neutral-800">View SubCategory</h1>
@@ -120,54 +136,54 @@ export default function SellerSubCategory() {
                 </div>
 
                 {/* Pagination Footer */}
-                {totalPages > 1 && (
-                    <div className="p-4 border-t border-neutral-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-                        <div className="text-sm text-neutral-600">
-                            Showing {startIndex + 1} to {Math.min(endIndex, sortedSubcategories.length)} of {sortedSubcategories.length} entries
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                disabled={currentPage === 1}
-                                className={`p-2 border border-teal-600 rounded ${
-                                    currentPage === 1
-                                        ? 'text-neutral-400 cursor-not-allowed bg-neutral-50'
-                                        : 'text-teal-600 hover:bg-teal-50'
-                                }`}
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </button>
-                            {Array.from({ length: displayTotalPages }, (_, i) => i + 1).map(page => (
+                <div className="px-4 py-3 border-t border-neutral-200 flex flex-wrap items-center justify-between gap-4">
+                    <div className="text-sm text-neutral-700">
+                        Showing {(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, sortedSubcategories.length)} of {sortedSubcategories.length} entries
+                    </div>
+                    <div className="flex items-center gap-1 sm:gap-2 mr-2 sm:mr-4">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded transition-all duration-200 ${
+                                currentPage === 1
+                                    ? 'text-neutral-300 cursor-not-allowed bg-transparent'
+                                    : 'text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100'
+                            }`}
+                            aria-label="Previous page"
+                        >
+                            <span className="text-xl leading-none">←</span>
+                            <span className="text-sm font-medium">Previous</span>
+                        </button>
+                        <div className="flex items-center">
+                            {getPageNumbers().map((page) => (
                                 <button
-                                    key={page}
-                                    onClick={() => setCurrentPage(page)}
-                                    className={`px-3 py-1.5 border border-teal-600 rounded font-medium text-sm ${
+                                    key={`page-${page}`}
+                                    onClick={() => setCurrentPage(Number(page))}
+                                    className={`min-w-[32px] h-8 sm:h-9 flex items-center justify-center rounded font-bold text-xs sm:text-sm transition-all duration-200 ${
                                         currentPage === page
-                                            ? 'bg-teal-600 text-white'
-                                            : 'text-teal-600 hover:bg-teal-50'
+                                            ? "bg-[#E24C4C] text-white shadow-sm"
+                                            : "text-neutral-800 hover:bg-neutral-100"
                                     }`}
                                 >
                                     {page}
                                 </button>
                             ))}
-                            <button
-                                onClick={() => setCurrentPage(prev => Math.min(displayTotalPages, prev + 1))}
-                                disabled={currentPage === displayTotalPages}
-                                className={`p-2 border border-teal-600 rounded ${
-                                    currentPage === displayTotalPages
-                                        ? 'text-neutral-400 cursor-not-allowed bg-neutral-50'
-                                        : 'text-teal-600 hover:bg-teal-50'
-                                }`}
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </button>
                         </div>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(displayTotalPages, prev + 1))}
+                            disabled={currentPage === displayTotalPages || displayTotalPages === 0}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded transition-all duration-200 ${
+                                currentPage === displayTotalPages || displayTotalPages === 0
+                                    ? 'text-neutral-300 cursor-not-allowed bg-transparent'
+                                    : 'text-neutral-900 bg-neutral-100 hover:bg-neutral-200 font-medium'
+                            }`}
+                            aria-label="Next page"
+                        >
+                            <span className="text-sm font-medium">Next</span>
+                            <span className="text-xl leading-none">→</span>
+                        </button>
                     </div>
-                )}
+                </div>
 
                 {/* Loading and Error States */}
                 {loading && (

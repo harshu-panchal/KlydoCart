@@ -25,7 +25,7 @@ export const getAllSellers = asyncHandler(async (_req: Request, res: Response) =
             _id: { $in: uniqueCategoryIds } 
         }).select("name");
 
-        return {
+        return { 
             ...seller.toObject(),
             categoryCount: uniqueCategoryIds.length,
             categories: categoryNames.map(c => c.name)

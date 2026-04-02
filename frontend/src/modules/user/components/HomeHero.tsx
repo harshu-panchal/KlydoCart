@@ -363,8 +363,8 @@ export default function HomeHero({
           <div className="flex items-center justify-between">
             {/* Left: Text content */}
             <div className="flex-1">
-              <h1 className="text-neutral-900 font-extrabold text-xl md:text-2xl tracking-tight leading-tight">
-                KlydoCart
+              <h1 className="text-neutral-900 font-black text-2xl md:text-3xl tracking-tighter leading-tight uppercase">
+                KLYDO CART
               </h1>
               {locationDisplayText && (
                 <div className="text-neutral-800 text-[10px] md:text-xs flex items-center gap-1 mt-1 opacity-90">
@@ -394,8 +394,8 @@ export default function HomeHero({
             <div className="flex-shrink-0 ml-4 transition-transform hover:scale-105 active:scale-95 duration-300">
                 <img 
                   src="/assets/login/KlydoCardLatest.png" 
-                  alt="KlydoCart Logo" 
-                  className="h-12 w-12 md:h-14 md:w-14 object-contain" 
+                  alt="KLYDO CART Logo" 
+                  className="h-16 w-16 md:h-20 md:w-20 object-contain" 
                 />
               </div>
         </div>
