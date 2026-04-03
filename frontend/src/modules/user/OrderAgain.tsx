@@ -40,6 +40,8 @@ export default function OrderAgain() {
   const { cart, addToCart, updateQuantity } = useCart();
   const navigate = useNavigate();
   const [addedOrders, setAddedOrders] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
 
   // Handle "Order Again" - Add all items from an order to cart
   const handleOrderAgain = (order: any, e: React.MouseEvent) => {
@@ -106,6 +108,28 @@ export default function OrderAgain() {
 
   const hasOrders = orders && orders.length > 0;
 
+  // Pagination Logic
+  const totalOrders = orders?.length || 0;
+  const displayTotalPages = Math.ceil(totalOrders / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = Math.min(startIndex + rowsPerPage, totalOrders);
+  const displayedOrders = orders?.slice(startIndex, endIndex) || [];
+
+  const getPageNumbers = () => {
+    const pages = [];
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(displayTotalPages, start + 4);
+
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+
+    for (let i = start; i <= end; i++) {
+        pages.push(i);
+    }
+    return pages;
+  };
+
   return (
     <div className="pb-4">
       {/* BESSELLERS SECTION REMOVED - If you see this comment, new code is loaded */}
@@ -142,7 +166,7 @@ export default function OrderAgain() {
       {hasOrders && (
         <div className="px-4 mt-2 mb-2">
           <div className="space-y-1.5">
-            {orders.map((order) => {
+            {displayedOrders.map((order) => {
               const shortId = order.id.split('-').slice(-1)[0];
               const previewItems = order.items.slice(0, 3);
 
@@ -223,6 +247,57 @@ export default function OrderAgain() {
               );
             })}
           </div>
+
+          {/* Pagination Footer */}
+          {displayTotalPages > 1 && (
+            <div className="mt-4 px-2 py-4 border-t border-neutral-100 flex flex-col items-center gap-4">
+              <div className="text-[11px] text-neutral-500 font-medium">
+                Showing {startIndex + 1} to {endIndex} of {totalOrders} entries
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className={`flex items-center gap-0.5 px-2 py-1.5 rounded transition-all duration-200 ${
+                    currentPage === 1
+                      ? "text-neutral-300 cursor-not-allowed bg-transparent"
+                      : "text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100"
+                  }`}
+                  aria-label="Previous page">
+                  <span className="text-lg leading-none">←</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Previous</span>
+                </button>
+                <div className="flex items-center gap-1">
+                  {getPageNumbers().map((page) => (
+                    <button
+                      key={`page-${page}`}
+                      onClick={() => setCurrentPage(Number(page))}
+                      className={`min-w-[28px] h-7 flex items-center justify-center rounded font-black text-[11px] transition-all duration-200 ${
+                        currentPage === page
+                          ? "bg-[#E24C4C] text-white shadow-md scale-110"
+                          : "text-neutral-600 hover:bg-neutral-100"
+                      }`}>
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(displayTotalPages, prev + 1))
+                  }
+                  disabled={currentPage >= displayTotalPages}
+                  className={`flex items-center gap-0.5 px-2 py-1.5 rounded transition-all duration-200 ${
+                    currentPage >= displayTotalPages
+                      ? "text-neutral-300 cursor-not-allowed bg-transparent"
+                      : "text-neutral-900 bg-neutral-100 hover:bg-neutral-200 font-bold uppercase tracking-wider"
+                  }`}
+                  aria-label="Next page">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Next</span>
+                  <span className="text-lg leading-none">→</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
