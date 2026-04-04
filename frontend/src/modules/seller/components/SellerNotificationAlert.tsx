@@ -37,7 +37,12 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
       // Play sound when notification arrives
       if (audioRef.current) {
         audioRef.current.volume = volume;
-        audioRef.current.play().catch(err => console.error('Error playing sound:', err));
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(err => {
+             console.warn('Browser blocked autoplay sound. User interaction required.', err);
+          });
+        }
       }
     }
   }, [notification]);

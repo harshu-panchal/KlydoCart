@@ -81,7 +81,7 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
         return () => {
             newSocket.disconnect();
         };
-    }, [isAuthenticated, token, user?.id, user?.userType]);
+    }, [isAuthenticated, token, user?.id, user?.userType, onNotificationReceived]);
 
     return { socket, isConnected };
 };

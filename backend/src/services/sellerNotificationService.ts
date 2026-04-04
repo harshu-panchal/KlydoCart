@@ -20,8 +20,14 @@ export async function notifySellersOfOrderUpdate(
         // If items are populated, we can get them directly, otherwise we need to query
         let orderItems = order.items;
 
-        // If items are just IDs, fetch the full OrderItem details to get seller IDs
-        if (orderItems.length > 0 && typeof orderItems[0] === 'string' || orderItems[0] instanceof mongoose.Types.ObjectId) {
+        // If items are just IDs or don't have seller info (common with lean objects), fetch the full OrderItem details
+        const isIdOnly = orderItems.length > 0 && (
+            typeof orderItems[0] === 'string' || 
+            orderItems[0] instanceof mongoose.Types.ObjectId ||
+            !orderItems[0].seller
+        );
+
+        if (isIdOnly) {
             orderItems = await OrderItem.find({ order: order._id });
         }
 
