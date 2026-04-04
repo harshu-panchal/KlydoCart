@@ -3,7 +3,6 @@ import { asyncHandler } from "../../../utils/asyncHandler";
 import Seller from "../../../models/Seller";
 import Product from "../../../models/Product";
 import Category from "../../../models/Category";
-import Shop from "../../../models/Shop";
 import mongoose from "mongoose";
 
 /**
