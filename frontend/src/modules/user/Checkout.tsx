@@ -109,7 +109,7 @@ export default function Checkout() {
 
   // Check if user has placeholder data (needs profile completion)
   const isPlaceholderUser =
-    user?.name === "User" || user?.email?.endsWith("@kosil.temp");
+    user?.name === "User" || user?.email?.endsWith("@klydocart.temp");
 
   // Redirect if empty
   useEffect(() => {
@@ -398,7 +398,7 @@ export default function Checkout() {
     if (!bypassProfileCheck && isPlaceholderUser) {
       setProfileFormData({
         name: user?.name === "User" ? "" : user?.name || "",
-        email: user?.email?.endsWith("@kosil.temp") ? "" : user?.email || "",
+        email: user?.email?.endsWith("@klydocart.temp") ? "" : user?.email || "",
       });
       setShowProfileModal(true);
       return;
@@ -2134,7 +2134,7 @@ export default function Checkout() {
                 </h3>
                 <p>
                   For any cancellation requests or queries, please contact our
-                  customer support team at support@kosil.com or call
+                  customer support team at support@klydocart.com or call
                   +91-XXXXX-XXXXX
                 </p>
               </div>

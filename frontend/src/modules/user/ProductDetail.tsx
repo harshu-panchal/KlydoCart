@@ -508,8 +508,8 @@ export default function ProductDetail() {
                         setTimeout(() => setIsTransitioning(false), 300);
                       }}
                       className={`w-2 h-2 rounded-full transition-all ${index === selectedImageIndex
-                          ? "bg-white w-6"
-                          : "bg-white/50 hover:bg-white/75"
+                        ? "bg-white w-6"
+                        : "bg-white/50 hover:bg-white/75"
                         }`}
                       aria-label={`Go to image ${index + 1}`}
                     />
@@ -553,8 +553,8 @@ export default function ProductDetail() {
                       setTimeout(() => setIsTransitioning(false), 300);
                     }}
                     className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${index === selectedImageIndex
-                        ? "border-green-600 ring-2 ring-green-200"
-                        : "border-neutral-200 hover:border-neutral-300"
+                      ? "border-green-600 ring-2 ring-green-200"
+                      : "border-neutral-200 hover:border-neutral-300"
                       }`}>
                     <img
                       src={image}
@@ -626,10 +626,10 @@ export default function ProductDetail() {
                       onClick={() => setSelectedVariantIndex(index)}
                       disabled={isOutOfStock}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border-2 ${isSelected
-                          ? "border-green-600 bg-green-50 text-green-700"
-                          : isOutOfStock
-                            ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                            : "border-neutral-300 bg-white text-neutral-700 hover:border-green-500 hover:bg-green-50"
+                        ? "border-green-600 bg-green-50 text-green-700"
+                        : isOutOfStock
+                          ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                          : "border-neutral-300 bg-white text-neutral-700 hover:border-green-500 hover:bg-green-50"
                         }`}>
                       {variantTitle}
                       {isOutOfStock && (
@@ -943,7 +943,7 @@ export default function ProductDetail() {
                         Customer Care Details:
                       </span>
                       <span className="text-xs text-neutral-600">
-                        Email: help@kosil.com
+                        Email: help@klydocart.com
                       </span>
                     </div>
                     <div className="flex items-start">
@@ -1345,9 +1345,9 @@ export default function ProductDetail() {
                       (!isVariantAvailable && variantStock !== 0)
                     }
                     className={`px-6 py-2 text-sm font-semibold h-[36px] ${!isAvailableAtLocation ||
-                        (!isVariantAvailable && variantStock !== 0)
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
+                      (!isVariantAvailable && variantStock !== 0)
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
                       }`}
                     title={
                       !isAvailableAtLocation

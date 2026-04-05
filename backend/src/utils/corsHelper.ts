@@ -29,11 +29,11 @@ export const isOriginAllowed = (origin: string | undefined): boolean => {
       .map((url) => url.trim().replace(/\/$/, '')) // Remove trailing slashes
       .filter((url) => url.length > 0);
 
-    // Default production origins (explicitly include www.kosil.com)
+    // Default production origins (explicitly include www.klydocart.com)
     const defaultOrigins = [
-      'https://www.kosil.com',
-      'https://kosil.com',
-      'https://kosil-frontend.onrender.com',
+      'https://www.klydocart.com',
+      'https://klydocart.com',
+      'https://klydocart-frontend.onrender.com',
     ];
 
     // Combine and remove duplicates

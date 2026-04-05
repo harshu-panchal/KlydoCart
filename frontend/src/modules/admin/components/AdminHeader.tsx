@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import kosilLogo from "@assets/login/KlydoCardLatest.png";
+import klydocartLogo from "@assets/login/KlydoCardLatest.png";
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -90,12 +90,12 @@ export default function AdminHeader({
               </svg>
             )}
           </button>
-          {/* Kosil Logo */}
+          {/* klydocart Logo */}
           <button
             onClick={handleLogoClick}
             className="hover:opacity-80 transition-opacity">
             <img
-              src={kosilLogo}
+              src={klydocartLogo}
               alt="KLYDO CART"
               className="h-14 sm:h-16 w-auto object-contain cursor-pointer"
               style={{ maxWidth: "240px" }}
@@ -107,29 +107,26 @@ export default function AdminHeader({
         <div className="hidden md:flex items-center gap-4 lg:gap-6">
           <button
             onClick={() => navigate("/admin/orders")}
-            className={`relative px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors ${
-              isActive("/admin/orders")
+            className={`relative px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors ${isActive("/admin/orders")
                 ? "text-neutral-900"
                 : "text-neutral-600 hover:text-neutral-900"
-            }`}>
+              }`}>
             Orders
           </button>
           <button
             onClick={() => navigate("/admin/customers")}
-            className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-              isActive("/admin/customers")
+            className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${isActive("/admin/customers")
                 ? "text-neutral-900"
                 : "text-neutral-600 hover:text-neutral-900"
-            }`}>
+              }`}>
             Manage Customer
           </button>
           <button
             onClick={() => navigate("/admin/collect-cash")}
-            className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-              isActive("/admin/collect-cash")
+            className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${isActive("/admin/collect-cash")
                 ? "text-neutral-900"
                 : "text-neutral-600 hover:text-neutral-900"
-            }`}>
+              }`}>
             Collect Cash
           </button>
         </div>

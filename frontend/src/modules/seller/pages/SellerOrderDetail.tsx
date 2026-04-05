@@ -33,8 +33,8 @@ export default function SellerOrderDetail() {
       } catch (err: any) {
         setError(
           err.response?.data?.message ||
-            err.message ||
-            "Failed to fetch order details"
+          err.message ||
+          "Failed to fetch order details"
         );
       } finally {
         setLoading(false);
@@ -176,9 +176,9 @@ export default function SellerOrderDetail() {
     yPos += 6;
     doc.text("Phone: 8956656429", margin, yPos);
     yPos += 6;
-    doc.text("Email: info@kosil.com", margin, yPos);
+    doc.text("Email: info@klydocart.com", margin, yPos);
     yPos += 6;
-    doc.text("Website: https://kosil.com", margin, yPos);
+    doc.text("Website: https://klydocart.com", margin, yPos);
     yPos += 12;
 
     // Invoice Details (Right aligned)
@@ -537,11 +537,11 @@ export default function SellerOrderDetail() {
                   <span className="font-medium">Phone:</span> 8956656429
                 </div>
                 <div>
-                  <span className="font-medium">Email:</span> info@kosil.com
+                  <span className="font-medium">Email:</span> info@klydocart.com
                 </div>
                 <div>
                   <span className="font-medium">Website:</span>{" "}
-                  https://kosil.com
+                  https://klydocart.com
                 </div>
               </div>
             </div>

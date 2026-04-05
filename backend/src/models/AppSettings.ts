@@ -127,7 +127,7 @@ const AppSettingsSchema = new Schema<IAppSettings>(
     appName: {
       type: String,
       required: [true, "App name is required"],
-      default: "Kosil",
+      default: "klydocart",
       trim: true,
     },
     appLogo: {
@@ -402,8 +402,8 @@ AppSettingsSchema.statics.getSettings = async function (this: mongoose.Model<IAp
   let settings = await this.findOne();
   if (!settings) {
     settings = await this.create({
-      appName: "Kosil",
-      contactEmail: "contact@kosil.com",
+      appName: "klydocart",
+      contactEmail: "contact@klydocart.com",
       contactPhone: "1234567890",
     });
   }

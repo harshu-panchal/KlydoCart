@@ -22,7 +22,7 @@ function log(msg: any) {
 }
 
 // --- Configuration ---
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/kosil";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/klydocart";
 const FRONTEND_ASSETS_PATH = path.join(__dirname, "../../../frontend/assets");
 const PRODUCT_IMAGES_PATH = path.join(
   FRONTEND_ASSETS_PATH,
@@ -124,9 +124,9 @@ function findBestMatchProducts(
     nameWords.length > 0
       ? nameWords
       : subSubcategoryName
-          .toLowerCase()
-          .split(/[^a-z0-9]+/)
-          .filter((w) => w.length > 2);
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((w) => w.length > 2);
 
   for (const folder of productFolders) {
     const folderLower = folder.toLowerCase();
@@ -228,7 +228,7 @@ async function uploadToCloudinary(
 
   try {
     const result = await cloudinary.uploader.upload(localPath, {
-      folder: `kosil/${folder}`,
+      folder: `klydocart/${folder}`,
       resource_type: "image",
       use_filename: true,
       unique_filename: false,

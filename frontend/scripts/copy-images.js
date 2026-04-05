@@ -297,14 +297,14 @@ function copyShopByStoreImages() {
   });
 }
 
-// Copy kosil logo
-function copyKosilLogo() {
-  const kosilPath = path.join(assetsDir, "kosil1.png");
-  if (fs.existsSync(kosilPath)) {
-    const destPath = path.join(publicAssetsDir, "kosil1.png");
+// Copy klydocart logo
+function copyklydocartLogo() {
+  const klydocartPath = path.join(assetsDir, "klydocart1.png");
+  if (fs.existsSync(klydocartPath)) {
+    const destPath = path.join(publicAssetsDir, "klydocart1.png");
     if (!fs.existsSync(destPath)) {
-      fs.copyFileSync(kosilPath, destPath);
-      console.log("Copied kosil logo: kosil1.png");
+      fs.copyFileSync(klydocartPath, destPath);
+      console.log("Copied klydocart logo: klydocart1.png");
     }
   }
 }
@@ -336,6 +336,6 @@ copyProductImages();
 copyBannerImage();
 copyShopByStoreImages();
 copyLoginVideo();
-copyKosilLogo();
+copyklydocartLogo();
 copyDeliveryIcon();
 console.log("Image copy completed!");

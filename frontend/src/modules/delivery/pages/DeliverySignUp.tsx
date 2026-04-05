@@ -162,11 +162,11 @@ export default function DeliverySignUp() {
       if (drivingLicenseFile || nationalIdentityCardFile) {
         setUploadingDocs(true);
         if (drivingLicenseFile) {
-          const res = await uploadDocument(drivingLicenseFile, "kosil/delivery/documents");
+          const res = await uploadDocument(drivingLicenseFile, "klydocart/delivery/documents");
           drivingLicenseUrl = res.secureUrl;
         }
         if (nationalIdentityCardFile) {
-          const res = await uploadDocument(nationalIdentityCardFile, "kosil/delivery/documents");
+          const res = await uploadDocument(nationalIdentityCardFile, "klydocart/delivery/documents");
           nationalIdentityCardUrl = res.secureUrl;
         }
         setUploadingDocs(false);
@@ -236,7 +236,7 @@ export default function DeliverySignUp() {
 
 
       {/* Sign Up Card */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-[400px] sm:max-w-[420px] my-6 relative z-10"
@@ -247,7 +247,7 @@ export default function DeliverySignUp() {
             {/* Subtle decorative elements */}
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-50/50 rounded-full blur-2xl" />
             <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-yellow-50/50 rounded-full blur-2xl" />
-            
+
             <div className="relative z-10 w-full flex flex-col items-center">
               <div className="mb-3">
                 <img
@@ -269,7 +269,7 @@ export default function DeliverySignUp() {
           <div className="p-5">
             <AnimatePresence mode="wait">
               {!showOTP ? (
-                <motion.form 
+                <motion.form
                   key="signup-form"
                   onSubmit={handleSubmit}
                   className="space-y-5"
@@ -283,7 +283,7 @@ export default function DeliverySignUp() {
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-1.5">
                         Personal Information
                       </h3>
-                      
+
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-700 ml-1">Full Name *</label>
                         <input
@@ -357,7 +357,7 @@ export default function DeliverySignUp() {
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-1.5">
                         Location Details
                       </h3>
-                      
+
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-700 ml-1">Full Address *</label>
                         <input
@@ -388,9 +388,9 @@ export default function DeliverySignUp() {
                             className="absolute right-2 bottom-1.5 p-1 text-teal-600 hover:bg-teal-50 rounded-md transition-all"
                           >
                             {isCityLoading ? (
-                               <div className="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                              <div className="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
                             ) : (
-                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
                             )}
                           </button>
                         </div>
@@ -511,7 +511,7 @@ export default function DeliverySignUp() {
                   </div>
                 </motion.form>
               ) : (
-                <motion.div 
+                <motion.div
                   key="otp-step"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}

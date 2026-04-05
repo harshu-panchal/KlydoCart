@@ -54,7 +54,7 @@ export default function AdminBrand() {
           };
           setError(
             axiosError.response?.data?.message ||
-              "Failed to load brands. Please try again."
+            "Failed to load brands. Please try again."
           );
         } else {
           setError("Failed to load brands. Please try again.");
@@ -121,7 +121,7 @@ export default function AdminBrand() {
 
       // Upload brand image if a new file is selected
       if (brandImageFile) {
-        const imageResult = await uploadImage(brandImageFile, "kosil/brands");
+        const imageResult = await uploadImage(brandImageFile, "klydocart/brands");
         imageUrl = imageResult.secureUrl;
       }
 
@@ -163,7 +163,7 @@ export default function AdminBrand() {
         };
         setUploadError(
           axiosError.response?.data?.message ||
-            "Failed to save brand. Please try again."
+          "Failed to save brand. Please try again."
         );
       } else {
         setUploadError("Failed to save brand. Please try again.");
@@ -195,7 +195,7 @@ export default function AdminBrand() {
         };
         alert(
           axiosError.response?.data?.message ||
-            "Failed to delete brand. Please try again."
+          "Failed to delete brand. Please try again."
         );
       } else {
         alert("Failed to delete brand. Please try again.");
@@ -336,16 +336,15 @@ export default function AdminBrand() {
             <button
               onClick={handleAddBrand}
               disabled={uploading}
-              className={`w-full py-2.5 rounded text-sm font-medium transition-colors ${
-                uploading
+              className={`w-full py-2.5 rounded text-sm font-medium transition-colors ${uploading
                   ? "bg-neutral-400 cursor-not-allowed text-white"
                   : "bg-teal-600 hover:bg-teal-700 text-white"
-              }`}>
+                }`}>
               {uploading
                 ? "Saving..."
                 : editingId
-                ? "Update Brand"
-                : "Add Brand"}
+                  ? "Update Brand"
+                  : "Add Brand"}
             </button>
             {editingId && (
               <button
@@ -619,11 +618,10 @@ export default function AdminBrand() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className={`p-2 border border-neutral-300 rounded ${
-                  currentPage === 1
+                className={`p-2 border border-neutral-300 rounded ${currentPage === 1
                     ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
                     : "text-neutral-700 hover:bg-neutral-50"
-                }`}
+                  }`}
                 aria-label="Previous page">
                 <svg
                   width="16"
@@ -645,11 +643,10 @@ export default function AdminBrand() {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 border border-neutral-300 rounded text-sm ${
-                      currentPage === page
+                    className={`px-3 py-1 border border-neutral-300 rounded text-sm ${currentPage === page
                         ? "bg-teal-600 text-white border-teal-600"
                         : "text-neutral-700 hover:bg-neutral-50"
-                    }`}>
+                      }`}>
                     {page}
                   </button>
                 )
@@ -659,11 +656,10 @@ export default function AdminBrand() {
                   setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                 }
                 disabled={currentPage === totalPages || totalPages === 0}
-                className={`p-2 border border-neutral-300 rounded ${
-                  currentPage === totalPages || totalPages === 0
+                className={`p-2 border border-neutral-300 rounded ${currentPage === totalPages || totalPages === 0
                     ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
                     : "text-neutral-700 hover:bg-neutral-50"
-                }`}
+                  }`}
                 aria-label="Next page">
                 <svg
                   width="16"

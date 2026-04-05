@@ -1,7 +1,7 @@
 {
-  "name": "kosil-backend",
+  "name": "klydocart-backend",
   "version": "1.0.0",
-  "description": "Kosil Backend API Server",
+  "description": "klydocart Backend API Server",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",

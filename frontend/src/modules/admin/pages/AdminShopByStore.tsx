@@ -238,7 +238,7 @@ export default function AdminShopByStore() {
 
       // Upload store image if provided
       if (storeImageFile) {
-        const imageResult = await uploadImage(storeImageFile, "kosil/stores");
+        const imageResult = await uploadImage(storeImageFile, "klydocart/stores");
         imageUrl = imageResult.secureUrl;
       } else if (editingId && !storeImagePreview) {
         // If editing and no new image and no preview, we need at least one image
@@ -294,8 +294,8 @@ export default function AdminShopByStore() {
     } catch (error: any) {
       setUploadError(
         error.response?.data?.message ||
-          error.message ||
-          "Failed to save store. Please try again."
+        error.message ||
+        "Failed to save store. Please try again."
       );
     } finally {
       setUploading(false);
@@ -339,7 +339,7 @@ export default function AdminShopByStore() {
       } catch (error: any) {
         setUploadError(
           error.response?.data?.message ||
-            "Failed to delete store. Please try again."
+          "Failed to delete store. Please try again."
         );
       }
     }
@@ -626,21 +626,21 @@ export default function AdminShopByStore() {
                   filterStatus !== "Active" ||
                   filterMinPrice ||
                   filterMaxPrice) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFilterCategory("");
-                      setFilterSubcategory("");
-                      setFilterBrand("");
-                      setFilterSeller("");
-                      setFilterStatus("Active");
-                      setFilterMinPrice("");
-                      setFilterMaxPrice("");
-                    }}
-                    className="w-full px-3 py-1.5 text-xs bg-neutral-200 hover:bg-neutral-300 text-neutral-700 rounded transition-colors">
-                    Clear Filters
-                  </button>
-                )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterCategory("");
+                        setFilterSubcategory("");
+                        setFilterBrand("");
+                        setFilterSeller("");
+                        setFilterStatus("Active");
+                        setFilterMinPrice("");
+                        setFilterMaxPrice("");
+                      }}
+                      className="w-full px-3 py-1.5 text-xs bg-neutral-200 hover:bg-neutral-300 text-neutral-700 rounded transition-colors">
+                      Clear Filters
+                    </button>
+                  )}
               </div>
 
               <div className="border border-neutral-300 rounded-md max-h-60 overflow-y-auto p-2 bg-neutral-50">
@@ -760,16 +760,15 @@ export default function AdminShopByStore() {
               <button
                 onClick={handleAddStore}
                 disabled={uploading}
-                className={`flex-1 py-2.5 rounded text-sm font-medium transition-colors ${
-                  uploading
+                className={`flex-1 py-2.5 rounded text-sm font-medium transition-colors ${uploading
                     ? "bg-neutral-400 cursor-not-allowed text-white"
                     : "bg-teal-600 hover:bg-teal-700 text-white"
-                }`}>
+                  }`}>
                 {uploading
                   ? "Uploading..."
                   : editingId
-                  ? "Update Store"
-                  : "Create Store"}
+                    ? "Update Store"
+                    : "Create Store"}
               </button>
               {editingId && (
                 <button
@@ -1008,11 +1007,10 @@ export default function AdminShopByStore() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className={`p-2 border border-neutral-300 rounded ${
-                  currentPage === 1
+                className={`p-2 border border-neutral-300 rounded ${currentPage === 1
                     ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
                     : "text-neutral-700 hover:bg-neutral-50"
-                }`}
+                  }`}
                 aria-label="Previous page">
                 <svg
                   width="16"
@@ -1034,11 +1032,10 @@ export default function AdminShopByStore() {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 border border-neutral-300 rounded text-sm ${
-                      currentPage === page
+                    className={`px-3 py-1 border border-neutral-300 rounded text-sm ${currentPage === page
                         ? "bg-teal-600 text-white border-teal-600"
                         : "text-neutral-700 hover:bg-neutral-50"
-                    }`}>
+                      }`}>
                     {page}
                   </button>
                 )
@@ -1048,11 +1045,10 @@ export default function AdminShopByStore() {
                   setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                 }
                 disabled={currentPage === totalPages || totalPages === 0}
-                className={`p-2 border border-neutral-300 rounded ${
-                  currentPage === totalPages || totalPages === 0
+                className={`p-2 border border-neutral-300 rounded ${currentPage === totalPages || totalPages === 0
                     ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
                     : "text-neutral-700 hover:bg-neutral-50"
-                }`}
+                  }`}
                 aria-label="Next page">
                 <svg
                   width="16"

@@ -14,7 +14,7 @@ async function migrateSubCategoriesToCategories() {
   try {
     // Connect to MongoDB
     const mongoUri =
-      process.env.MONGODB_URI || "mongodb://localhost:27017/kosil";
+      process.env.MONGODB_URI || "mongodb://localhost:27017/klydocart";
     await mongoose.connect(mongoUri);
     console.log("Connected to MongoDB");
 
@@ -107,10 +107,8 @@ async function migrateSubCategoriesToCategories() {
         });
 
         console.log(
-          `Migrated subcategory "${subCategory.name}" to category with ID: ${
-            newCategory._id
-          } (parent: ${parentCategory.name}, headerCategory: ${
-            headerCategoryId ? "inherited" : "none"
+          `Migrated subcategory "${subCategory.name}" to category with ID: ${newCategory._id
+          } (parent: ${parentCategory.name}, headerCategory: ${headerCategoryId ? "inherited" : "none"
           })`
         );
 

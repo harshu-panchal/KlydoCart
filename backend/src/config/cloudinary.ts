@@ -23,16 +23,16 @@ export default cloudinary;
 
 // Folder structure constants
 export const CLOUDINARY_FOLDERS = {
-  PRODUCTS: "kosil/products",
-  PRODUCT_GALLERY: "kosil/products/gallery",
-  CATEGORIES: "kosil/categories",
-  SUBCATEGORIES: "kosil/subcategories",
-  COUPONS: "kosil/coupons",
-  SELLERS: "kosil/sellers",
-  SELLER_PROFILE: "kosil/sellers/profile",
-  SELLER_DOCUMENTS: "kosil/sellers/documents",
-  DELIVERY: "kosil/delivery",
-  DELIVERY_DOCUMENTS: "kosil/delivery/documents",
-  STORES: "kosil/stores",
-  USERS: "kosil/users",
+  PRODUCTS: "klydocart/products",
+  PRODUCT_GALLERY: "klydocart/products/gallery",
+  CATEGORIES: "klydocart/categories",
+  SUBCATEGORIES: "klydocart/subcategories",
+  COUPONS: "klydocart/coupons",
+  SELLERS: "klydocart/sellers",
+  SELLER_PROFILE: "klydocart/sellers/profile",
+  SELLER_DOCUMENTS: "klydocart/sellers/documents",
+  DELIVERY: "klydocart/delivery",
+  DELIVERY_DOCUMENTS: "klydocart/delivery/documents",
+  STORES: "klydocart/stores",
+  USERS: "klydocart/users",
 } as const;

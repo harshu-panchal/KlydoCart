@@ -187,7 +187,7 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
                 body: body,
                 icon: '/favicon.ico',
                 badge: '/favicon.ico',
-                tag: payload.data?.type || 'kosil-general',
+                tag: payload.data?.type || 'klydocart-general',
                 data: payload.data
             };
 

@@ -54,11 +54,11 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
                     // Default production origins if FRONTEND_URL not set
                     const defaultOrigins = [
-                        "https://www.kosil.com",
-                        "https://kosil.com",
-                        "https://kosil-frontend.onrender.com",
-                        "https://kosil.biz",
-                        "https://kosil.biz/",
+                        "https://www.klydocart.com",
+                        "https://klydocart.com",
+                        "https://klydocart-frontend.onrender.com",
+                        "https://klydocart.biz",
+                        "https://klydocart.biz/",
                     ];
 
                     const allAllowedOrigins = allowedOrigins.length > 0

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import kosilLogo from "@assets/login/KlydoCardLatest.png";
+import klydocartLogo from "@assets/login/KlydoCardLatest.png";
 import { useAuth } from "../../../context/AuthContext";
 
 interface SellerHeaderProps {
@@ -106,12 +106,12 @@ export default function SellerHeader({
               </svg>
             )}
           </button>
-          {/* Kosil Logo */}
+          {/* klydocart Logo */}
           <button
             onClick={handleLogoClick}
             className="hover:opacity-80 transition-opacity">
             <img
-              src={kosilLogo}
+              src={klydocartLogo}
               alt="KLYDO CART"
               className="h-14 sm:h-16 w-auto object-contain cursor-pointer"
               style={{ maxWidth: "240px" }}
@@ -147,24 +147,24 @@ export default function SellerHeader({
           <button
             onClick={() => navigate("/seller/orders")}
             className={`relative px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors ${isActive("/seller/orders")
-                ? "text-neutral-900"
-                : "text-neutral-600 hover:text-neutral-900"
+              ? "text-neutral-900"
+              : "text-neutral-600 hover:text-neutral-900"
               }`}>
             Orders
           </button>
           <button
             onClick={() => navigate("/seller/return-order")}
             className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${isActive("/seller/return-order")
-                ? "text-neutral-900"
-                : "text-neutral-600 hover:text-neutral-900"
+              ? "text-neutral-900"
+              : "text-neutral-600 hover:text-neutral-900"
               }`}>
             Return Order
           </button>
           <button
             onClick={() => navigate("/seller/wallet")}
             className={`px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${isActive("/seller/wallet")
-                ? "text-neutral-900"
-                : "text-neutral-600 hover:text-neutral-900"
+              ? "text-neutral-900"
+              : "text-neutral-600 hover:text-neutral-900"
               }`}>
             Wallet
           </button>

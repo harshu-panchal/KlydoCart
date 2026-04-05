@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const uri = "mongodb+srv://kosilecommerce_db_user:973Chc5YHtBa3F1i@kosil.fcettwg.mongodb.net/SpeeUp";
+const uri = "mongodb+srv://klydocartecommerce_db_user:973Chc5YHtBa3F1i@klydocart.fcettwg.mongodb.net/SpeeUp";
 
 async function checkData() {
     try {

@@ -326,7 +326,7 @@ export default function AboutUs() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span className="text-neutral-700">support@kosil.com</span>
+              <span className="text-neutral-700">support@klydocart.com</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <svg

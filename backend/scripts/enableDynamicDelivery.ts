@@ -45,8 +45,8 @@ const enableDynamicDelivery = async () => {
         } else {
             console.log('No settings found. Creating new...');
             await AppSettings.create({
-                appName: "Kosil",
-                contactEmail: "contact@kosil.com",
+                appName: "klydocart",
+                contactEmail: "contact@klydocart.com",
                 contactPhone: "1234567890",
                 deliveryConfig: {
                     isDistanceBased: true,

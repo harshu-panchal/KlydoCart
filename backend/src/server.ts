@@ -21,11 +21,11 @@ const httpServer = createServer(app);
 
 // Simple CORS configuration - Standard and reliable
 const allowedOrigins = [
-  "https://www.kosil.com",
-  "https://kosil.com",
-  "https://kosil-frontend.onrender.com",
-  "https://kosil.biz",
-  "https://kosil.biz/",
+  "https://www.klydocart.com",
+  "https://klydocart.com",
+  "https://klydocart-frontend.onrender.com",
+  "https://klydocart.biz",
+  "https://klydocart.biz/",
   // Add more origins from environment variable if needed
   ...(process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(",").map((url) => url.trim())
@@ -99,7 +99,7 @@ app.set("io", io);
 // Routes
 app.get("/", (_req: Request, res: Response) => {
   res.json({
-    message: "Kosil API Server is running!",
+    message: "klydocart API Server is running!",
     version: "1.0.0",
     socketIO: "Listening for WebSocket connections",
   });
@@ -127,7 +127,7 @@ async function startServer() {
   await seedHeaderCategories();
 
   httpServer.listen(PORT, () => {
-    console.log("\n\x1b[32m✓\x1b[0m \x1b[1mKosil Server Started\x1b[0m");
+    console.log("\n\x1b[32m✓\x1b[0m \x1b[1mklydocart Server Started\x1b[0m");
     console.log(`   \x1b[36mPort:\x1b[0m http://localhost:${PORT}`);
     console.log(
       `   \x1b[36mEnvironment:\x1b[0m ${process.env.NODE_ENV || "development"}`

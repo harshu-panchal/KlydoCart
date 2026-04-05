@@ -88,7 +88,7 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
                 priority: 'high',
                 notification: {
                     sound: 'default',
-                    channelId: 'kosil_notifications', // Ensure this matches your Flutter side channel if defined
+                    channelId: 'klydocart_notifications', // Ensure this matches your Flutter side channel if defined
                     clickAction: 'FLUTTER_NOTIFICATION_CLICK',
                 },
             },

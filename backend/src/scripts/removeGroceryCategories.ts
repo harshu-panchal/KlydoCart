@@ -16,7 +16,7 @@ function log(msg: any) {
 }
 
 // --- Configuration ---
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/kosil";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/klydocart";
 
 log("Starting Remove Grocery Categories Script");
 log(`MONGO_URI: ${MONGO_URI}`);

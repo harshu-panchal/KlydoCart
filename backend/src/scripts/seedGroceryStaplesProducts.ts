@@ -27,7 +27,7 @@ function log(msg: any) {
 }
 
 // --- Configuration ---
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/kosil";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/klydocart";
 const SELLER_MOBILE = "7999267233";
 const FRONTEND_ASSETS_PATH = path.join(__dirname, "../../../frontend/assets");
 const PRODUCT_IMAGES_BASE = path.join(
@@ -90,7 +90,7 @@ async function uploadToCloudinary(
 
   try {
     const result = await cloudinary.uploader.upload(fullPath, {
-      folder: `kosil/${folder}`,
+      folder: `klydocart/${folder}`,
       resource_type: "image",
       use_filename: true,
       unique_filename: false,
@@ -507,9 +507,8 @@ async function seedProducts() {
           isReturnable: true,
           maxReturnDays: 7,
           totalAllowedQuantity: 10,
-          smallDescription: `Premium quality ${productName.toLowerCase()} - ${
-            productInfo.pack || "1 unit"
-          }`,
+          smallDescription: `Premium quality ${productName.toLowerCase()} - ${productInfo.pack || "1 unit"
+            }`,
           tags: [
             "grocery",
             "staples",

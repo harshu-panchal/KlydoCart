@@ -120,7 +120,7 @@ export default function BannerFormModal({
       if (imageFile) {
         setUploading(true);
         try {
-          const uploadResult = await uploadImage(imageFile, "kosil/banners");
+          const uploadResult = await uploadImage(imageFile, "klydocart/banners");
           imageUrl = uploadResult.secureUrl;
         } catch (error: any) {
           setErrors({
@@ -196,11 +196,10 @@ export default function BannerFormModal({
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`relative group h-48 rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center overflow-hidden bg-gray-50 ${
-                  isDragging
+                className={`relative group h-48 rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center overflow-hidden bg-gray-50 ${isDragging
                     ? "border-green-500 bg-green-50"
                     : "border-gray-200"
-                } ${errors.image ? "border-red-300" : ""}`}>
+                  } ${errors.image ? "border-red-300" : ""}`}>
                 {imagePreview ? (
                   <>
                     <img
@@ -300,13 +299,11 @@ export default function BannerFormModal({
                 onClick={() =>
                   setFormData({ ...formData, isActive: !formData.isActive })
                 }
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  formData.isActive ? "bg-green-600" : "bg-gray-200"
-                }`}>
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${formData.isActive ? "bg-green-600" : "bg-gray-200"
+                  }`}>
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    formData.isActive ? "translate-x-5" : "translate-x-0"
-                  }`}
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isActive ? "translate-x-5" : "translate-x-0"
+                    }`}
                 />
               </button>
               <span className="text-sm font-medium text-gray-700">

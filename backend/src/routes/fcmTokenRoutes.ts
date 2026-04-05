@@ -94,7 +94,7 @@ router.post('/save', authenticate, async (req: Request, res: Response) => {
             try {
                 await sendPushNotification([token], {
                     title: 'Login Successful',
-                    body: 'Welcome back to Kosil! You have successfully logged in.',
+                    body: 'Welcome back to klydocart! You have successfully logged in.',
                     data: {
                         type: 'login_success',
                         link: '/',
@@ -223,7 +223,7 @@ router.post('/test', authenticate, async (req: Request, res: Response) => {
 
         const response = await sendPushNotification(uniqueTokens as string[], {
             title: 'Test Notification',
-            body: 'This is a test notification from Kosil Backend',
+            body: 'This is a test notification from klydocart Backend',
             data: {
                 type: 'test',
                 link: '/',

@@ -18,7 +18,7 @@ function log(msg: any) {
 }
 
 // --- Configuration ---
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/kosil";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/klydocart";
 const FRONTEND_ASSETS_PATH = path.join(__dirname, "../../../frontend/public");
 
 log("Starting Seed Script");
@@ -953,7 +953,7 @@ async function uploadToCloudinary(
     }
 
     const result = await cloudinary.uploader.upload(fullPath, {
-      folder: `kosil/${folder}`,
+      folder: `klydocart/${folder}`,
       use_filename: true,
       unique_filename: false,
     });
@@ -972,15 +972,15 @@ async function seed() {
     console.log("Connected to MongoDB");
 
     // 1. Create or Find Admin Seller
-    let seller = await Seller.findOne({ email: "retail@kosil.com" });
+    let seller = await Seller.findOne({ email: "retail@klydocart.com" });
     if (!seller) {
       console.log("Creating default seller...");
       seller = await Seller.create({
-        sellerName: "Kosil Retail",
-        email: "retail@kosil.com",
+        sellerName: "klydocart Retail",
+        email: "retail@klydocart.com",
         password: "password123",
         mobile: "9876543210",
-        storeName: "Kosil Retail Pvt Ltd",
+        storeName: "klydocart Retail Pvt Ltd",
         category: "Grocery",
         commission: 0,
         isActive: true, // properties not in schema will be ignored or strict mode will complain if 'strict'

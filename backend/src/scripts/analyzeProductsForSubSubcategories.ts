@@ -8,7 +8,7 @@ import HeaderCategory from "../models/HeaderCategory";
 // Explicitly load .env from backend root
 dotenv.config({ path: path.join(__dirname, "../../.env") });
 
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/kosil";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/klydocart";
 const FRONTEND_ASSETS_PATH = path.join(__dirname, "../../../frontend/assets");
 const PRODUCT_IMAGES_PATH = path.join(
   FRONTEND_ASSETS_PATH,
@@ -100,9 +100,9 @@ function findBestMatchProducts(
     nameWords.length > 0
       ? nameWords
       : subSubcategoryName
-          .toLowerCase()
-          .split(/[^a-z0-9]+/)
-          .filter((w) => w.length > 2);
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((w) => w.length > 2);
 
   for (const folder of productFolders) {
     const folderLower = folder.toLowerCase();

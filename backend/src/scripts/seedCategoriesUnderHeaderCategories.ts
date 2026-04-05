@@ -20,7 +20,7 @@ function log(msg: any) {
 }
 
 // --- Configuration ---
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/kosil";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/klydocart";
 const FRONTEND_ASSETS_PATH = path.join(__dirname, "../../../frontend/public");
 
 log("Starting Categories Under Header Categories Seed Script");

@@ -19,7 +19,7 @@ async function seedDelivery() {
     await Delivery.create({
       name: "Demo Delivery Partner",
       mobile: mobile,
-      email: "delivery@kosil.com",
+      email: "delivery@klydocart.com",
       password: "password123",
       status: "Active",
       balance: 100,

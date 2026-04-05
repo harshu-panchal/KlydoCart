@@ -16,7 +16,7 @@ function log(msg: any) {
 }
 
 // --- Configuration ---
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/kosil";
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/klydocart";
 const FRONTEND_ASSETS_PATH = path.join(__dirname, "../../../frontend/assets");
 const PRODUCT_IMAGES_PATH = path.join(
   FRONTEND_ASSETS_PATH,
@@ -25,7 +25,7 @@ const PRODUCT_IMAGES_PATH = path.join(
   "product",
   "product"
 );
-const DEFAULT_IMAGE_PATH = path.join(FRONTEND_ASSETS_PATH, "kosil1.png");
+const DEFAULT_IMAGE_PATH = path.join(FRONTEND_ASSETS_PATH, "klydocart1.png");
 
 log("Starting Sub-Subcategories Seed Script");
 log(`MONGO_URI: ${MONGO_URI}`);
@@ -237,9 +237,9 @@ function findBestMatchProduct(
     nameWords.length > 0
       ? nameWords
       : subSubcategoryName
-          .toLowerCase()
-          .split(/[^a-z0-9]+/)
-          .filter((w) => w.length > 2);
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((w) => w.length > 2);
 
   let bestMatch: string | null = null;
   let bestScore = 0;
@@ -363,7 +363,7 @@ async function uploadToCloudinary(
   }
 }
 
-// Helper to get default image (kosil1.png)
+// Helper to get default image (klydocart1.png)
 async function getDefaultImage(): Promise<string> {
   if (!fs.existsSync(DEFAULT_IMAGE_PATH)) {
     log(`Warning: Default image not found at ${DEFAULT_IMAGE_PATH}`);
@@ -371,7 +371,7 @@ async function getDefaultImage(): Promise<string> {
   }
 
   const uploadedUrl = await uploadToCloudinary(DEFAULT_IMAGE_PATH, "default");
-  return uploadedUrl || `/assets/kosil1.png`;
+  return uploadedUrl || `/assets/klydocart1.png`;
 }
 
 // Helper to generate slug from name
