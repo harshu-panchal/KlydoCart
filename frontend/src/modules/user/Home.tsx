@@ -44,6 +44,7 @@ export default function Home() {
       try {
         startRouteLoading();
         setLoading(true);
+        setProducts([]); // Clear current products to show loading state for new tab
         setError(null);
         const response = await getHomeContent(
           activeTab,
@@ -118,14 +119,9 @@ export default function Home() {
   }, [location?.latitude, location?.longitude, activeTab]);
 
   const getFilteredProducts = (tabId: string) => {
-    if (tabId === "all") {
-      return products;
-    }
-    return products.filter(
-      (p) =>
-        p.categoryId === tabId ||
-        (p.category && (p.category._id === tabId || p.category.slug === tabId)),
-    );
+    // We can trust the backend to return products for the active tab (headerCategory)
+    // Local filtering is not needed and can be incorrect if slug patterns don't match
+    return products;
   };
 
   const filteredProducts = useMemo(
@@ -193,7 +189,7 @@ export default function Home() {
         ref={contentRef}
         className="bg-neutral-50 -mt-2 pt-1 space-y-5 md:space-y-8 md:pt-4">
         {/* Filtered Products Section (from bestsellers) */}
-        {activeTab !== "all" && filteredProducts.length > 0 && (
+        {activeTab !== "all" && (
           <div data-products-section className="mt-6 mb-6 md:mt-8 md:mb-8">
             <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight capitalize">
               {activeTab === "grocery" ? "Grocery Items" : activeTab}
@@ -212,7 +208,7 @@ export default function Home() {
                     />
                   ))}
                 </div>
-              ) : (
+              ) : !loading && (
                 <div className="text-center py-12 md:py-16 text-neutral-500">
                   <p className="text-lg md:text-xl mb-2">No products found</p>
                   <p className="text-sm md:text-base">

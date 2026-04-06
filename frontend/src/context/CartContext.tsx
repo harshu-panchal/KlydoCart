@@ -160,7 +160,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = async (product: Product, sourceElement?: HTMLElement | null) => {
     // Get consistent product ID - MongoDB returns _id, frontend expects id
-    const productId = product._id || product.id;
+    const productId = product?._id || (product as any)?.id;
+    if (!productId) {
+      console.warn("Attempted to add product without ID to cart", product);
+      return;
+    }
 
     // Prevent concurrent operations on the same product
     if (pendingOperationsRef.current.has(productId)) {
@@ -202,7 +206,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Find existing item - match by product ID and variant (if variant exists)
       const existingItem = validItems.find((item) => {
         const itemProductId = item.product.id || item.product._id;
-        if (itemProductId !== productId) return false;
+        if (!itemProductId || !productId || itemProductId !== productId) return false;
 
         const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
         const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
@@ -358,7 +362,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const itemToUpdate = items.find(item => {
       if (!item?.product) return false;
       const itemProductId = item.product.id || item.product._id;
-      if (itemProductId !== productId) return false;
+      if (!itemProductId || !productId || itemProductId !== productId) return false;
 
       // If variant info provided, match by variant
       if (variantId || variantTitle) {

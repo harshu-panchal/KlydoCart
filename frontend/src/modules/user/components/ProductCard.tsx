@@ -119,14 +119,29 @@ export default function ProductCard({
     }
   };
 
-  const cartItem = cart.items.find((item) => item?.product && (item.product.id === (product as any).id || item.product._id === (product as any).id || item.product.id === product._id));
+  // Consistent way to get product ID (handling both _id from MongoDB and id from frontend/mapping)
+  const getProductId = (p: any): string | undefined => {
+    if (!p) return undefined;
+    return p._id || p.id;
+  };
+
+  const productId = getProductId(product);
+
+  const cartItem = cart.items.find((item) => {
+    if (!item?.product || !productId) return false;
+    const itemPid = getProductId(item.product);
+    return itemPid === productId;
+  });
+
   const inCartQty = cartItem?.quantity || 0;
 
   // Get Price and MRP using utility
   const { displayPrice, mrp, discount } = calculateProductPrice(product);
 
   const handleCardClick = () => {
-    navigate(`/product/${((product as any).id || product._id) as string}`);
+    if (productId) {
+      navigate(`/product/${productId}`);
+    }
   };
 
   const handleAdd = async (e: React.MouseEvent) => {
@@ -162,10 +177,12 @@ export default function ProductCard({
       return;
     }
 
+    if (!productId) return;
+
     isOperationPendingRef.current = true;
 
     try {
-      await updateQuantity(((product as any).id || product._id) as string, inCartQty - 1);
+      await updateQuantity(productId, inCartQty - 1);
     } finally {
       // Reset the flag after the operation truly completes
       isOperationPendingRef.current = false;
@@ -186,11 +203,13 @@ export default function ProductCard({
       return;
     }
 
+    if (!productId) return;
+
     isOperationPendingRef.current = true;
 
     try {
       if (inCartQty > 0) {
-        await updateQuantity(((product as any).id || product._id) as string, inCartQty + 1);
+        await updateQuantity(productId, inCartQty + 1);
       } else {
         await addToCart(product, addButtonRef.current);
       }
