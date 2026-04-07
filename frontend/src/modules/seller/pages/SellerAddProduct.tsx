@@ -880,6 +880,25 @@ export default function SellerAddProduct() {
                   <option value="Weight">Weight</option>
                   <option value="Color">Color</option>
                   <option value="Pack">Pack</option>
+                  <option value="Kg">Kg</option>
+                  <option value="Gm">Gm</option>
+                  <option value="Mg">Mg</option>
+                  <option value="Liter (L)">Liter (L)</option>
+                  <option value="Milliliter (Ml)">Milliliter (Ml)</option>
+                  <option value="Piece (Pcs)">Piece (Pcs)</option>
+                  <option value="Dozen (Dz)">Dozen (Dz)</option>
+                  <option value="Pair">Pair</option>
+                  <option value="Set">Set</option>
+                  <option value="Packet (Pkt)">Packet (Pkt)</option>
+                  <option value="Box">Box</option>
+                  <option value="Carton">Carton</option>
+                  <option value="Bag">Bag</option>
+                  <option value="Tray">Tray</option>
+                  <option value="Plate">Plate</option>
+                  <option value="Full Plate">Full Plate</option>
+                  <option value="Half Plate">Half Plate</option>
+                  <option value="Cup">Cup</option>
+                  <option value="Meter">Meter</option>
                 </select>
               </div>
 

@@ -332,7 +332,7 @@ export default function HomeHero({
       clearTimeout(timeout2);
       clearTimeout(timeout3);
     };
-  }, [activeTab]);
+  }, [activeTab, tabs]);
 
   const handleTabClick = (tabId: string) => {
     onTabChange?.(tabId);
