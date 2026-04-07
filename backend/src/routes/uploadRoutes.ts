@@ -17,8 +17,8 @@ import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
 
-// All upload routes require authentication
-router.use(authenticate);
+// Authentication is handled per route
+// router.use(authenticate);
 
 /**
  * POST /api/v1/upload/image
@@ -26,6 +26,7 @@ router.use(authenticate);
  */
 router.post(
   "/image",
+  authenticate,
   requireUserType("Admin", "Seller"),
   uploadSingleImage.single("image"),
   handleUploadError,
@@ -56,6 +57,7 @@ router.post(
  */
 router.post(
   "/images",
+  authenticate,
   requireUserType("Admin", "Seller"),
   uploadMultipleImages.array("images", 10), // Max 10 images
   handleUploadError,
@@ -92,7 +94,7 @@ router.post(
  */
 router.post(
   "/document",
-  authenticate, // All authenticated users can upload documents
+  // No authenticate here to allow uploads during registration
   uploadDocument.single("document"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
@@ -103,8 +105,8 @@ router.post(
       });
     }
 
-    // Determine folder based on user type
-    let folder: string = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+    // Determine folder from request body or default based on user type
+    let folder: string = req.body.folder || CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
     const userType = (req as any).user?.userType;
 
     if (userType === "Delivery") {
@@ -135,7 +137,7 @@ router.post(
  */
 router.post(
   "/documents",
-  authenticate,
+  // No authenticate here to allow uploads during registration
   uploadMultipleDocuments.array("documents", 5), // Max 5 documents
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
@@ -146,8 +148,8 @@ router.post(
       });
     }
 
-    // Determine folder based on user type
-    let folder: string = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+    // Determine folder from request body or default based on user type
+    let folder: string = req.body.folder || CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
     const userType = (req as any).user?.userType;
 
     if (userType === "Delivery") {
@@ -182,6 +184,7 @@ router.post(
  */
 router.delete(
   "/:publicId",
+  authenticate,
   requireUserType("Admin", "Seller"),
   asyncHandler(async (req: Request, res: Response) => {
     const { publicId } = req.params;
