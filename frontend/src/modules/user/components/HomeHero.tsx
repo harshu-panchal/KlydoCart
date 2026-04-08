@@ -65,7 +65,15 @@ export default function HomeHero({
           const mapped = cats.map((c) => ({
             id: c.slug,
             label: c.name,
-            icon: getIconByName(c.iconName),
+            icon: c.image ? (
+              <img 
+                src={c.image} 
+                alt={c.name} 
+                className="w-5 h-5 object-contain" 
+              />
+            ) : (
+              getIconByName(c.iconName)
+            ),
           }));
           setTabs([ALL_TAB, ...mapped]);
         }

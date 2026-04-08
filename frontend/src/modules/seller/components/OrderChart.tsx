@@ -68,7 +68,7 @@ export default function OrderChart({ title, data, maxValue, height = 400 }: Orde
   }, []);
 
   const chartHeight = height;
-  const padding = { top: 30, right: 15, bottom: 80, left: 30 };
+  const padding = { top: 30, right: 15, bottom: 80, left: 60 };
   const graphWidth = chartWidth - padding.left - padding.right;
   const graphHeight = chartHeight - padding.top - padding.bottom;
 

@@ -110,6 +110,13 @@ export default function AdminManageSellerList() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isUpdatingRadius, setIsUpdatingRadius] = useState(false);
     const [newRadius, setNewRadius] = useState<number>(10);
+    const [newCommission, setNewCommission] = useState<number>(0);
+    const [isUpdatingCommission, setIsUpdatingCommission] = useState(false);
+    const [requireProductApproval, setRequireProductApproval] = useState<boolean>(false);
+    const [viewCustomerDetails, setViewCustomerDetails] = useState<boolean>(false);
+    const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+    const [editFormData, setEditFormData] = useState<Partial<Seller>>({});
+    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
     // Fetch sellers from backend
     useEffect(() => {
@@ -242,8 +249,63 @@ export default function AdminManageSellerList() {
         const seller = sellers.find(s => s._id === sellerId);
         if (seller) {
             setEditingSeller(seller);
+            setEditFormData({
+                sellerName: seller.sellerName,
+                storeName: seller.storeName,
+                email: seller.email,
+                mobile: seller.mobile,
+                phone: seller.phone,
+                category: seller.category || '',
+                address: seller.address || '',
+                city: seller.city || '',
+                serviceableArea: seller.serviceableArea || '',
+                panCard: seller.panCard || '',
+                taxName: seller.taxName || '',
+                taxNumber: seller.taxNumber || '',
+                accountName: seller.accountName || '',
+                bankName: seller.bankName || '',
+                branch: seller.branch || '',
+                accountNumber: seller.accountNumber || '',
+                ifsc: seller.ifsc || '',
+                latitude: seller.latitude || '',
+                longitude: seller.longitude || '',
+            });
             setNewRadius(seller.serviceRadiusKm || 10);
+            setNewCommission(seller.commission || 0);
+            setRequireProductApproval(!!seller.requireProductApproval);
+            setViewCustomerDetails(!!seller.viewCustomerDetails);
             setIsEditModalOpen(true);
+        }
+    };
+
+    const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setEditFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleUpdateProfile = async () => {
+        if (!editingSeller) return;
+
+        try {
+            setIsUpdatingProfile(true);
+            const response = await updateSeller(editingSeller._id, editFormData);
+            if (response.success) {
+                const updatedSeller = mapSellerToFrontend(response.data);
+                setEditingSeller(updatedSeller);
+                // Also update the seller in the main list
+                setSellers(sellers.map(s => s._id === editingSeller._id ? updatedSeller : s));
+                setSuccessMessage('Seller information updated successfully');
+                setTimeout(() => setSuccessMessage(''), 3000);
+            }
+        } catch (error: any) {
+            console.error('Error updating profile:', error);
+            setError(error.response?.data?.message || 'Failed to update seller information');
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setIsUpdatingProfile(false);
         }
     };
 
@@ -266,6 +328,61 @@ export default function AdminManageSellerList() {
             setTimeout(() => setError(''), 3000);
         } finally {
             setIsUpdatingRadius(false);
+        }
+    };
+
+    const handleUpdateCommission = async () => {
+        if (!editingSeller) return;
+
+        try {
+            setIsUpdatingCommission(true);
+            const response = await updateSeller(editingSeller._id, { commission: newCommission });
+            if (response.success) {
+                setEditingSeller({ ...editingSeller, commission: newCommission });
+                // Also update the seller in the main list
+                setSellers(sellers.map(s => s._id === editingSeller._id ? { ...s, commission: newCommission } : s));
+                setSuccessMessage('Commission updated successfully');
+                setTimeout(() => setSuccessMessage(''), 3000);
+            }
+        } catch (error) {
+            console.error('Error updating commission:', error);
+            setError('Failed to update commission');
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setIsUpdatingCommission(false);
+        }
+    };
+
+    const handleUpdateSettings = async () => {
+        if (!editingSeller) return;
+
+        try {
+            setIsUpdatingSettings(true);
+            const response = await updateSeller(editingSeller._id, { 
+                requireProductApproval, 
+                viewCustomerDetails 
+            });
+            if (response.success) {
+                setEditingSeller({ 
+                    ...editingSeller, 
+                    requireProductApproval, 
+                    viewCustomerDetails 
+                });
+                // Also update the seller in the main list
+                setSellers(sellers.map(s => s._id === editingSeller._id ? { 
+                    ...s, 
+                    requireProductApproval, 
+                    viewCustomerDetails 
+                } : s));
+                setSuccessMessage('Seller settings updated successfully');
+                setTimeout(() => setSuccessMessage(''), 3000);
+            }
+        } catch (error) {
+            console.error('Error updating settings:', error);
+            setError('Failed to update seller settings');
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setIsUpdatingSettings(false);
         }
     };
 
@@ -692,7 +809,7 @@ export default function AdminManageSellerList() {
             {/* Footer */}
             <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
                 Copyright © 2025. Developed By{' '}
-                <a href="#" className="text-blue-600 hover:underline">KlydoCart - 10 Minute App</a>
+                <a href="#" className="text-blue-600 hover:underline">KlydoCart</a>
             </footer>
 
             {/* Categories Modal */}
@@ -821,69 +938,156 @@ export default function AdminManageSellerList() {
 
                                 {/* Basic Information */}
                                 <div className="bg-neutral-50 rounded-lg p-4">
-                                    <h4 className="text-sm font-semibold text-neutral-700 mb-3">Basic Information</h4>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-sm font-semibold text-neutral-700">Basic Information</h4>
+                                        <button
+                                            onClick={handleUpdateProfile}
+                                            disabled={isUpdatingProfile}
+                                            className="px-3 py-1 bg-teal-600 text-white rounded text-xs font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                                        >
+                                            {isUpdatingProfile ? 'Saving...' : 'Update Info'}
+                                        </button>
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-xs text-neutral-500">Seller Name</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.name}</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Seller Name</label>
+                                            <input
+                                                type="text"
+                                                name="sellerName"
+                                                value={editFormData.sellerName || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-500">Store Name</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.storeName}</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Store Name</label>
+                                            <input
+                                                type="text"
+                                                name="storeName"
+                                                value={editFormData.storeName || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-500">Email</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.email}</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Email</label>
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                value={editFormData.email || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-500">Phone</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.phone}</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Phone</label>
+                                            <input
+                                                type="text"
+                                                name="mobile"
+                                                value={editFormData.mobile || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-500">Category</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.category || 'N/A'}</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Category</label>
+                                            <input
+                                                type="text"
+                                                name="category"
+                                                value={editFormData.category || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-500">Commission</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.commission.toFixed(2)}%</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block text-neutral-900 font-bold">Commission (%) (Static Update)</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    max="100"
+                                                    step="0.01"
+                                                    value={newCommission}
+                                                    onChange={(e) => setNewCommission(parseFloat(e.target.value))}
+                                                    className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 font-medium text-neutral-900"
+                                                />
+                                                <button
+                                                    onClick={handleUpdateCommission}
+                                                    disabled={isUpdatingCommission || newCommission === editingSeller.commission}
+                                                    className="px-3 py-1.5 bg-neutral-800 text-white rounded text-xs font-medium hover:bg-neutral-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                                                >
+                                                    {isUpdatingCommission ? '...' : 'Set'}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Address Information */}
                                 <div className="bg-neutral-50 rounded-lg p-4">
-                                    <h4 className="text-sm font-semibold text-neutral-700 mb-3">Address Information</h4>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-sm font-semibold text-neutral-700">Address Information</h4>
+                                        <button
+                                            onClick={handleUpdateProfile}
+                                            disabled={isUpdatingProfile}
+                                            className="px-3 py-1 bg-teal-600 text-white rounded text-xs font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                                        >
+                                            {isUpdatingProfile ? 'Saving...' : 'Update Address'}
+                                        </button>
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="md:col-span-2">
-                                            <label className="text-xs text-neutral-500">Address</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.address || 'N/A'}</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Address</label>
+                                            <input
+                                                type="text"
+                                                name="address"
+                                                value={editFormData.address || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-500">City</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.city || 'N/A'}</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block">City</label>
+                                            <input
+                                                type="text"
+                                                name="city"
+                                                value={editFormData.city || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
                                         </div>
                                         <div>
-                                            <label className="text-xs text-neutral-500">Serviceable Area</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.serviceableArea || 'N/A'}</p>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Serviceable Area</label>
+                                            <input
+                                                type="text"
+                                                name="serviceableArea"
+                                                value={editFormData.serviceableArea || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
                                         </div>
-                                        {editingSeller.searchLocation && (
-                                            <div className="md:col-span-2">
-                                                <label className="text-xs text-neutral-500">Location</label>
-                                                <p className="text-sm font-medium text-neutral-900">{editingSeller.searchLocation}</p>
+                                        <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-xs text-neutral-500 mb-1 block">Latitude</label>
+                                                <input
+                                                    type="text"
+                                                    name="latitude"
+                                                    value={editFormData.latitude || ''}
+                                                    onChange={handleEditInputChange}
+                                                    className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                />
                                             </div>
-                                        )}
-                                        {(editingSeller.latitude || editingSeller.longitude) && (
-                                            <div className="md:col-span-2 grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="text-xs text-neutral-500">Latitude</label>
-                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.latitude || 'N/A'}</p>
-                                                </div>
-                                                <div>
-                                                    <label className="text-xs text-neutral-500">Longitude</label>
-                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.longitude || 'N/A'}</p>
-                                                </div>
+                                            <div>
+                                                <label className="text-xs text-neutral-500 mb-1 block">Longitude</label>
+                                                <input
+                                                    type="text"
+                                                    name="longitude"
+                                                    value={editFormData.longitude || ''}
+                                                    onChange={handleEditInputChange}
+                                                    className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                />
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -936,86 +1140,156 @@ export default function AdminManageSellerList() {
                                 </div>
 
                                 {/* Tax Information */}
-                                {(editingSeller.panCard || editingSeller.taxName || editingSeller.taxNumber) && (
-                                    <div className="bg-neutral-50 rounded-lg p-4">
-                                        <h4 className="text-sm font-semibold text-neutral-700 mb-3">Tax Information</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {editingSeller.panCard && (
-                                                <div>
-                                                    <label className="text-xs text-neutral-500">PAN Card</label>
-                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.panCard}</p>
-                                                </div>
-                                            )}
-                                            {editingSeller.taxName && (
-                                                <div>
-                                                    <label className="text-xs text-neutral-500">Tax Name</label>
-                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.taxName}</p>
-                                                </div>
-                                            )}
-                                            {editingSeller.taxNumber && (
-                                                <div className="md:col-span-2">
-                                                    <label className="text-xs text-neutral-500">Tax Number</label>
-                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.taxNumber}</p>
-                                                </div>
-                                            )}
+                                <div className="bg-neutral-50 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-sm font-semibold text-neutral-700">Tax Information</h4>
+                                        <button
+                                            onClick={handleUpdateProfile}
+                                            disabled={isUpdatingProfile}
+                                            className="px-3 py-1 bg-teal-600 text-white rounded text-xs font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                                        >
+                                            {isUpdatingProfile ? 'Saving...' : 'Update Tax Info'}
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs text-neutral-500 mb-1 block">PAN Card</label>
+                                            <input
+                                                type="text"
+                                                name="panCard"
+                                                value={editFormData.panCard || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Tax Name (GST Name)</label>
+                                            <input
+                                                type="text"
+                                                name="taxName"
+                                                value={editFormData.taxName || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="text-xs text-neutral-500 mb-1 block">Tax Number (GST Number)</label>
+                                            <input
+                                                type="text"
+                                                name="taxNumber"
+                                                value={editFormData.taxNumber || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
                                         </div>
                                     </div>
-                                )}
+                                </div>
 
                                 {/* Bank Information */}
-                                {(editingSeller.accountName || editingSeller.bankName || editingSeller.accountNumber) && (
-                                    <div className="bg-neutral-50 rounded-lg p-4">
-                                        <h4 className="text-sm font-semibold text-neutral-700 mb-3">Bank Information</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {editingSeller.accountName && (
-                                                <div>
-                                                    <label className="text-xs text-neutral-500">Account Name</label>
-                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.accountName}</p>
-                                                </div>
-                                            )}
-                                            {editingSeller.bankName && (
-                                                <div>
-                                                    <label className="text-xs text-neutral-500">Bank Name</label>
-                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.bankName}</p>
-                                                </div>
-                                            )}
-                                            {editingSeller.branch && (
-                                                <div>
-                                                    <label className="text-xs text-neutral-500">Branch</label>
-                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.branch}</p>
-                                                </div>
-                                            )}
-                                            {editingSeller.accountNumber && (
-                                                <div>
-                                                    <label className="text-xs text-neutral-500">Account Number</label>
-                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.accountNumber}</p>
-                                                </div>
-                                            )}
-                                            {editingSeller.ifsc && (
-                                                <div>
-                                                    <label className="text-xs text-neutral-500">IFSC Code</label>
-                                                    <p className="text-sm font-medium text-neutral-900">{editingSeller.ifsc}</p>
-                                                </div>
-                                            )}
+                                <div className="bg-neutral-50 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-sm font-semibold text-neutral-700">Bank Information</h4>
+                                        <button
+                                            onClick={handleUpdateProfile}
+                                            disabled={isUpdatingProfile}
+                                            className="px-3 py-1 bg-teal-600 text-white rounded text-xs font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                                        >
+                                            {isUpdatingProfile ? 'Saving...' : 'Update Bank Info'}
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Account Name</label>
+                                            <input
+                                                type="text"
+                                                name="accountName"
+                                                value={editFormData.accountName || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Bank Name</label>
+                                            <input
+                                                type="text"
+                                                name="bankName"
+                                                value={editFormData.bankName || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Branch</label>
+                                            <input
+                                                type="text"
+                                                name="branch"
+                                                value={editFormData.branch || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-neutral-500 mb-1 block">Account Number</label>
+                                            <input
+                                                type="text"
+                                                name="accountNumber"
+                                                value={editFormData.accountNumber || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-neutral-500 mb-1 block">IFSC Code</label>
+                                            <input
+                                                type="text"
+                                                name="ifsc"
+                                                value={editFormData.ifsc || ''}
+                                                onChange={handleEditInputChange}
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                            />
                                         </div>
                                     </div>
-                                )}
+                                </div>
 
                                 {/* Settings */}
                                 <div className="bg-neutral-50 rounded-lg p-4">
                                     <h4 className="text-sm font-semibold text-neutral-700 mb-3">Settings</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-xs text-neutral-500">Require Product Approval</label>
-                                            <p className="text-sm font-medium text-neutral-900">
-                                                {editingSeller.requireProductApproval ? 'Yes' : 'No'}
-                                            </p>
+                                        <div className="flex items-center justify-between p-2 bg-white rounded border border-neutral-200">
+                                            <label className="text-xs text-neutral-600 cursor-pointer flex-1" htmlFor="requireApproval">
+                                                Require Product Approval
+                                            </label>
+                                            <input
+                                                id="requireApproval"
+                                                type="checkbox"
+                                                checked={requireProductApproval}
+                                                onChange={(e) => setRequireProductApproval(e.target.checked)}
+                                                className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-neutral-300 rounded cursor-pointer"
+                                            />
                                         </div>
-                                        <div>
-                                            <label className="text-xs text-neutral-500">View Customer Details</label>
-                                            <p className="text-sm font-medium text-neutral-900">
-                                                {editingSeller.viewCustomerDetails ? 'Yes' : 'No'}
-                                            </p>
+                                        <div className="flex items-center justify-between p-2 bg-white rounded border border-neutral-200">
+                                            <label className="text-xs text-neutral-600 cursor-pointer flex-1" htmlFor="viewCustomer">
+                                                View Customer Details
+                                            </label>
+                                            <input
+                                                id="viewCustomer"
+                                                type="checkbox"
+                                                checked={viewCustomerDetails}
+                                                onChange={(e) => setViewCustomerDetails(e.target.checked)}
+                                                className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-neutral-300 rounded cursor-pointer"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2 flex justify-end">
+                                            <button
+                                                onClick={handleUpdateSettings}
+                                                disabled={isUpdatingSettings || (
+                                                    requireProductApproval === editingSeller.requireProductApproval &&
+                                                    viewCustomerDetails === editingSeller.viewCustomerDetails
+                                                )}
+                                                className="px-4 py-2 bg-teal-600 text-white rounded text-sm font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                {isUpdatingSettings ? 'Updating...' : 'Save Settings'}
+                                            </button>
                                         </div>
                                         <div>
                                             <label className="text-xs text-neutral-500">Balance</label>

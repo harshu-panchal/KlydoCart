@@ -8,6 +8,7 @@ import {
 } from '../../../services/api/headerCategoryService';
 import { themes } from '../../../utils/themes';
 import { ICON_LIBRARY, getIconByName, IconDef } from '../../../utils/iconLibrary';
+import { uploadImage } from '../../../services/api/uploadService';
 
 export default function AdminHeaderCategory() {
   const [headerCategories, setHeaderCategories] = useState<HeaderCategory[]>([]);
@@ -20,6 +21,8 @@ export default function AdminHeaderCategory() {
   const [selectedCategory, setSelectedCategory] = useState(''); // This maps to relatedCategory
   const [selectedTheme, setSelectedTheme] = useState('all'); // This maps to slug
   const [selectedStatus, setSelectedStatus] = useState<'Published' | 'Unpublished'>('Published');
+  const [headerCategoryImage, setHeaderCategoryImage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Icon search state
@@ -107,6 +110,7 @@ export default function AdminHeaderCategory() {
     setSelectedCategory('');
     setSelectedTheme('all');
     setSelectedStatus('Published');
+    setHeaderCategoryImage('');
     setEditingId(null);
     setIconSearchTerm('');
   };
@@ -123,6 +127,7 @@ export default function AdminHeaderCategory() {
         iconName: headerCategoryIcon,
         slug: selectedTheme, // Use theme as slug for color mapping
         relatedCategory: selectedCategory,
+        image: headerCategoryImage,
         status: selectedStatus,
       };
 
@@ -150,6 +155,7 @@ export default function AdminHeaderCategory() {
     setSelectedCategory(category.relatedCategory || '');
     setSelectedTheme(category.slug);
     setSelectedStatus(category.status);
+    setHeaderCategoryImage(category.image || '');
     setIconSearchTerm('');
   };
 
@@ -168,6 +174,19 @@ export default function AdminHeaderCategory() {
 
   const handleCancelEdit = () => {
     resetForm();
+  };
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      setIsUploading(true);
+      const result = await uploadImage(file, 'klydocart/categories');
+      setHeaderCategoryImage(result.secureUrl);
+    } catch (error) {
+      console.error('Image upload failed', error);
+      alert('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -253,6 +272,54 @@ export default function AdminHeaderCategory() {
               <p className="mt-1 text-xs text-neutral-500">
                 Icons are automatically suggested based on category name.
               </p>
+            </div>
+
+            {/* Custom Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Header Category Image (Optional):
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-neutral-100 rounded-lg border-2 border-dashed border-neutral-300 flex items-center justify-center overflow-hidden">
+                  {headerCategoryImage ? (
+                    <img src={headerCategoryImage} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-neutral-400 text-[10px] text-center px-1">No Image</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    id="header-category-image"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                  />
+                  <label
+                    htmlFor="header-category-image"
+                    className={`
+                      inline-flex items-center px-4 py-2 border border-neutral-300 rounded text-sm font-medium cursor-pointer
+                      ${isUploading ? 'bg-neutral-50 text-neutral-400' : 'bg-white text-neutral-700 hover:bg-neutral-50'}
+                    `}
+                  >
+                    {isUploading ? 'Uploading...' : 'Upload Image'}
+                  </label>
+                  {headerCategoryImage && (
+                    <button
+                      onClick={() => setHeaderCategoryImage('')}
+                      className="ml-2 text-xs text-red-600 hover:text-red-700 font-medium"
+                    >
+                      Remove
+                    </button>
+                  )}
+                  <p className="mt-1 text-[10px] text-neutral-500">
+                    If uploaded, image will be shown instead of the selected icon.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Theme / Color Selection */}
@@ -412,12 +479,21 @@ export default function AdminHeaderCategory() {
                       </td>
                       <td className="px-4 py-3 text-sm text-neutral-600">
                         <div className="flex items-center gap-2">
-                          <div className="text-teal-600 w-5 h-5 flex items-center justify-center">
-                            {getIconByName(category.iconName)}
+                          <div className="text-teal-600 w-10 h-10 flex items-center justify-center bg-neutral-100 rounded">
+                            {category.image ? (
+                              <img src={category.image} alt={category.name} className="w-full h-full object-contain" />
+                            ) : (
+                              getIconByName(category.iconName)
+                            )}
                           </div>
-                          <span className="text-xs text-neutral-400 font-mono hidden xl:inline">
-                            {category.iconName}
-                          </span>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-neutral-400 font-mono">
+                              {category.iconName}
+                            </span>
+                            {category.image && (
+                              <span className="text-[10px] text-teal-600 font-medium">Custom Image</span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-neutral-600">

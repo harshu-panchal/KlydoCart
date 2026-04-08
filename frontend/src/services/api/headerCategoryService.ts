@@ -8,6 +8,7 @@ export interface HeaderCategory {
     iconName: string;
     slug: string; // Maps to theme key
     relatedCategory?: string;
+    image?: string;
     status: 'Published' | 'Unpublished';
     order?: number;
 }

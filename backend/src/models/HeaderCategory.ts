@@ -5,6 +5,7 @@ export interface IHeaderCategory extends Document {
     iconLibrary: string;
     iconName: string;
     slug: string;
+    image?: string; // Optional custom image
     relatedCategory?: string; // Links to a product category
     order: number;
     status: 'Published' | 'Unpublished';
@@ -17,6 +18,7 @@ const HeaderCategorySchema: Schema = new Schema(
         name: { type: String, required: true },
         iconLibrary: { type: String, required: true },
         iconName: { type: String, required: true },
+        image: { type: String, required: false },
         slug: { type: String, required: true, unique: true },
         relatedCategory: { type: String, required: false },
         order: { type: Number, default: 0 },
