@@ -19,7 +19,6 @@ export default function DeliverySignUp() {
     mobile: "",
     email: "",
     dateOfBirth: "",
-    password: "",
     address: "",
     city: "",
     pincode: "",
@@ -30,6 +29,7 @@ export default function DeliverySignUp() {
     accountNumber: "",
     ifscCode: "",
     bonusType: "",
+    password: "klydocart_partner", // Default internal password
   });
 
   const [drivingLicenseFile, setDrivingLicenseFile] = useState<File | null>(null);
@@ -57,6 +57,27 @@ export default function DeliverySignUp() {
       setFormData((prev) => ({
         ...prev,
         [name]: value.replace(/\D/g, "").slice(0, 10),
+      }));
+    } else if (name === "name" || name === "city" || name === "accountName" || name === "bankName") {
+      // Only alphabets and spaces
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.replace(/[^a-zA-Z\s]/g, ""),
+      }));
+    } else if (name === "pincode") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.replace(/\D/g, "").slice(0, 6),
+      }));
+    } else if (name === "accountNumber") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.replace(/\D/g, "").slice(0, 15),
+      }));
+    } else if (name === "ifscCode") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.toUpperCase().slice(0, 11),
       }));
     } else {
       setFormData((prev) => ({
@@ -137,7 +158,7 @@ export default function DeliverySignUp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.mobile || !formData.email || !formData.password || !formData.address || !formData.city) {
+    if (!formData.name || !formData.mobile || !formData.email || !formData.address || !formData.city) {
       setError("Please fill all required fields");
       return;
     }
@@ -147,8 +168,45 @@ export default function DeliverySignUp() {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address (e.g. name@example.com)");
+      return;
+    }
+
+    // DOB Validation (18+)
+    if (formData.dateOfBirth) {
+      const dob = new Date(formData.dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age--;
+      }
+      if (age < 18) {
+        setError("You must be at least 18 years old to join");
+        return;
+      }
+    }
+
     if (formData.password.length < 6) {
       setError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (formData.pincode && formData.pincode.length !== 6) {
+      setError("Pincode must be 6 digits");
+      return;
+    }
+
+    if (formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 15)) {
+      setError("Account number must be 9-15 digits");
+      return;
+    }
+
+    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+    if (formData.ifscCode && !ifscRegex.test(formData.ifscCode)) {
+      setError("Please enter a valid IFSC code (e.g. SBIN0000456)");
       return;
     }
 
@@ -292,9 +350,14 @@ export default function DeliverySignUp() {
                           value={formData.name}
                           onChange={handleInputChange}
                           placeholder="Your legal name"
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          spellCheck={false}
+                          autoComplete="off"
+                          className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:bg-white transition-all text-sm font-medium ${formData.name && !/^[a-zA-Z\s]*$/.test(formData.name) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
                           disabled={loading}
                         />
+                        {formData.name && !/^[a-zA-Z\s]*$/.test(formData.name) && (
+                          <p className="text-[9px] text-red-500 font-bold ml-1 italic">Only alphabets allowed</p>
+                        )}
                       </div>
 
                       <div className="space-y-1">
@@ -310,10 +373,13 @@ export default function DeliverySignUp() {
                             onChange={handleInputChange}
                             placeholder="00000 00000"
                             maxLength={10}
-                            className="w-full px-3 py-2.5 bg-transparent text-slate-900 placeholder:text-slate-400 focus:outline-none text-sm font-bold"
+                            className="w-full px-3 py-2 bg-transparent text-slate-900 placeholder:text-slate-500 focus:outline-none text-sm font-bold placeholder:font-normal"
                             disabled={loading}
                           />
                         </div>
+                        {formData.mobile && formData.mobile.length !== 10 && (
+                          <p className="text-[9px] text-red-500 font-bold ml-1 italic">Must be exactly 10 digits</p>
+                        )}
                       </div>
 
                       <div className="space-y-1">
@@ -324,29 +390,22 @@ export default function DeliverySignUp() {
                           value={formData.email}
                           onChange={handleInputChange}
                           placeholder="Email"
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          spellCheck={false}
+                          className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-slate-900 focus:outline-none focus:bg-white transition-all text-sm font-medium ${formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
                         />
+                        {formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
+                          <p className="text-[9px] text-red-500 font-bold ml-1">Invalid email format</p>
+                        )}
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-700 ml-1">Birth Date</label>
+                        <label className="text-[10px] font-bold text-slate-700 ml-1">Birth Date (18+)</label>
                         <input
                           type="date"
                           name="dateOfBirth"
+                          max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                           value={formData.dateOfBirth}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-700 ml-1">Secure Password *</label>
-                        <input
-                          type="password"
-                          name="password"
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          placeholder="Min 6 characters"
                           className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
                         />
                       </div>
@@ -379,9 +438,12 @@ export default function DeliverySignUp() {
                             value={formData.city}
                             onChange={handleInputChange}
                             placeholder="City"
-                            className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium pr-10"
+                            className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:bg-white transition-all text-sm font-medium ${formData.city && !/^[a-zA-Z\s]*$/.test(formData.city) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
                             disabled={isCityLoading}
                           />
+                          {formData.city && !/^[a-zA-Z\s]*$/.test(formData.city) && (
+                            <p className="text-[9px] text-red-500 font-bold ml-1 italic">Only alphabets allowed</p>
+                          )}
                           <button
                             type="button"
                             onClick={fetchCityFromLocation}
@@ -402,8 +464,11 @@ export default function DeliverySignUp() {
                             value={formData.pincode}
                             onChange={handleInputChange}
                             placeholder="000000"
-                            className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                            className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-slate-900 focus:outline-none focus:bg-white transition-all text-sm font-medium ${formData.pincode && formData.pincode.length !== 6 ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
                           />
+                          {formData.pincode && formData.pincode.length !== 6 && (
+                            <p className="text-[9px] text-red-500 font-bold ml-1">Must be 6 digits</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -414,34 +479,54 @@ export default function DeliverySignUp() {
                         Banking (Optional)
                       </h3>
                       <div className="grid grid-cols-2 gap-2.5 w-full">
-                        <input
-                          name="accountName"
-                          value={formData.accountName}
-                          onChange={handleInputChange}
-                          placeholder="Account Name"
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs focus:bg-white focus:border-teal-500 outline-none transition-all placeholder:text-slate-300"
-                        />
-                        <input
-                          name="bankName"
-                          value={formData.bankName}
-                          onChange={handleInputChange}
-                          placeholder="Bank Name"
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs focus:bg-white focus:border-teal-500 outline-none transition-all placeholder:text-slate-300"
-                        />
-                        <input
-                          name="accountNumber"
-                          value={formData.accountNumber}
-                          onChange={handleInputChange}
-                          placeholder="Account Number"
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs focus:bg-white focus:border-teal-500 outline-none transition-all placeholder:text-slate-300"
-                        />
-                        <input
-                          name="ifscCode"
-                          value={formData.ifscCode}
-                          onChange={handleInputChange}
-                          placeholder="IFSC Code"
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs focus:bg-white focus:border-teal-500 outline-none transition-all placeholder:text-slate-300"
-                        />
+                        <div className="space-y-1">
+                          <input
+                            name="accountName"
+                            value={formData.accountName}
+                            onChange={handleInputChange}
+                            placeholder="Account Holder Name"
+                            className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.accountName && !/^[a-zA-Z\s]*$/.test(formData.accountName) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                          />
+                          {formData.accountName && !/^[a-zA-Z\s]*$/.test(formData.accountName) && (
+                            <p className="text-[9px] text-red-500 font-bold ml-1 italic">Only alphabets allowed</p>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <input
+                            name="bankName"
+                            value={formData.bankName}
+                            onChange={handleInputChange}
+                            placeholder="Bank Name"
+                            className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.bankName && !/^[a-zA-Z\s]*$/.test(formData.bankName) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                          />
+                          {formData.bankName && !/^[a-zA-Z\s]*$/.test(formData.bankName) && (
+                            <p className="text-[9px] text-red-500 font-bold ml-1 italic text-right">Only alphabets allowed</p>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <input
+                            name="accountNumber"
+                            value={formData.accountNumber}
+                            onChange={handleInputChange}
+                            placeholder="Account Number"
+                            className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 15) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                          />
+                          {formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 15) && (
+                            <p className="text-[9px] text-red-500 font-bold ml-1">Must be 9-15 digits</p>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <input
+                            name="ifscCode"
+                            value={formData.ifscCode}
+                            onChange={handleInputChange}
+                            placeholder="IFSC Code"
+                            className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscCode) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                          />
+                          {formData.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscCode) && (
+                            <p className="text-[9px] text-red-500 font-bold ml-1">Invalid IFSC (e.g. SBIN0000456)</p>
+                          )}
+                        </div>
                       </div>
                       <select
                         name="bonusType"

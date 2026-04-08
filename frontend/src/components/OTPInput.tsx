@@ -3,10 +3,11 @@ import { useState, useRef, useEffect } from 'react';
 interface OTPInputProps {
   length?: number;
   onComplete: (otp: string) => void;
+  onChange?: (otp: string) => void;
   disabled?: boolean;
 }
 
-export default function OTPInput({ length = 4, onComplete, disabled = false }: OTPInputProps) {
+export default function OTPInput({ length = 4, onComplete, onChange, disabled = false }: OTPInputProps) {
   const [otp, setOtp] = useState<string[]>(Array(length).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -24,6 +25,11 @@ export default function OTPInput({ length = 4, onComplete, disabled = false }: O
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
+
+    // Call onChange with current string
+    if (onChange) {
+      onChange(newOtp.join(''));
+    }
 
     // Move to next input if value is entered
     if (value && index < length - 1) {
@@ -53,6 +59,10 @@ export default function OTPInput({ length = 4, onComplete, disabled = false }: O
         newOtp[i] = pastedData[i];
       }
       setOtp(newOtp);
+
+      if (onChange) {
+        onChange(newOtp.join(''));
+      }
 
       // Focus the next empty input or the last one
       const nextIndex = Math.min(pastedData.length, length - 1);

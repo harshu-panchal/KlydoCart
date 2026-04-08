@@ -14,6 +14,7 @@ const SellerAccountSettings = () => {
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Initial state with empty values
   const [sellerData, setSellerData] = useState({
@@ -41,7 +42,9 @@ const SellerAccountSettings = () => {
     storeBanner: '',
     storeDescription: '',
     commission: 0,
-    status: ''
+    status: '',
+    newPassword: '',
+    confirmPassword: ''
   });
 
   useEffect(() => {
@@ -85,10 +88,62 @@ const SellerAccountSettings = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    // Immediate validation
+    let error = "";
+    if (name === 'sellerName') {
+      if (!/^[a-zA-Z\s]*$/.test(value)) {
+        error = "Name should only contain alphabets";
+      }
+    } else if (name === 'accountName' || name === 'bankName') {
+      if (value.length > 0 && !/^[a-zA-Z\s]*$/.test(value)) {
+        error = `${name === 'accountName' ? 'Account Holder' : 'Bank'} Name should only contain alphabets`;
+      }
+    } else if (name === 'accountNumber') {
+      if (value.length > 0 && !/^\d+$/.test(value)) {
+        error = "Account Number should only contain digits";
+      }
+    } else if (name === 'ifsc') {
+      if (value.length > 0 && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value.toUpperCase())) {
+        error = "Invalid IFSC format (e.g. HDFC0001015)";
+      }
+    } else if (name === 'panCard') {
+      if (value.length > 0 && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value.toUpperCase())) {
+        error = "Invalid PAN format (e.g. ABCDE1234F)";
+      }
+    } else if (name === 'taxNumber') {
+      if (value.length > 0 && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(value.toUpperCase())) {
+        error = "Invalid GST format";
+      }
+    } else if (name === 'email') {
+      if (value.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        error = "Please enter a valid email address";
+      }
+    } else if (name === 'mobile') {
+      if (value.length > 0 && !/^\d{0,10}$/.test(value)) {
+        return; // Don't allow non-digits or more than 10 chars
+      }
+    }
+
+    setFormErrors(prev => ({ ...prev, [name]: error }));
     setSellerData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'logo' | 'storeBanner') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSellerData(prev => ({
+          ...prev,
+          [type]: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,6 +151,57 @@ const SellerAccountSettings = () => {
     try {
       setSaveLoading(true);
       setError('');
+
+      const errors: Record<string, string> = {};
+      
+      if (!sellerData.sellerName.trim()) {
+        errors.sellerName = "Full Name is required";
+      } else if (!/^[a-zA-Z\s]+$/.test(sellerData.sellerName)) {
+        errors.sellerName = "Name must only contain letters";
+      }
+
+      if (sellerData.mobile.length !== 10) {
+        errors.mobile = "Mobile number must be exactly 10 digits";
+      }
+
+      if (sellerData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sellerData.email)) {
+        errors.email = "Please enter a valid email format";
+      }
+
+      // Bank & Tax Validations
+      if (sellerData.accountName && !/^[a-zA-Z\s]+$/.test(sellerData.accountName)) {
+        errors.accountName = "Name must only contain letters";
+      }
+      if (sellerData.bankName && !/^[a-zA-Z\s]+$/.test(sellerData.bankName)) {
+        errors.bankName = "Bank Name must only contain letters";
+      }
+      if (sellerData.accountNumber && !/^\d+$/.test(sellerData.accountNumber)) {
+        errors.accountNumber = "Account Number must be digits only";
+      }
+      if (sellerData.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(sellerData.ifsc.toUpperCase())) {
+        errors.ifsc = "Invalid IFSC Code (e.g. HDFC0001015)";
+      }
+      if (sellerData.panCard && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(sellerData.panCard.toUpperCase())) {
+        errors.panCard = "Invalid PAN Card format";
+      }
+      if (sellerData.taxNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(sellerData.taxNumber.toUpperCase())) {
+        errors.taxNumber = "Invalid GST format";
+      }
+
+      if (sellerData.newPassword || sellerData.confirmPassword) {
+        if (sellerData.newPassword !== sellerData.confirmPassword) {
+          errors.confirmPassword = "Passwords do not match";
+        } else if (sellerData.newPassword.length < 6) {
+          errors.newPassword = "Password must be at least 6 characters";
+        }
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setFormErrors(errors);
+        setError('Please fix the validation errors before saving');
+        setSaveLoading(false);
+        return;
+      }
 
       // Validate location if address is being updated
       if (sellerData.searchLocation && (!sellerData.latitude || !sellerData.longitude)) {
@@ -308,12 +414,18 @@ const SellerAccountSettings = () => {
                               className="relative w-32 h-32 rounded-full object-cover border-4 border-white shadow-md bg-white"
                             />
                             {isEditing && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm z-10">
+                              <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm z-10">
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/*"
+                                  onChange={(e) => handleFileChange(e, 'profile')}
+                                />
                                 <span className="text-white text-xs font-bold uppercase tracking-wider flex flex-col items-center gap-1">
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                   Change
                                 </span>
-                              </div>
+                              </label>
                             )}
                           </div>
                           <div className="text-center sm:text-left">
@@ -324,23 +436,32 @@ const SellerAccountSettings = () => {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <InputGroup label="Full Name" name="sellerName" value={sellerData.sellerName} onChange={handleInputChange} disabled={!isEditing} autoComplete="name" />
-                          <InputGroup label="Email Address" name="email" value={sellerData.email} onChange={handleInputChange} disabled={!isEditing} type="email" autoComplete="email" />
-                          <InputGroup label="Mobile Number" name="mobile" value={sellerData.mobile} onChange={handleInputChange} disabled={!isEditing} type="tel" autoComplete="tel" />
+                          <InputGroup label="Full Name" name="sellerName" value={sellerData.sellerName} onChange={handleInputChange} disabled={!isEditing} autoComplete="name" error={formErrors.sellerName} />
+                          <InputGroup label="Email Address" name="email" value={sellerData.email} onChange={handleInputChange} disabled={!isEditing} type="email" autoComplete="email" error={formErrors.email} />
+                          <InputGroup label="Mobile Number" name="mobile" value={sellerData.mobile} onChange={handleInputChange} disabled={!isEditing} type="tel" autoComplete="tel" error={formErrors.mobile} />
 
-                          <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-gray-700 ml-1">Password</label>
-                            <div className="relative">
-                              <input
-                                type="password"
-                                autoComplete="new-password"
-                                placeholder="••••••••"
-                                disabled={!isEditing}
-                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all placeholder:text-gray-300"
-                              />
-                            </div>
-                            {isEditing && <p className="text-xs text-gray-400 ml-1">Leave blank to keep current password</p>}
-                          </div>
+                          <InputGroup 
+                            label="New Password" 
+                            name="newPassword" 
+                            value={sellerData.newPassword} 
+                            onChange={handleInputChange} 
+                            disabled={!isEditing} 
+                            type="password" 
+                            autoComplete="new-password" 
+                            placeholder="Leave blank to keep current"
+                            error={formErrors.newPassword}
+                          />
+                          <InputGroup 
+                            label="Confirm Password" 
+                            name="confirmPassword" 
+                            value={sellerData.confirmPassword} 
+                            onChange={handleInputChange} 
+                            disabled={!isEditing} 
+                            type="password" 
+                            autoComplete="new-password" 
+                            placeholder="Confirm your new password"
+                            error={formErrors.confirmPassword}
+                          />
                         </div>
                       </div>
                     )}
@@ -357,9 +478,15 @@ const SellerAccountSettings = () => {
                               />
                             </div>
                             {isEditing && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm">
+                              <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-sm">
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/*"
+                                  onChange={(e) => handleFileChange(e, 'logo')}
+                                />
                                 <span className="text-white text-xs font-bold">UPLOAD</span>
-                              </div>
+                              </label>
                             )}
                           </div>
                           <div>
@@ -491,11 +618,17 @@ const SellerAccountSettings = () => {
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                             {isEditing && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm">
+                              <label className="absolute inset-0 flex items-center justify-center bg-black/40 cursor-pointer opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm">
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/*"
+                                  onChange={(e) => handleFileChange(e, 'storeBanner')}
+                                />
                                 <div className="bg-white/20 p-4 rounded-full border border-white/30 backdrop-blur-md">
                                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                 </div>
-                              </div>
+                              </label>
                             )}
                           </div>
                           <p className="text-xs text-gray-500 ml-1">Recommended size: 1200x400px. Supports JPG, PNG.</p>
@@ -529,10 +662,10 @@ const SellerAccountSettings = () => {
                             <h4 className="text-lg font-bold text-gray-900">Bank Details</h4>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
-                            <InputGroup label="Account Holder Name" name="accountName" value={sellerData.accountName} onChange={handleInputChange} disabled={!isEditing} />
-                            <InputGroup label="Bank Name" name="bankName" value={sellerData.bankName} onChange={handleInputChange} disabled={!isEditing} />
-                            <InputGroup label="Account Number" name="accountNumber" value={sellerData.accountNumber} onChange={handleInputChange} disabled={!isEditing} />
-                            <InputGroup label="IFSC Code" name="ifsc" value={sellerData.ifsc} onChange={handleInputChange} disabled={!isEditing} />
+                            <InputGroup label="Account Holder Name" name="accountName" value={sellerData.accountName} onChange={handleInputChange} disabled={!isEditing} error={formErrors.accountName} />
+                            <InputGroup label="Bank Name" name="bankName" value={sellerData.bankName} onChange={handleInputChange} disabled={!isEditing} error={formErrors.bankName} />
+                            <InputGroup label="Account Number" name="accountNumber" value={sellerData.accountNumber} onChange={handleInputChange} disabled={!isEditing} error={formErrors.accountNumber} />
+                            <InputGroup label="IFSC Code" name="ifsc" value={sellerData.ifsc} onChange={handleInputChange} disabled={!isEditing} placeholder="e.g. HDFC0001015" error={formErrors.ifsc} />
                           </div>
                         </section>
 
@@ -544,8 +677,8 @@ const SellerAccountSettings = () => {
                             <h4 className="text-lg font-bold text-gray-900">Tax Information</h4>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50/50 p-6 rounded-xl border border-gray-100">
-                            <InputGroup label="PAN Card Number" name="panCard" value={sellerData.panCard} onChange={handleInputChange} disabled={!isEditing} />
-                            <InputGroup label="Tax Number (GST)" name="taxNumber" value={sellerData.taxNumber} onChange={handleInputChange} disabled={!isEditing} />
+                            <InputGroup label="PAN Card Number" name="panCard" value={sellerData.panCard} onChange={handleInputChange} disabled={!isEditing} placeholder="e.g. ABCDE1234F" error={formErrors.panCard} />
+                            <InputGroup label="Tax Number (GST)" name="taxNumber" value={sellerData.taxNumber} onChange={handleInputChange} disabled={!isEditing} placeholder="e.g. 07AAAAA0000A1Z5" error={formErrors.taxNumber} />
                           </div>
                         </section>
                       </div>
@@ -589,10 +722,12 @@ const SellerAccountSettings = () => {
   );
 };
 
-const InputGroup = ({ label, name, value, onChange, disabled, type = "text", placeholder = "", autoComplete }: any) => (
-
+const InputGroup = ({ label, name, value, onChange, disabled, type = "text", placeholder = "", autoComplete, error }: any) => (
   <div className="space-y-1.5">
-    <label className="text-sm font-semibold text-gray-700 ml-1">{label}</label>
+    <div className="flex justify-between items-center">
+      <label className="text-sm font-semibold text-gray-700 ml-1">{label}</label>
+      {error && <span className="text-[10px] text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-100">{error}</span>}
+    </div>
     <input
       type={type}
       name={name}
@@ -601,9 +736,9 @@ const InputGroup = ({ label, name, value, onChange, disabled, type = "text", pla
       disabled={disabled}
       placeholder={placeholder}
       autoComplete={autoComplete}
-      className={`w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all ${disabled ? 'bg-gray-50/50 text-gray-500 cursor-default' : 'bg-white'
-
-        }`}
+      className={`w-full px-4 py-2.5 rounded-lg border transition-all ${
+        error ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500' : 'border-gray-300 focus:ring-teal-500/20 focus:border-teal-500'
+      } outline-none ${disabled ? 'bg-gray-50/50 text-gray-500 cursor-default' : 'bg-white'}`}
     />
   </div>
 );

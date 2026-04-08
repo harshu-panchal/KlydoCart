@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -18,6 +18,18 @@ export default function Login() {
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [timer, setTimer] = useState(0);
+  const [otpValue, setOtpValue] = useState("");
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (showOTP && timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showOTP, timer]);
 
   const handleContinue = async () => {
     if (mobileNumber.length !== 10) return;
@@ -31,6 +43,7 @@ export default function Login() {
         setSessionId(response.sessionId);
       }
       setShowOTP(true);
+      setTimer(20); // Set timer to 20 seconds
     } catch (err: any) {
       setError(
         err.response?.data?.message ||
@@ -136,13 +149,7 @@ export default function Login() {
                   </motion.div>
                 )}
 
-                <div className="flex items-center justify-between px-1">
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <div className="w-3.5 h-3.5 rounded border border-teal-200 group-active:scale-95 transition-transform" />
-                    <span className="text-[10px] text-teal-700 font-medium">Remember me</span>
-                  </label>
-                  <button className="text-[10px] text-teal-700 font-semibold hover:underline">Forgot password?</button>
-                </div>
+                <div className="h-2"></div>
 
                 <button
                   onClick={handleContinue}
@@ -174,7 +181,11 @@ export default function Login() {
                 </div>
 
                 <div className="py-2">
-                  <OTPInput onComplete={handleOTPComplete} disabled={loading} />
+                  <OTPInput 
+                    onComplete={handleOTPComplete} 
+                    onChange={setOtpValue}
+                    disabled={loading} 
+                  />
                 </div>
 
                 {error && (
@@ -187,23 +198,44 @@ export default function Login() {
                   </motion.div>
                 )}
 
+                <AnimatePresence>
+                  {timer > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="text-center"
+                    >
+                      <p className="text-[11px] font-medium text-teal-700/60 mb-2">
+                        Resend code in <span className="text-teal-600 font-bold">{timer}s</span>
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
                       setShowOTP(false);
                       setError("");
+                      setOtpValue("");
+                      setTimer(0);
                     }}
                     disabled={loading}
                     className="flex-1 py-2.5 rounded-xl font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 transition-all border border-teal-100 text-xs"
                   >
-                    Change
+                    Change Number
                   </button>
                   <button
-                    onClick={handleContinue}
-                    disabled={loading}
-                    className="flex-1 py-2.5 rounded-xl font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-600/20 transition-all text-xs"
+                    onClick={timer === 0 ? handleContinue : () => otpValue.length === 4 && handleOTPComplete(otpValue)}
+                    disabled={loading || (timer > 0 && otpValue.length !== 4)}
+                    className={`flex-1 py-2.5 rounded-xl font-bold text-white transition-all text-xs shadow-md ${
+                      (timer === 0 || otpValue.length === 4) && !loading
+                        ? "bg-teal-600 shadow-teal-600/20 hover:bg-teal-700 font-bold"
+                        : "bg-neutral-300 shadow-none cursor-not-allowed opacity-70"
+                    }`}
                   >
-                    {loading ? "Sending..." : "Resend"}
+                    {loading ? "Sending..." : (timer > 0 ? "Continue" : "Resend")}
                   </button>
                 </div>
               </motion.div>

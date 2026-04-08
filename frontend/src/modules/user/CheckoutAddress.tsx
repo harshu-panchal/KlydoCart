@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { useLocation as useLocationContext } from '../../hooks/useLocation';
 import { OrderAddress } from '../../types/order';
 import { getAddresses, addAddress, updateAddress, Address } from '../../services/api/customerAddressService';
 import { appConfig } from '../../services/configService';
@@ -16,6 +17,7 @@ export default function CheckoutAddress() {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const { location: userLocation } = useLocationContext();
 
   // Get address from navigation state if editing
   const editAddress = (location.state as any)?.editAddress as OrderAddress | undefined;
@@ -104,20 +106,9 @@ export default function CheckoutAddress() {
           landmark: existingAddr.landmark || '',
           id: existingAddr._id,
         });
-      } else {
-        // Clear or reset to defaults if no address of this type
-        setAddress(prev => ({
-          ...prev,
-          flat: '',
-          street: '',
-          city: '',
-          state: '',
-          pincode: '',
-          landmark: '',
-          id: undefined,
-          _id: undefined,
-        }));
       }
+      // REMOVED: Auto-clearing fields when no address found for type.
+      // This allows the user to start typing and then select a type.
     }
   }, [addressType, savedAddresses, editAddress]);
 
@@ -252,15 +243,17 @@ export default function CheckoutAddress() {
         await addAddress(payload);
       }
 
-      // Show success feedback logic if needed or just navigate
+      showToast('Address saved successfully', 'success');
+      
+      // Navigate back
       setTimeout(() => {
         setIsSaving(false);
         navigate('/checkout', { replace: true });
-      }, 500);
-    } catch (error) {
+      }, 800);
+    } catch (error: any) {
       console.error('Error saving address:', error);
       setIsSaving(false);
-      // Show error toast
+      showToast(error.response?.data?.message || 'Failed to save address', 'error');
     }
   };
 
@@ -303,8 +296,25 @@ export default function CheckoutAddress() {
 
       <div className="px-4 py-3 border-b border-neutral-200">
         <label className="block text-xs font-medium text-neutral-700 mb-2">
-           Delivery Address Details
+           Pin your delivery location
         </label>
+        <div className="rounded-xl overflow-hidden border border-neutral-200 shadow-sm">
+          <GoogleMapsLocationPicker
+            initialLat={selectedLatitude || userLocation?.latitude || 0}
+            initialLng={selectedLongitude || userLocation?.longitude || 0}
+            onLocationSelect={(lat, lng, addr) => {
+              setSelectedLatitude(lat);
+              setSelectedLongitude(lng);
+              if (addr) {
+                if (addr.street && !address.street) handleInputChange('street', addr.street);
+                if (addr.city && !address.city) handleInputChange('city', addr.city);
+                if (addr.state && !address.state) handleInputChange('state', addr.state);
+                if (addr.pincode && !address.pincode) handleInputChange('pincode', addr.pincode);
+              }
+            }}
+            height="180px"
+          />
+        </div>
       </div>
 
       {/* Who you are ordering for? */}
@@ -368,9 +378,9 @@ export default function CheckoutAddress() {
               <button
                 key={type.id}
                 onClick={() => setAddressType(type.id as typeof addressType)}
-                className={`px-3 py-1.5 rounded-lg border-2 text-xs font-medium transition-colors flex items-center gap-1.5 ${addressType === type.id
-                  ? 'border-green-600 bg-green-50 text-green-700'
-                  : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                className={`px-3 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all flex items-center gap-1.5 active:scale-95 ${addressType === type.id
+                  ? 'border-green-600 bg-green-50 text-green-700 shadow-sm'
+                  : 'border-neutral-100 bg-neutral-50 text-neutral-500 hover:border-neutral-200 hover:bg-white'
                   }`}
               >
                 <span className="text-sm">{type.icon}</span>
@@ -378,6 +388,17 @@ export default function CheckoutAddress() {
               </button>
             ))}
           </div>
+          {addressType === 'other' && (
+             <div className="mt-3">
+               <input
+                 type="text"
+                 placeholder="e.g. Friend's Home, Gym, etc."
+                 className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors"
+                 value={address.landmark || ''}
+                 onChange={(e) => handleInputChange('landmark', e.target.value)}
+               />
+             </div>
+          )}
         </div>
       )}
 
@@ -541,16 +562,31 @@ export default function CheckoutAddress() {
       </div>
 
       {/* Save Address Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-lg p-4">
         <button
-          onClick={handleSaveAddress}
-          disabled={!isFormValid || isSaving}
-          className={`w-full py-3 px-4 font-semibold text-sm transition-colors ${isFormValid && !isSaving
-            ? 'bg-green-600 text-white hover:bg-green-700'
-            : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
-            }`}
+          onClick={() => {
+            if (!isFormValid) {
+              validateForm();
+              showToast('Please fill all required fields', 'error');
+              return;
+            }
+            handleSaveAddress();
+          }}
+          disabled={isSaving}
+          className={`w-full py-4 rounded-xl font-bold text-sm transition-all active:scale-[0.98] shadow-md flex justify-center items-center gap-2 ${
+            isSaving 
+              ? 'bg-neutral-100 text-neutral-400 cursor-not-allowed' 
+              : 'bg-green-600 text-white hover:bg-green-700 shadow-green-600/20'
+          }`}
         >
-          {isSaving ? 'Saving...' : 'Save Address'}
+          {isSaving ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span>Saving...</span>
+            </>
+          ) : (
+            'Save Address & Proceed'
+          )}
         </button>
       </div>
     </div>

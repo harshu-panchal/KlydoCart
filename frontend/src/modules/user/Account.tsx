@@ -3,8 +3,10 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
   getProfile,
+  updateProfile,
   CustomerProfile,
 } from "../../services/api/customerService";
+import { useToast } from "../../context/ToastContext";
 import { useThemeContext } from "../../context/ThemeContext";
 
 export default function Account() {
@@ -16,6 +18,11 @@ export default function Account() {
   const [error, setError] = useState("");
   const [showGstModal, setShowGstModal] = useState(false);
   const [gstNumber, setGstNumber] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editDOB, setEditDOB] = useState("");
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -68,6 +75,36 @@ export default function Account() {
   const handleLogout = () => {
     authLogout();
     navigate("/login");
+  };
+  
+  const handleEditProfile = () => {
+    if (profile) {
+      setEditName(profile.name || "");
+      setEditEmail(profile.email || "");
+      setEditDOB(profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : "");
+      setShowEditModal(true);
+    }
+  };
+
+  const onUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const res = await updateProfile({
+        name: editName,
+        email: editEmail,
+        dateOfBirth: editDOB
+      });
+      if (res.success) {
+        setProfile(res.data);
+        setShowEditModal(false);
+        showToast("Profile updated successfully");
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to update profile", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGstSubmit = (e: React.FormEvent) => {
@@ -199,6 +236,16 @@ export default function Account() {
               </svg>
             </button>
             <h1 className="w-full text-center text-lg font-bold text-white">Account</h1>
+            <button 
+              onClick={handleEditProfile}
+              className="absolute right-0 w-9 h-9 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white shadow-sm border border-white/20 hover:bg-white/30 transition-all active:scale-95 z-10"
+              title="Edit Profile"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
           </div>
 
           <div className="flex flex-col items-center gap-3 mt-4 mb-2">
@@ -594,6 +641,75 @@ export default function Account() {
                   By continuing, you agree to our{" "}
                   <span className="underline">Terms & Conditions</span>
                 </p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      {showEditModal && (
+        <>
+          <div
+            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
+            onClick={() => setShowEditModal(false)}
+          />
+          <div className="fixed inset-x-0 bottom-0 z-[70] animate-in slide-in-from-bottom duration-500 ease-out">
+            <div className="bg-white rounded-t-[32px] shadow-2xl max-w-lg mx-auto p-6 pt-10 relative border-t border-neutral-100">
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-neutral-200 rounded-full mb-4" />
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="absolute -top-12 right-4 w-10 h-10 rounded-full bg-neutral-900 flex items-center justify-center text-white">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-neutral-900 mb-6">
+                  Edit Profile
+                </h3>
+                <form onSubmit={onUpdateProfile} className="space-y-4">
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Full Name</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Name"
+                      className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Email Address</label>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      placeholder="Email"
+                      className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1 text-left">
+                    <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Date of Birth</label>
+                    <input
+                      type="date"
+                      value={editDOB}
+                      onChange={(e) => setEditDOB(e.target.value)}
+                      className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading || !editName.trim()}
+                    className="w-full rounded-xl bg-teal-600 text-white font-bold py-4 hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-lg shadow-teal-500/20 uppercase tracking-wider text-sm mt-4">
+                    {loading ? "Updating..." : "Update Profile"}
+                  </button>
+                </form>
               </div>
             </div>
           </div>

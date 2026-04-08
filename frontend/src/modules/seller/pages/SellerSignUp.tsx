@@ -68,6 +68,32 @@ export default function SellerSignUp() {
         ...prev,
         [name]: value.replace(/\D/g, "").slice(0, 10),
       }));
+    } else if (name === "sellerName" || name === "city" || name === "accountName" || name === "bankName") {
+      // Only alphabets and spaces
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.replace(/[^a-zA-Z\s]/g, ""),
+      }));
+    } else if (name === "accountNumber") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.replace(/\D/g, "").slice(0, 15),
+      }));
+    } else if (name === "ifsc") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.toUpperCase().slice(0, 11),
+      }));
+    } else if (name === "panCard") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.toUpperCase().slice(0, 10),
+      }));
+    } else if (name === "taxNumber") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value.toUpperCase().slice(0, 15),
+      }));
     } else if (name === "serviceRadiusKm") {
       const cleanedValue = value.replace(/[^0-9.]/g, "");
       const finalValue = cleanedValue.split(".").length > 2 ? cleanedValue.substring(0, cleanedValue.lastIndexOf(".")) : cleanedValue;
@@ -103,11 +129,12 @@ export default function SellerSignUp() {
 
     if (!formData.sellerName) { setError("Please enter your name"); return; }
     if (!formData.mobile) { setError("Please enter your mobile number"); return; }
-    if (!formData.email) { setError("Please enter your email address"); return; }
-    if (!formData.storeName) { setError("Please enter your store name"); return; }
-    if (formData.categories.length === 0) { setError("Please select at least one category"); return; }
-    if (!formData.address && !formData.searchLocation) { setError("Please select your store location"); return; }
-    if (!formData.city) { setError("Please enter your city"); return; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address (e.g. name@example.com)");
+      return;
+    }
+
     if (formData.mobile.length !== 10) { setError("Please enter a valid 10-digit mobile number"); return; }
 
     setLoading(true);
@@ -262,9 +289,14 @@ export default function SellerSignUp() {
                           value={formData.sellerName}
                           onChange={handleInputChange}
                           placeholder="Your full name"
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          spellCheck={false}
+                          autoComplete="off"
+                          className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:bg-white transition-all text-sm font-medium ${formData.sellerName && !/^[a-zA-Z\s]*$/.test(formData.sellerName) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
                           disabled={loading}
                         />
+                        {formData.sellerName && !/^[a-zA-Z\s]*$/.test(formData.sellerName) && (
+                          <p className="text-[9px] text-red-500 font-bold ml-1 italic">Only alphabets allowed</p>
+                        )}
                       </div>
 
                       <div className="space-y-1">
@@ -284,6 +316,9 @@ export default function SellerSignUp() {
                             disabled={loading}
                           />
                         </div>
+                        {formData.mobile && formData.mobile.length !== 10 && (
+                          <p className="text-[9px] text-red-500 font-bold ml-1 italic">Must be exactly 10 digits</p>
+                        )}
                       </div>
 
                       <div className="space-y-1">
@@ -294,9 +329,13 @@ export default function SellerSignUp() {
                           value={formData.email}
                           onChange={handleInputChange}
                           placeholder="email@example.com"
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          spellCheck={false}
+                          className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:bg-white transition-all text-sm font-medium ${formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
                           disabled={loading}
                         />
+                        {formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
+                          <p className="text-[9px] text-red-500 font-bold ml-1 italic">Invalid email format</p>
+                        )}
                       </div>
                     </div>
 
@@ -314,7 +353,7 @@ export default function SellerSignUp() {
                           value={formData.storeName}
                           onChange={handleInputChange}
                           placeholder="Your business name"
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
                           disabled={loading}
                         />
                       </div>
@@ -402,7 +441,7 @@ export default function SellerSignUp() {
                           name="serviceRadiusKm"
                           value={formData.serviceRadiusKm}
                           onChange={handleInputChange}
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
                           disabled={loading}
                           min="0.1"
                         />
@@ -416,9 +455,12 @@ export default function SellerSignUp() {
                           value={formData.city}
                           onChange={handleInputChange}
                           placeholder="Your city"
-                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium"
+                          className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:bg-white transition-all text-sm font-medium ${formData.city && !/^[a-zA-Z\s]*$/.test(formData.city) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
                           disabled={loading}
                         />
+                        {formData.city && !/^[a-zA-Z\s]*$/.test(formData.city) && (
+                          <p className="text-[9px] text-red-500 font-bold ml-1 italic">Only alphabets allowed</p>
+                        )}
                       </div>
                     </div>
 
@@ -427,21 +469,90 @@ export default function SellerSignUp() {
                       <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-2">
                         Banking & Tax (Optional)
                       </h3>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          name="panCard"
-                          value={formData.panCard}
-                          onChange={handleInputChange}
-                          placeholder="PAN Card"
-                          className="px-4 py-3 bg-slate-50 border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:border-teal-500 outline-none transition-all placeholder:text-slate-300"
-                        />
-                        <input
-                          name="taxNumber"
-                          value={formData.taxNumber}
-                          onChange={handleInputChange}
-                          placeholder="GST Number"
-                          className="px-4 py-3 bg-slate-50 border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:border-teal-500 outline-none transition-all placeholder:text-slate-300"
-                        />
+                      <div className="space-y-4 mt-3">
+                        {/* PAN and GST */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <input
+                              name="panCard"
+                              value={formData.panCard}
+                              onChange={handleInputChange}
+                              placeholder="PAN Card"
+                              className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-medium focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.panCard && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panCard) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                            />
+                            {formData.panCard && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panCard) && (
+                              <p className="text-[9px] text-red-500 font-bold ml-1">Invalid PAN format (e.g. ABCDE1234F)</p>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <input
+                              name="taxNumber"
+                              value={formData.taxNumber}
+                              onChange={handleInputChange}
+                              placeholder="GST Number"
+                              className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-medium focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.taxNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$/.test(formData.taxNumber) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                            />
+                            {formData.taxNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$/.test(formData.taxNumber) && (
+                              <p className="text-[9px] text-red-500 font-bold ml-1 text-right">Invalid GST (15 digits required)</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Account Name and Bank Name */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <input
+                              name="accountName"
+                              value={formData.accountName}
+                              onChange={handleInputChange}
+                              placeholder="Account Holder Name"
+                              className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-medium focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.accountName && !/^[a-zA-Z\s]*$/.test(formData.accountName) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                            />
+                            {formData.accountName && !/^[a-zA-Z\s]*$/.test(formData.accountName) && (
+                              <p className="text-[9px] text-red-500 font-bold ml-1 italic">Only alphabets allowed</p>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <input
+                              name="bankName"
+                              value={formData.bankName}
+                              onChange={handleInputChange}
+                              placeholder="Bank Name"
+                              className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-medium focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.bankName && !/^[a-zA-Z\s]*$/.test(formData.bankName) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                            />
+                            {formData.bankName && !/^[a-zA-Z\s]*$/.test(formData.bankName) && (
+                              <p className="text-[9px] text-red-500 font-bold ml-1 italic text-right">Only alphabets allowed</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Account Number and IFSC */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <input
+                              name="accountNumber"
+                              value={formData.accountNumber}
+                              onChange={handleInputChange}
+                              placeholder="Account Number"
+                              className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-medium focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 15) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                            />
+                            {formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 15) && (
+                              <p className="text-[9px] text-red-500 font-bold ml-1">Must be 9-15 digits</p>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <input
+                              name="ifsc"
+                              value={formData.ifsc}
+                              onChange={handleInputChange}
+                              placeholder="IFSC Code"
+                              className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm font-medium focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifsc) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                            />
+                            {formData.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifsc) && (
+                              <p className="text-[9px] text-red-500 font-bold ml-1 text-right">Invalid IFSC (e.g. SBIN0000456)</p>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

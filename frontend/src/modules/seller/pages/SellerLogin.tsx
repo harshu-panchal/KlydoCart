@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +15,8 @@ export default function SellerLogin() {
   const [showOTP, setShowOTP] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [timer, setTimer] = useState(20);
+  const [canResend, setCanResend] = useState(false);
 
   const handleMobileLogin = async () => {
     if (mobileNumber.length !== 10) return;
@@ -25,7 +27,7 @@ export default function SellerLogin() {
     try {
       const response = await sendOTP(mobileNumber);
       if (response.success) {
-        setShowOTP(true);
+        handleShowOTP();
         setError("");
       } else {
         setError(response.message || "Failed to send OTP. Please try again.");
@@ -37,6 +39,25 @@ export default function SellerLogin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (showOTP && timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      setCanResend(true);
+    }
+    return () => clearInterval(interval);
+  }, [showOTP, timer]);
+
+  // Reset timer when OTP screen is shown
+  const handleShowOTP = () => {
+    setTimer(20);
+    setCanResend(false);
+    setShowOTP(true);
   };
 
   const handleOTPComplete = async (otp: string) => {
@@ -210,14 +231,18 @@ export default function SellerLogin() {
                         setError("");
                       }}
                       disabled={loading}
-                      className="flex-1 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all">
-                      Back
+                      className="flex-1 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all text-center">
+                      Change Number
                     </button>
                     <button
-                      onClick={handleMobileLogin}
-                      disabled={loading}
-                      className="flex-1 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest text-white bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-600/20 transition-all text-center">
-                      Resend
+                      onClick={canResend ? handleMobileLogin : undefined}
+                      disabled={loading || (!canResend)}
+                      className={`flex-1 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest text-white shadow-md transition-all text-center ${
+                        canResend && !loading
+                          ? "bg-teal-600 hover:bg-teal-700 shadow-teal-600/20"
+                          : "bg-teal-400/50 cursor-not-allowed shadow-none"
+                      }`}>
+                      {canResend ? "Resend" : `Continue (${timer}s)`}
                     </button>
                   </div>
                 </motion.div>

@@ -86,7 +86,7 @@ export default function Checkout() {
   const [giftPackaging, setGiftPackaging] = useState<boolean>(false);
   const [showRazorpayCheckout, setShowRazorpayCheckout] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "Online">("Online");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "Online" | "UPI" | "Card" | "Wallet">("Online");
 
   // Profile completion modal state
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -461,13 +461,13 @@ export default function Checkout() {
     try {
       const placedId = await addOrder(order);
       if (placedId) {
-        if (paymentMethod === "Online") {
-          setPendingOrderId(placedId);
-          setShowRazorpayCheckout(true);
-        } else {
+        if (paymentMethod === "COD") {
           setPlacedOrderId(placedId);
           clearCart();
           setShowOrderSuccess(true);
+        } else {
+          setPendingOrderId(placedId);
+          setShowRazorpayCheckout(true);
         }
       }
     } catch (error: any) {
@@ -1088,27 +1088,6 @@ export default function Checkout() {
       <div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 bg-white border-b border-neutral-200">
         <div className="bg-white rounded-lg border border-neutral-200 p-2.5">
           {/* Delivery info */}
-          <div className="flex items-center gap-1.5 mb-2">
-            <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="2" />
-                <path
-                  d="M12 6v6l4 2"
-                  stroke="white"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <span className="text-xs font-semibold text-neutral-900">
-              Delivery in {appConfig.estimatedDeliveryTime}
-            </span>
-          </div>
 
           <p className="text-[10px] text-neutral-600 mb-2.5">
             Shipment of {displayCart.itemCount || 0}{" "}
@@ -1116,13 +1095,13 @@ export default function Checkout() {
           </p>
 
           {/* Cart Items */}
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {displayItems
               .filter((item) => item.product)
               .map((item) => (
                 <div
                   key={item.product?.id || Math.random()}
-                  className="flex gap-2">
+                  className="flex gap-2.5 items-start pb-2.5 border-b border-neutral-50 last:border-0">
                   {/* Product Image */}
                   <div className="w-12 h-12 bg-neutral-100 rounded-lg flex-shrink-0 overflow-hidden">
                     {item.product?.imageUrl ? (
@@ -1140,70 +1119,83 @@ export default function Checkout() {
 
                   {/* Product Info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-xs font-semibold text-neutral-900 mb-0.5 line-clamp-2">
-                      {item.product?.name}
-                    </h3>
-                    <p className="text-[10px] text-neutral-600 mb-0.5">
-                      {item.quantity} × {item.product?.pack}
-                    </p>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
-                        const variantTitle = (item.product as any).variantTitle || item.product.pack;
-                        handleMoveToWishlist(item.product, variantId, variantTitle);
-                      }}
-                      className="text-[10px] text-green-600 font-medium mb-1.5 hover:text-green-700 transition-colors">
-                      Move to wishlist
-                    </button>
-
-                    {/* Quantity Selector */}
-                    <div className="flex items-center justify-between mt-1.5">
-                      <div className="flex items-center gap-1.5 bg-white border-2 border-green-600 rounded-full px-1.5 py-0.5">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-xs font-semibold text-neutral-900 mb-0.5 line-clamp-2">
+                          {item.product?.name}
+                        </h3>
+                        <p className="text-[10px] text-neutral-600 mb-0.5">
+                          {item.quantity} × {item.product?.pack}
+                        </p>
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
                             const variantTitle = (item.product as any).variantTitle || item.product.pack;
-                            updateQuantity(item.product?.id, item.quantity - 1, variantId, variantTitle);
+                            handleMoveToWishlist(item.product, variantId, variantTitle);
                           }}
-                          className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors text-xs">
-                          −
-                        </button>
-                        <span className="text-xs font-bold text-green-600 min-w-[1.25rem] text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => {
-                            const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
-                            const variantTitle = (item.product as any).variantTitle || item.product.pack;
-                            updateQuantity(item.product?.id, item.quantity + 1, variantId, variantTitle);
-                          }}
-                          className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors text-xs">
-                          +
+                          className="text-[10px] text-green-600 font-medium mb-1.5 hover:text-green-700 transition-colors">
+                          Move to wishlist
                         </button>
                       </div>
+                      {/* Quantity Selector and Price */}
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0 pt-0.5">
+                        <div className="flex items-center gap-1.5 bg-white border border-green-600 rounded-full px-1.5 py-0.5 shadow-sm">
+                          <button
+                            onClick={() => {
+                              const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
+                              const variantTitle = (item.product as any).variantTitle || item.product.pack;
+                              updateQuantity(item.product?.id, item.quantity - 1, variantId, variantTitle);
+                            }}
+                            className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors p-0 leading-none">
+                            <span className="relative top-[-0.5px]">−</span>
+                          </button>
+                          <span className="text-green-700 font-bold min-w-[0.85rem] text-center text-[11px]">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => {
+                              const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
+                              const variantTitle = (item.product as any).variantTitle || item.product.pack;
+                              updateQuantity(item.product?.id, item.quantity + 1, variantId, variantTitle);
+                            }}
+                            className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors p-0 leading-none">
+                            <span className="relative top-[-0.5px]">+</span>
+                          </button>
+                        </div>
 
-                      {/* Price */}
-                      {(() => {
-                        const { displayPrice, mrp, hasDiscount } =
-                          calculateProductPrice(item.product, item.variant);
-                        return (
-                          <div className="flex items-center gap-1.5">
-                            {hasDiscount && (
-                              <span className="text-[10px] text-neutral-500 line-through">
-                                ₹{mrp}
+                        {/* Price */}
+                        {(() => {
+                          const { displayPrice, mrp, hasDiscount } =
+                            calculateProductPrice(item.product, item.variant);
+                          return (
+                            <div className="flex flex-col items-end leading-tight">
+                              {hasDiscount && (
+                                <span className="text-[9px] text-neutral-400 line-through">
+                                  ₹{(mrp * item.quantity).toLocaleString("en-IN")}
+                                </span>
+                              )}
+                              <span className="text-sm font-bold text-neutral-900">
+                                ₹{(displayPrice * item.quantity).toLocaleString("en-IN")}
                               </span>
-                            )}
-                            <span className="text-sm font-bold text-neutral-900">
-                              ₹{displayPrice}
-                            </span>
-                          </div>
-                        );
-                      })()}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
+            
+            {/* Add more items button */}
+            <button 
+              onClick={() => navigate('/')}
+              className="w-full flex items-center justify-center gap-2 py-2 mt-2 border-2 border-dashed border-green-200 rounded-xl text-green-600 hover:bg-green-50 transition-all font-bold text-xs active:scale-[0.98]">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Add more items
+            </button>
           </div>
         </div>
       </div>
@@ -1460,6 +1452,21 @@ export default function Checkout() {
               </div>
             );
           })}
+        </div>
+        
+        {/* Add more items button */}
+        <div className="px-4 py-3 bg-white border-b border-neutral-100">
+          <button 
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-green-600 font-bold text-sm group"
+          >
+            <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </div>
+            Add more items
+          </button>
         </div>
       </div>
 
@@ -1967,24 +1974,6 @@ export default function Checkout() {
         </button>
       </div>
 
-      {/* Made with love by KlydoCart */}
-      <div className="px-4 py-2">
-        <div className="w-full flex flex-col items-center justify-center">
-          <div className="flex items-center gap-1.5 text-neutral-500">
-            <span className="text-[10px] font-medium">Made with</span>
-            <motion.span
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
-              className="text-red-500 text-sm">
-              ❤️
-            </motion.span>
-            <span className="text-[10px] font-medium">by</span>
-            <span className="text-[10px] font-semibold text-green-600">
-              KlydoCart
-            </span>
-          </div>
-        </div>
-      </div>
 
       {/* GSTIN Sheet Modal */}
       <Sheet open={showGstinSheet} onOpenChange={setShowGstinSheet}>
@@ -2146,15 +2135,18 @@ export default function Checkout() {
       {/* Payment Method Selection */}
       <div className="px-4 py-3 border-b border-neutral-200 bg-neutral-50/50">
         <h3 className="text-sm font-bold text-neutral-900 mb-2">Payment Method</h3>
-        <div className="space-y-2">
+        <div className="space-y-3 mt-3">
           {/* Online Payment Option */}
           <div
             onClick={() => setPaymentMethod("Online")}
-            className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === "Online"
-              ? "border-green-600 bg-green-50"
-              : "border-neutral-200 bg-white"
+            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${paymentMethod === "Online"
+              ? "border-green-600 bg-green-50/50 shadow-green-100"
+              : "border-neutral-200 bg-white hover:border-neutral-300"
               }`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "Online" ? "bg-green-100 text-green-600" : "bg-neutral-100 text-neutral-500"
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "Online" ? "border-green-600" : "border-neutral-300"}`}>
+              {paymentMethod === "Online" && <motion.div layoutId="payment-indicator" className="w-2.5 h-2.5 rounded-full bg-green-600" />}
+            </div>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "Online" ? "bg-white text-green-600 shadow-sm" : "bg-neutral-100 text-neutral-500"
               }`}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="5" width="20" height="14" rx="2" ry="2" />
@@ -2162,26 +2154,44 @@ export default function Checkout() {
               </svg>
             </div>
             <div>
-              <span className={`text-xs font-bold block ${paymentMethod === "Online" ? "text-green-700" : "text-neutral-900"}`}>Online Payment</span>
+              <span className={`text-sm font-bold block ${paymentMethod === "Online" ? "text-green-700" : "text-neutral-900"}`}>Online Payment</span>
               <span className="text-[10px] text-neutral-500">Secure payment via Razorpay</span>
             </div>
-            {paymentMethod === "Online" && (
-              <div className="ml-auto">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-            )}
           </div>
 
-          {/* COD Option */}
+          {/* UPI Option */}
           <div
-            onClick={() => setPaymentMethod("COD")}
-            className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === "COD"
-              ? "border-green-600 bg-green-50"
-              : "border-neutral-200 bg-white"
+            onClick={() => setPaymentMethod("UPI")}
+            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${paymentMethod === "UPI"
+              ? "border-green-600 bg-green-50/50 shadow-green-100"
+              : "border-neutral-200 bg-white hover:border-neutral-300"
               }`}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "COD" ? "bg-green-100 text-green-600" : "bg-neutral-100 text-neutral-500"
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "UPI" ? "border-green-600" : "border-neutral-300"}`}>
+              {paymentMethod === "UPI" && <motion.div layoutId="payment-indicator" className="w-2.5 h-2.5 rounded-full bg-green-600" />}
+            </div>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "UPI" ? "bg-white text-green-600 shadow-sm" : "bg-neutral-100 text-neutral-500"
+              }`}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+            <div>
+              <span className={`text-sm font-bold block ${paymentMethod === "UPI" ? "text-green-700" : "text-neutral-900"}`}>UPI</span>
+              <span className="text-[10px] text-neutral-500">PhonePe, GPay, Paytm</span>
+            </div>
+          </div>
+
+          {/* Card Option */}
+          <div
+            onClick={() => setPaymentMethod("Card")}
+            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${paymentMethod === "Card"
+              ? "border-green-600 bg-green-50/50 shadow-green-100"
+              : "border-neutral-200 bg-white hover:border-neutral-300"
+              }`}>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "Card" ? "border-green-600" : "border-neutral-300"}`}>
+              {paymentMethod === "Card" && <motion.div layoutId="payment-indicator" className="w-2.5 h-2.5 rounded-full bg-green-600" />}
+            </div>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "Card" ? "bg-white text-green-600 shadow-sm" : "bg-neutral-100 text-neutral-500"
               }`}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
@@ -2189,17 +2199,78 @@ export default function Checkout() {
               </svg>
             </div>
             <div>
-              <span className={`text-xs font-bold block ${paymentMethod === "COD" ? "text-green-700" : "text-neutral-900"}`}>Cash on Delivery</span>
+              <span className={`text-sm font-bold block ${paymentMethod === "Card" ? "text-green-700" : "text-neutral-900"}`}>Credit / Debit Card</span>
+              <span className="text-[10px] text-neutral-500">All major cards supported</span>
+            </div>
+          </div>
+
+          {/* Wallet Option */}
+          <div
+            onClick={() => setPaymentMethod("Wallet")}
+            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${paymentMethod === "Wallet"
+              ? "border-green-600 bg-green-50/50 shadow-green-100"
+              : "border-neutral-200 bg-white hover:border-neutral-300"
+              }`}>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "Wallet" ? "border-green-600" : "border-neutral-300"}`}>
+              {paymentMethod === "Wallet" && <motion.div layoutId="payment-indicator" className="w-2.5 h-2.5 rounded-full bg-green-600" />}
+            </div>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "Wallet" ? "bg-white text-green-600 shadow-sm" : "bg-neutral-100 text-neutral-500"
+              }`}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v1" />
+                <path d="M19 5v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h16" />
+                <path d="M16 14h2" />
+              </svg>
+            </div>
+            <div>
+              <span className={`text-sm font-bold block ${paymentMethod === "Wallet" ? "text-green-700" : "text-neutral-900"}`}>Wallets</span>
+              <span className="text-[10px] text-neutral-500">Paytm, PhonePe, and more</span>
+            </div>
+          </div>
+
+          {/* COD Option */}
+          <div
+            onClick={() => setPaymentMethod("COD")}
+            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${paymentMethod === "COD"
+              ? "border-green-600 bg-green-50/50 shadow-green-100"
+              : "border-neutral-200 bg-white hover:border-neutral-300"
+              }`}>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "COD" ? "border-green-600" : "border-neutral-300"}`}>
+              {paymentMethod === "COD" && <motion.div layoutId="payment-indicator" className="w-2.5 h-2.5 rounded-full bg-green-600" />}
+            </div>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "COD" ? "bg-white text-green-600 shadow-sm" : "bg-neutral-100 text-neutral-500"
+              }`}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                <line x1="1" y1="10" x2="23" y2="10" />
+              </svg>
+            </div>
+            <div>
+              <span className={`text-sm font-bold block ${paymentMethod === "COD" ? "text-green-700" : "text-neutral-900"}`}>Cash on Delivery</span>
               <span className="text-[10px] text-neutral-500">Pay when you receive your order</span>
             </div>
-            {paymentMethod === "COD" && (
-              <div className="ml-auto">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-            )}
           </div>
+        </div>
+
+        {/* Made with love branding inside Document Flow after payment options */}
+        <div className="px-4 py-8 mb-24 flex flex-col items-center justify-center bg-transparent">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2.5 bg-green-50/50 border border-green-100 px-6 py-3 rounded-2xl shadow-sm">
+            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.1em]">Made with</span>
+            <div className="flex items-center gap-1.5">
+              <motion.span
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
+                className="text-red-500 text-sm drop-shadow-sm">
+                ❤️
+              </motion.span>
+              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.1em]">by</span>
+              <span className="text-sm font-black text-green-600 tracking-tight">KlydoCart</span>
+            </div>
+          </motion.div>
+          <p className="mt-3 text-[10px] text-neutral-400 font-medium">Empowering Local Stores across India</p>
         </div>
       </div>
 
@@ -2315,29 +2386,33 @@ export default function Checkout() {
       </Sheet>
 
       {/* Bottom Sticky Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-lg">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] pb-safe">
         {selectedAddress ? (
-          <button
-            onClick={handlePlaceOrder}
-            disabled={cart.items.length === 0}
-            className={`w-full py-3 px-4 font-bold text-sm uppercase tracking-wide transition-colors ${cart.items.length > 0
-              ? "bg-green-600 text-white hover:bg-green-700"
-              : "bg-neutral-300 text-neutral-500 cursor-not-allowed"
-              }`}>
-            Place Order
-          </button>
+          <div className="px-4 py-3">
+            <button
+              onClick={handlePlaceOrder}
+              disabled={cart.items.length === 0}
+              className={`w-full py-4 px-4 font-bold text-sm uppercase tracking-widest transition-all rounded-xl shadow-lg active:scale-[0.98] ${cart.items.length > 0
+                ? "bg-green-600 text-white hover:bg-green-700 shadow-green-600/20"
+                : "bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none"
+                }`}>
+              Place Order
+            </button>
+          </div>
         ) : (
-          <button
-            onClick={() =>
-              navigate("/checkout/address", {
-                state: {
-                  editAddress: savedAddress,
-                },
-              })
-            }
-            className="w-full bg-green-600 text-white py-3 px-4 font-bold text-sm uppercase tracking-wide hover:bg-green-700 transition-colors">
-            Choose address at next step
-          </button>
+          <div className="px-4 py-3">
+            <button
+              onClick={() =>
+                navigate("/checkout/address", {
+                  state: {
+                    editAddress: savedAddress,
+                  },
+                })
+              }
+              className="w-full bg-green-600 text-white py-4 px-4 font-bold text-sm uppercase tracking-widest rounded-xl hover:bg-green-700 shadow-lg shadow-green-600/20 transition-all active:scale-[0.98]">
+              Choose address at next step
+            </button>
+          </div>
         )}
       </div>
 

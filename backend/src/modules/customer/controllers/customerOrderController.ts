@@ -169,33 +169,34 @@ export const createOrder = async (req: Request, res: Response) => {
 
             if (variationValue) {
                 // Try to decrement stock for the specific variation first
-                // We check variations._id, variations.value, variations.title, or variations.pack
+                // We use $elemMatch to ensure the same variation element matches both identity and stock availability
+                const query = {
+                    _id: item.product.id,
+                    status: 'Active',
+                    publish: true,
+                    variations: {
+                        $elemMatch: {
+                            $or: [
+                                { _id: mongoose.isValidObjectId(variationValue) ? new mongoose.Types.ObjectId(variationValue) : new mongoose.Types.ObjectId() },
+                                { value: variationValue },
+                                { title: variationValue },
+                                { pack: variationValue }
+                            ],
+                            stock: { $gte: qty }
+                        }
+                    }
+                };
+
+                // Search for the index of the matching variation to use it in update
+                // Note: We use the $ positional operator which matches the first element that satisfied the query conditions
                 product = session
                     ? await Product.findOneAndUpdate(
-                        {
-                            _id: item.product.id,
-                            $or: [
-                                { "variations._id": mongoose.isValidObjectId(variationValue) ? variationValue : new mongoose.Types.ObjectId() },
-                                { "variations.value": variationValue },
-                                { "variations.title": variationValue },
-                                { "variations.pack": variationValue }
-                            ],
-                            "variations.stock": { $gte: qty }
-                        },
+                        query,
                         { $inc: { "variations.$.stock": -qty, stock: -qty } },
                         { session, new: true }
                     )
                     : await Product.findOneAndUpdate(
-                        {
-                            _id: item.product.id,
-                            $or: [
-                                { "variations._id": mongoose.isValidObjectId(variationValue) ? variationValue : new mongoose.Types.ObjectId() },
-                                { "variations.value": variationValue },
-                                { "variations.title": variationValue },
-                                { "variations.pack": variationValue }
-                            ],
-                            "variations.stock": { $gte: qty }
-                        },
+                        query,
                         { $inc: { "variations.$.stock": -qty, stock: -qty } },
                         { new: true }
                     );
@@ -210,7 +211,14 @@ export const createOrder = async (req: Request, res: Response) => {
                     // Product has variations, but we didn't match one.
                     // If a variation was provided, it means that specific variation is out of stock.
                     if (variationValue) {
-                        throw new Error(`Insufficient stock for variation: ${variationValue}`);
+                        const matchingVar = checkProduct.variations.find((v: any) => 
+                            (v._id && v._id.toString() === variationValue) || 
+                            v.value === variationValue || 
+                            v.title === variationValue
+                        );
+                        const currentStock = matchingVar ? matchingVar.stock : 'Unknown';
+                        console.error(`Insufficient stock for variation: ${variationValue}. Product ID: ${item.product.id}. Available: ${currentStock}, Requested: ${qty}`);
+                        throw new Error(`Insufficient stock for variation: ${variationValue}${matchingVar ? ' (Available: ' + matchingVar.stock + ')' : ''}`);
                     }
 
                     // No variation was provided, but the product has them.
@@ -249,6 +257,11 @@ export const createOrder = async (req: Request, res: Response) => {
             }
 
             if (!product) {
+                const checkProd = await Product.findById(item.product.id);
+                console.error(`Order Placement Failure - Product: ${item.product.id}, Variation: ${variationValue}, Qty: ${qty}. Product Found in DB: ${!!checkProd}`);
+                if (checkProd) {
+                    console.error(`Product Details - Name: ${checkProd.productName}, Total Stock: ${checkProd.stock}, Variations Count: ${checkProd.variations?.length}`);
+                }
                 throw new Error(`Insufficient stock or product not found: ${item.product.name || 'ID: ' + item.product.id}${variationValue ? ' (' + variationValue + ')' : ''}`);
             }
 

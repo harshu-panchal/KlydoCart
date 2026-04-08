@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 // import { products } from '../../data/products'; // REMOVED
 // import { categories } from '../../data/categories'; // REMOVED
 import { useCart } from "../../context/CartContext";
+import { useAuth } from "../../context/AuthContext";
 import { useLocation } from "../../hooks/useLocation";
 import { useLoading } from "../../context/LoadingContext";
 import Button from "../../components/ui/button";
@@ -16,14 +17,17 @@ import { getProductById } from "../../services/api/customerProductService";
 import WishlistButton from "../../components/WishlistButton";
 import StarRating from "../../components/ui/StarRating";
 import { calculateProductPrice } from "../../utils/priceUtils";
+import { useToast } from "../../context/ToastContext";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const routerLocation = useRouterLocation();
   const { cart, addToCart, updateQuantity } = useCart();
+  const { isAuthenticated } = useAuth();
   const { location } = useLocation();
   const { startLoading, stopLoading } = useLoading();
+  const { showToast } = useToast();
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const [isProductDetailsExpanded, setIsProductDetailsExpanded] =
     useState(false);
@@ -284,6 +288,13 @@ export default function ProductDetail() {
       : null;
 
   const handleAddToCart = () => {
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+      showToast('Login to continue', 'info');
+      navigate('/login');
+      return;
+    }
+
     if (!isAvailableAtLocation) {
       // Show alert if trying to add item outside delivery area
       alert("This product is not available for delivery at your location.");
@@ -1374,6 +1385,11 @@ export default function ProductDetail() {
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
+                      if (!isAuthenticated) {
+                        showToast('Login to continue', 'info');
+                        navigate('/login');
+                        return;
+                      }
                       const productId = product.id || product._id;
                       const variantId = selectedVariant?._id;
                       updateQuantity(
@@ -1398,6 +1414,11 @@ export default function ProductDetail() {
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
+                      if (!isAuthenticated) {
+                        showToast('Login to continue', 'info');
+                        navigate('/login');
+                        return;
+                      }
                       const productId = product.id || product._id;
                       const variantId = selectedVariant?._id;
                       updateQuantity(

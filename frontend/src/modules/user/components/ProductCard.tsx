@@ -148,6 +148,13 @@ export default function ProductCard({
     e.stopPropagation();
     e.preventDefault();
 
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+      showToast('Login to continue', 'info');
+      navigate('/login');
+      return;
+    }
+
     // Check if product is available in user's location
     if (product.isAvailable === false) {
       return;
@@ -172,6 +179,13 @@ export default function ProductCard({
     e.stopPropagation();
     e.preventDefault();
 
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+      showToast('Login to continue', 'info');
+      navigate('/login');
+      return;
+    }
+
     // Prevent any operation while another is in progress
     if (isOperationPendingRef.current || inCartQty <= 0) {
       return;
@@ -191,7 +205,12 @@ export default function ProductCard({
 
   const handleIncrease = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    e.preventDefault();
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+      showToast('Login to continue', 'info');
+      navigate('/login');
+      return;
+    }
 
     // Check if product is available in user's location
     if (product.isAvailable === false) {

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "../../components/ui/button";
 import { useOrders } from "../../hooks/useOrders";
+import { useAuth } from "../../context/AuthContext";
 import { OrderStatus } from "../../types/order";
 import GoogleMapsTracking from "../../components/GoogleMapsTracking";
 import { useDeliveryTracking } from "../../hooks/useDeliveryTracking";
@@ -13,6 +14,7 @@ import {
   getSellerLocationsForOrder,
   refreshDeliveryOtp,
 } from "../../services/api/customerOrderService";
+import RazorpayCheckout from "../../components/RazorpayCheckout";
 
 // Icon Components
 const ArrowLeftIcon = ({ className }: { className?: string }) => (
@@ -452,6 +454,7 @@ export default function OrderDetail() {
   const [searchParams] = useSearchParams();
   const confirmed = searchParams.get("confirmed") === "true";
   const { getOrderById, fetchOrderById, loading: contextLoading } = useOrders();
+  const { user } = useAuth();
   const [order, setOrder] = useState<any>(id ? getOrderById(id) : undefined);
   const [loading, setLoading] = useState(!order);
 
@@ -474,6 +477,10 @@ export default function OrderDetail() {
   const [showItemsModal, setShowItemsModal] = useState(false);
   const [showSpecialRequestsModal, setShowSpecialRequestsModal] =
     useState(false);
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showRazorpayCheckout, setShowRazorpayCheckout] = useState(false);
 
   // Form states
   const [deliveryInstructions, setDeliveryInstructions] = useState("");
@@ -600,6 +607,24 @@ export default function OrderDetail() {
       return () => clearInterval(timer);
     }
   }, [orderStatus]);
+
+  // Fallback Polling for order status updates
+  useEffect(() => {
+    // Stop polling if the order is in a final state or if ID is missing
+    if (!id || !orderStatus || ["Delivered", "Cancelled", "Returned", "Returned"].includes(orderStatus)) {
+      return;
+    }
+
+    const pollInterval = setInterval(() => {
+      // Refresh order data if not already performing a refresh
+      if (!isRefreshing) {
+        console.log("⏱️ Fallback polling order update...");
+        handleRefresh();
+      }
+    }, 15000); // Poll every 15 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [id, orderStatus, isRefreshing]);
 
   // Handler functions
   const handleRefresh = async () => {
@@ -1008,14 +1033,14 @@ export default function OrderDetail() {
                 Pay now, or pay to the delivery partner using Cash/UPI
               </p>
             </div>
-            <Button className="bg-gray-900 hover:bg-gray-800 text-white rounded-full px-6">
+            <Button 
+              onClick={() => setShowRazorpayCheckout(true)}
+              className="bg-gray-900 hover:bg-gray-800 text-white rounded-full px-6">
               Pay now <ChevronRightIcon className="w-4 h-4 ml-1" />
             </Button>
           </div>
         </motion.div>
 
-        {/* Promo Carousel */}
-        <PromoCarousel />
 
         {/* Delivery Partner Assignment - Only show if no partner assigned yet */}
         {!order?.deliveryPartner && (
@@ -1046,6 +1071,7 @@ export default function OrderDetail() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
+          onClick={() => setShowSafetyModal(true)}
           whileTap={{ scale: 0.99 }}>
           <ShieldIcon className="w-6 h-6 text-gray-600" />
           <span className="flex-1 text-left font-medium text-gray-900">
@@ -1077,6 +1103,7 @@ export default function OrderDetail() {
               order.address?.phone || "9XXXXXXXX"
             }`}
             subtitle="Delivery partner may call this number"
+            onClick={() => setShowContactModal(true)}
           />
           <SectionItem
             icon={HomeIcon}
@@ -1086,6 +1113,7 @@ export default function OrderDetail() {
                 ? `${order.address.address}, ${order.address.city}`
                 : "Add delivery address"
             }
+            onClick={() => setShowAddressModal(true)}
           />
           <SectionItem
             icon={MessageSquareIcon}
@@ -1428,6 +1456,186 @@ export default function OrderDetail() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Safety Modal */}
+      <AnimatePresence>
+        {showSafetyModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+            onClick={() => setShowSafetyModal(false)}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 max-w-md w-full">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <ShieldIcon className="w-6 h-6 text-green-700" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Partner Safety
+                </h2>
+              </div>
+              <div className="space-y-4 mb-6">
+                <div className="flex gap-3">
+                  <div className="text-xl">🧼</div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Sanitized Deliveries</p>
+                    <p className="text-sm text-gray-600">Our partners follow strict sanitization protocols for every order.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="text-xl">😷</div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Mask Protocols</p>
+                    <p className="text-sm text-gray-600">Partners are required to wear masks during pickup and delivery.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="text-xl">📦</div>
+                  <div>
+                    <p className="font-semibold text-gray-900">No Contact Delivery</p>
+                    <p className="text-sm text-gray-600">Partners can leave the order at your doorstep to ensure safety.</p>
+                  </div>
+                </div>
+              </div>
+              <Button
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => setShowSafetyModal(false)}>
+                Got it
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Contact Details Modal */}
+      <AnimatePresence>
+        {showContactModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+            onClick={() => setShowContactModal(false)}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 max-w-md w-full">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Contact Details
+              </h2>
+              <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-lg">👤</span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Recipient Name</p>
+                    <p className="font-semibold text-gray-900">{order.address?.name || "Customer"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                    <PhoneIcon className="w-5 h-5 text-gray-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Phone Number</p>
+                    <p className="font-semibold text-gray-900">{order.address?.phone || "9XXXXXXXX"}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowContactModal(false)}>
+                  Close
+                </Button>
+                <Button
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => {
+                    const phone = order.address?.phone || "1234567890";
+                    window.location.href = `tel:${phone}`;
+                  }}>
+                  Call Now
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Address Details Modal */}
+      <AnimatePresence>
+        {showAddressModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+            onClick={() => setShowAddressModal(false)}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 max-w-md w-full">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <HomeIcon className="w-6 h-6 text-blue-700" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Delivery Address
+                </h2>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Full Address</p>
+                <p className="text-gray-900 leading-relaxed">
+                  {order.address 
+                    ? `${order.address.address}, ${order.address.city}, ${order.address.state || ""} ${order.address.pincode}`
+                    : "No address provided"}
+                </p>
+                {order.address?.landmark && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Landmark</p>
+                    <p className="text-gray-900">{order.address.landmark}</p>
+                  </div>
+                )}
+              </div>
+              <Button
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => setShowAddressModal(false)}>
+                Confirm Location
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Razorpay Integration */}
+      {showRazorpayCheckout && (
+        <RazorpayCheckout
+          orderId={order.id}
+          amount={order.totalAmount}
+          customerDetails={{
+            name: order.address?.name || user?.name || "Customer",
+            email: user?.email || "customer@klydocart.com",
+            phone: order.address?.phone || user?.phone || "0000000000",
+          }}
+          onSuccess={() => {
+            setShowRazorpayCheckout(false);
+            handleRefresh();
+          }}
+          onFailure={() => setShowRazorpayCheckout(false)}
+        />
+      )}
     </div>
   );
 }
