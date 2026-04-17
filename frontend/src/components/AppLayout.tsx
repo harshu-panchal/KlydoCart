@@ -6,6 +6,7 @@ import { useLocation as useLocationContext } from '../hooks/useLocation';
 import LocationPermissionRequest from './LocationPermissionRequest';
 import ComingSoonScreen from './ComingSoonScreen';
 import { useThemeContext } from '../context/ThemeContext';
+import Footer from './Footer';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -135,15 +136,40 @@ export default function AppLayout({ children }: AppLayoutProps) {
           ) : (
             <>
           {/* Top Navigation Bar - Desktop Only */}
-          {showFooter && (
+          {showFooter && !isActive('/account') && (
             <nav
-              className="hidden md:flex items-center justify-center gap-8 px-6 lg:px-8 py-3 shadow-sm transition-colors duration-300"
+              className="hidden md:flex items-center justify-between px-6 lg:px-8 py-3 shadow-sm transition-colors duration-300"
               style={{
                 background: `linear-gradient(to right, ${currentTheme.primary[0]}, ${currentTheme.primary[1]})`,
                 borderBottom: `1px solid ${currentTheme.primary[0]}`
               }}
             >
-              {/* Home */}
+              {/* Left Side: Brand and Location */}
+              <div className="flex flex-col text-white w-[250px]">
+                <h1 className="font-black text-2xl tracking-tighter leading-tight uppercase" style={{ color: currentTheme.headerTextColor }}>
+                  KLYDO CART
+                </h1>
+                {userLocation && (userLocation.address || userLocation.city) && (
+                  <div 
+                    className="text-xs flex items-center gap-1 mt-0.5 opacity-90 cursor-pointer hover:opacity-100 transition-opacity" 
+                    onClick={() => setShowLocationChangeModal(true)}
+                    style={{ color: currentTheme.headerTextColor }}
+                  >
+                    <span className="line-clamp-1 font-medium" title={userLocation.address || userLocation.city}>
+                      {userLocation.address 
+                        ? userLocation.address.length > 35 ? `${userLocation.address.substring(0, 35)}...` : userLocation.address 
+                        : (userLocation.city ? `${userLocation.city}${userLocation.state ? `, ${userLocation.state}` : ''}` : '')}
+                    </span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              {/* Middle: Menus */}
+              <div className="flex items-center justify-center gap-4 lg:gap-8 flex-1">
+                {/* Home */}
               <Link
                 to="/"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isActive('/')
@@ -248,6 +274,18 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </svg>
                 <span className="font-medium text-sm">Profile</span>
               </Link>
+              </div>
+
+              {/* Right Side: Logo */}
+              <div className="flex-shrink-0 flex justify-end w-[250px] transition-transform hover:scale-105 active:scale-95 duration-300">
+                <Link to="/">
+                  <img 
+                    src="/assets/login/KlydoCardLatest.png" 
+                    alt="KLYDO CART Logo" 
+                    className="h-12 w-12 object-contain bg-white/10 backdrop-blur-sm rounded-xl p-1 shadow-sm" 
+                  />
+                </Link>
+              </div>
             </nav>
           )}
 
@@ -261,7 +299,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
               {/* Location line - only show if user has provided location */}
               {userLocation && (userLocation.address || userLocation.city) && (
-              <div className="px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between text-sm">
+              <div className="px-4 py-2 flex items-center justify-between text-sm md:hidden">
                   <span className="text-neutral-700 line-clamp-1" title={userLocation?.address || ''}>
                   {userLocation?.address
                     ? userLocation.address.length > 50
@@ -299,7 +337,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           )}
 
           {/* Scrollable Main Content */}
-          <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide pb-24 md:pb-8">
+          <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide pb-24 md:pb-0">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={location.pathname}
@@ -322,6 +360,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 {children}
               </motion.div>
             </AnimatePresence>
+            {showFooter && <Footer />}
           </main>
 
           {/* Floating Cart Pill - Hidden on Order Again page */}

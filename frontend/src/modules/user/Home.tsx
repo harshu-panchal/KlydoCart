@@ -343,11 +343,11 @@ export default function Home() {
                                   (tile.productImages ? tile.productImages[0] : "")
                                 }
                                 alt={tile.name}
-                                className="w-full h-16 object-cover"
+                                className="w-full h-16 md:h-24 lg:h-32 object-cover"
                               />
                             ) : (
                               <div
-                                className={`w-full h-16 flex items-center justify-center text-3xl text-neutral-300 ${tile.bgColor || "bg-neutral-50"
+                                className={`w-full h-16 md:h-24 lg:h-32 flex items-center justify-center text-3xl text-neutral-300 md:text-5xl lg:text-6xl ${tile.bgColor || "bg-neutral-50"
                                   }`}>
                                 {tile.name.charAt(0)}
                               </div>

@@ -212,371 +212,256 @@ export default function Account() {
   const displayDateOfBirth = profile?.dateOfBirth;
 
   return (
-    <div className="pb-24 md:pb-8 bg-white min-h-screen">
-      <div 
-        className="pb-4 pt-4 shadow-md"
-        style={{
-          background: `linear-gradient(to right, ${currentTheme.primary[0]}, ${currentTheme.primary[1]})`,
-        }}
-      >
-        <div className="px-4 md:px-6 lg:px-8">
-          <div className="flex items-center relative">
-            <button
-              onClick={() => navigate(-1)}
-              className="absolute left-0 text-white hover:bg-white/20 p-1.5 rounded-full transition-colors flex-shrink-0 z-10"
-              aria-label="Back">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M15 18L9 12L15 6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-            <h1 className="w-full text-center text-lg font-bold text-white">Account</h1>
-            <button 
-              onClick={handleEditProfile}
-              className="absolute right-0 w-9 h-9 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white shadow-sm border border-white/20 hover:bg-white/30 transition-all active:scale-95 z-10"
-              title="Edit Profile"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            </button>
-          </div>
-
-          <div className="flex flex-col items-center gap-3 mt-4 mb-2">
-            <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/50 shadow-sm flex-shrink-0">
-              <svg
-                width="40"
-                height="40"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="text-white">
-                <path
-                  d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle
-                  cx="12"
-                  cy="7"
-                  r="4"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <div className="flex flex-col items-center min-w-0">
-              <h1 className="text-2xl font-bold text-white truncate mb-1">
-                {displayName}
-              </h1>
-              <div className="flex flex-col items-center gap-1.5 text-xs text-white/90">
-              {displayPhone && (
-                <div className="flex items-center gap-1.5">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span>{displayPhone}</span>
-                </div>
-              )}
-              {displayDateOfBirth && (
-                <div className="flex items-center gap-1.5">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                    <rect
-                      x="3"
-                      y="4"
-                      width="18"
-                      height="18"
-                      rx="2"
-                      ry="2"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <line
-                      x1="16"
-                      y1="2"
-                      x2="16"
-                      y2="6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                    <line
-                      x1="8"
-                      y1="2"
-                      x2="8"
-                      y2="6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                    <line
-                      x1="3"
-                      y1="10"
-                      x2="21"
-                      y2="10"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span>{formatDate(displayDateOfBirth)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-      <div className="px-4 md:px-6 lg:px-8 mt-4 mb-4 md:mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-2.5 md:gap-6 max-w-2xl md:mx-auto">
-          <button
-            onClick={() => navigate("/orders")}
-            className="bg-white rounded-lg border border-neutral-200 p-3 md:p-4 hover:shadow-md transition-shadow text-center outline-none">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="mx-auto mb-1.5 md:mb-2 text-neutral-700 md:w-6 md:h-6">
-              <path
-                d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <line
-                x1="3"
-                y1="6"
-                x2="21"
-                y2="6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M16 10a4 4 0 0 1-8 0"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div className="text-[10px] md:text-xs font-semibold text-neutral-900">
-              Your orders
-            </div>
-          </button>
-          <button
-            onClick={() => navigate("/faq")}
-            className="bg-white rounded-lg border border-neutral-200 p-3 md:p-4 hover:shadow-md transition-shadow text-center outline-none">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="mx-auto mb-1.5 md:mb-2 text-neutral-700 md:w-6 md:h-6">
-              <path
-                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div className="text-[10px] md:text-xs font-semibold text-neutral-900">
-              Need help?
-            </div>
-          </button>
+    <div className="pb-24 md:pb-20 bg-stone-50/30 md:bg-neutral-50 min-h-screen">
+      {/* Desktop Dashboard Header */}
+      <div className="hidden md:block bg-white border-b border-neutral-200 px-12 py-6 mb-8 sticky top-0 z-40 transition-all duration-300">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+           <div className="flex items-center gap-6">
+             <button onClick={() => navigate(-1)} className="p-2.5 rounded-xl hover:bg-neutral-100 transition-colors text-neutral-400">
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+             </button>
+             <div>
+               <h1 className="text-2xl font-black text-green-600 tracking-tight uppercase">Your Profile</h1>
+               <p className="text-sm font-medium text-neutral-400">Manage your profile and regional settings</p>
+             </div>
+           </div>
+           <div className="flex items-center gap-4">
+             <div className="h-10 w-px bg-neutral-100 mx-2" />
+             <button
+               onClick={handleLogout}
+               className="px-6 py-2.5 bg-red-50 text-red-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all duration-300 border border-red-100"
+             >
+               Sign Out
+             </button>
+           </div>
         </div>
       </div>
 
-      <div className="px-4 py-2.5">
-        <h2 className="text-xs font-bold text-neutral-900 mb-2 uppercase tracking-wide">
-          Your information
-        </h2>
-        <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden divide-y divide-neutral-100">
-          <button
-            onClick={() => navigate("/address-book")}
-            className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 transition-colors">
-            <div className="flex items-center gap-3">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="text-neutral-500">
-                <path
-                  d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="text-[13px] font-medium text-neutral-900">
-                Address Book
-              </span>
+      {/* Mobile-Only Section: Guaranteed 100% Fidelity */}
+      <div className="md:hidden">
+        <div 
+          className="pb-4 pt-4 shadow-md"
+          style={{
+            background: `linear-gradient(to right, ${currentTheme.primary[0]}, ${currentTheme.primary[1]})`,
+          }}
+        >
+          <div className="px-4">
+            <div className="flex items-center relative">
+              <button
+                onClick={() => navigate(-1)}
+                className="absolute left-0 text-white hover:bg-white/20 p-1.5 rounded-full transition-colors z-10"
+                aria-label="Back">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              <h1 className="w-full text-center text-lg font-bold text-white">Account</h1>
+              <button 
+                onClick={handleEditProfile}
+                className="absolute right-0 w-9 h-9 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white shadow-sm border border-white/20 active:scale-95 z-10"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
             </div>
-            <span className="text-neutral-400">›</span>
-          </button>
-          <button
-            onClick={() => navigate("/wishlist")}
-            className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 transition-colors">
-            <div className="flex items-center gap-3">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="text-neutral-500">
-                <path
-                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="text-[13px] font-medium text-neutral-900">
-                Your Wishlist
-              </span>
+            <div className="flex flex-col items-center gap-3 mt-4 mb-2">
+              <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/50 shadow-sm flex-shrink-0">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="text-white"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <div className="flex flex-col items-center min-w-0">
+                <h1 className="text-2xl font-bold text-white truncate mb-1">{displayName}</h1>
+                <div className="flex flex-col items-center gap-1.5 text-xs text-white/90">
+                  {displayPhone && (
+                    <div className="flex items-center gap-1.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <span>{displayPhone}</span>
+                    </div>
+                  )}
+                  {displayDateOfBirth && (
+                    <div className="flex items-center gap-1.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      <span>{formatDate(displayDateOfBirth)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <span className="text-neutral-400">›</span>
-          </button>
-          <button
-            onClick={() => setShowGstModal(true)}
-            className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 transition-colors">
-            <div className="flex items-center gap-3">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="text-neutral-500">
-                <path
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <polyline
-                  points="14 2 14 8 20 8"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="text-[13px] font-medium text-neutral-900">
-                GST Details
-              </span>
+          </div>
+        </div>
+
+        <div className="px-4 mt-4 mb-4">
+          <div className="grid grid-cols-2 gap-2.5">
+            <button onClick={() => navigate("/orders")} className="bg-white rounded-lg border border-neutral-200 p-3 text-center outline-none">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 text-neutral-700"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <div className="text-[10px] font-semibold text-neutral-900">Your orders</div>
+            </button>
+            <button onClick={() => navigate("/faq")} className="bg-white rounded-lg border border-neutral-200 p-3 text-center outline-none">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 text-neutral-700"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <div className="text-[10px] font-semibold text-neutral-900">Need help?</div>
+            </button>
+          </div>
+        </div>
+
+        <div className="px-4 py-2.5 pb-12">
+          <h2 className="text-xs font-bold text-neutral-900 mb-2 uppercase tracking-wide">Your information</h2>
+          <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden divide-y divide-neutral-100">
+            {[
+              { label: 'Address Book', path: '/address-book', icon: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /> },
+              { label: 'Your Wishlist', path: '/wishlist', icon: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /> },
+              { label: 'GST Details', action: () => setShowGstModal(true), icon: <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2L14 8L20 8" /> },
+              { label: 'About Us', path: '/about-us', icon: <><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></> },
+              { label: 'Log Out', action: handleLogout, icon: <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17L21 12L16 7 M21 12H9" />, color: 'text-red-500' },
+            ].map((item, i) => (
+              <button key={i} onClick={item.action || (() => navigate(item.path!))} className={`w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 ${item.color || ''}`}>
+                <div className="flex items-center gap-3">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={item.color || 'text-neutral-500'}>{item.icon}</svg>
+                  <span className="text-[13px] font-medium">{item.label}</span>
+                </div>
+                <span className="text-neutral-400 text-lg">›</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop-Only Section: Premium Dashboard Layout */}
+      <div className="hidden md:block px-12">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex flex-col md:flex-row gap-10">
+            
+            {/* Desktop Left Sidebar: Profile Overview */}
+            <div className="hidden md:flex flex-col gap-6 w-full md:w-[320px] shrink-0">
+              <div className="bg-white rounded-[32px] p-8 border border-neutral-100 shadow-xl shadow-neutral-200/50 flex flex-col items-center">
+                <div className="relative group">
+                  <div className="w-24 h-24 rounded-full bg-neutral-100 flex items-center justify-center border-4 border-white shadow-inner mb-6 transition-transform duration-500 group-hover:scale-110">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-neutral-400">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <button 
+                    onClick={handleEditProfile}
+                    className="absolute bottom-6 right-0 w-9 h-9 bg-neutral-900 text-white rounded-full flex items-center justify-center border-2 border-white shadow-lg hover:scale-110 transition-transform"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                  </button>
+                </div>
+                
+                <h2 className="text-xl font-black text-neutral-900 tracking-tight text-center truncate w-full mb-1">{displayName}</h2>
+                <span className="px-3 py-1 bg-green-50 text-green-600 text-[9px] font-black uppercase tracking-widest rounded-full border border-green-100 mb-6">Verified Customer</span>
+                
+                <div className="w-full space-y-4 pt-6 border-t border-neutral-50 text-sm font-bold">
+                  <div className="flex items-center justify-between text-neutral-400 uppercase tracking-widest text-[9px]">
+                    <span>Mobile</span>
+                    <span className="text-neutral-900 tracking-normal">{displayPhone || '--'}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-neutral-400 uppercase tracking-widest text-[9px]">
+                    <span>Birth Date</span>
+                    <span className="text-neutral-900 tracking-normal">{displayDateOfBirth ? formatDate(displayDateOfBirth) : '--'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Account Security Banner */}
+              <div className="bg-green-600 rounded-[32px] p-6 text-white overflow-hidden relative group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-white/20 transition-colors" />
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-4 text-center">Security Status</h3>
+                <div className="flex flex-col items-center gap-2">
+                   <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-1">
+                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                   </div>
+                   <span className="text-xl font-black tracking-tight">PROTECTED</span>
+                   <span className="text-[9px] font-bold text-white/60 uppercase tracking-[0.2em]">Session is active</span>
+                </div>
+              </div>
             </div>
-            <span className="text-neutral-400">›</span>
-          </button>
-          <button
-            onClick={() => navigate("/about-us")}
-            className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 transition-colors">
-            <div className="flex items-center gap-3">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="text-neutral-500">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <line
-                  x1="12"
-                  y1="16"
-                  x2="12"
-                  y2="12"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <line
-                  x1="12"
-                  y1="8"
-                  x2="12.01"
-                  y2="8"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-              </svg>
-              <span className="text-[13px] font-medium text-neutral-900">
-                About Us
-              </span>
+
+            {/* Desktop Right Content: Action Hub */}
+            <div className="flex-1 min-w-0">
+              {/* Desktop Quick Nav Tiles */}
+              <div className="hidden md:grid grid-cols-3 gap-4 mb-6">
+                 {[
+                   { label: 'Orders', icon: <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" />, path: '/orders', color: 'bg-indigo-50 text-indigo-600', sub: 'Past & Present' },
+                   { label: 'Support', icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />, path: '/faq', color: 'bg-emerald-50 text-emerald-600', sub: 'Help Center' },
+                   { label: 'Wishlist', icon: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />, path: '/wishlist', color: 'bg-rose-50 text-rose-600', sub: 'Saved Items' },
+                 ].map((item, i) => (
+                   <button 
+                     key={i}
+                     onClick={() => navigate(item.path)}
+                     className="bg-white p-4 rounded-[24px] border border-neutral-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 text-left group"
+                   >
+                     <div className={`w-10 h-10 ${item.color} rounded-xl flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-105 shadow-sm`}>
+                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">{item.icon}</svg>
+                     </div>
+                     <span className="block font-black text-neutral-900 uppercase tracking-widest text-[9px] mb-0.5">{item.label}</span>
+                     <span className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">{item.sub}</span>
+                   </button>
+                 ))}
+              </div>
+
+              {/* Information Sections Grid */}
+              <div className="space-y-6 md:space-y-0 md:grid md:grid-cols-2 md:gap-10">
+                <div className="group">
+                  <h2 className="px-1 md:px-4 text-[10px] font-black text-green-600 mb-3 md:mb-4 uppercase tracking-[0.4em] flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-600" /> Identity
+                  </h2>
+                  <div className="bg-white rounded-[24px] shadow-md shadow-neutral-200/40 overflow-hidden divide-y divide-neutral-100 border border-neutral-50">
+                    {[
+                      { label: 'Address Book', sub: 'Saved delivery locations', path: '/address-book', icon: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /> },
+                      { label: 'GST Details', sub: 'Business invoicing', action: () => setShowGstModal(true), icon: <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2L14 8L20 8" /> },
+                    ].map((row, i) => (
+                      <button
+                        key={i}
+                        onClick={row.action || (() => navigate(row.path!))}
+                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-stone-50 transition-all duration-300 group/row"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-neutral-50 rounded-lg hidden md:flex items-center justify-center text-neutral-400 group-hover/row:bg-white group-hover/row:text-green-600 transition-colors">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{row.icon}</svg>
+                          </div>
+                          <div className="text-left">
+                            <span className="block text-[11px] font-black text-neutral-900 uppercase tracking-wide">{row.label}</span>
+                            <span className="block text-[8px] text-neutral-400 font-bold uppercase tracking-widest">{row.sub}</span>
+                          </div>
+                        </div>
+                        <span className="text-neutral-300 group-hover/row:translate-x-1 group-hover/row:text-green-600 transition-all">
+                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="group">
+                  <h2 className="px-1 md:px-4 text-[10px] font-black text-green-600 mb-3 md:mb-4 uppercase tracking-[0.4em] flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-600" /> Security
+                  </h2>
+                  <div className="bg-white rounded-[24px] shadow-md shadow-neutral-200/40 overflow-hidden divide-y divide-neutral-100 border border-neutral-50">
+                     {[
+                      { label: 'About Us', sub: 'Legal & Vision', path: '/about-us', icon: <><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></> },
+                      { label: 'Logout', sub: 'Terminate session', action: handleLogout, icon: <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17L21 12L16 7 M21 12H9" />, color: 'text-red-500' },
+                    ].map((row, i) => (
+                      <button
+                        key={i}
+                        onClick={row.action || (() => navigate(row.path!))}
+                        className={`w-full flex items-center justify-between px-5 py-4 hover:bg-stone-50 transition-all duration-300 group/row ${row.color || ''}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-neutral-50 rounded-lg hidden md:flex items-center justify-center transition-colors">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={row.color || 'text-neutral-400 group-hover/row:text-green-600'}>{row.icon}</svg>
+                          </div>
+                          <div className="text-left">
+                            <span className={`block text-[11px] font-black uppercase tracking-wide ${row.color || 'text-neutral-900'}`}>{row.label}</span>
+                            <span className="block text-[8px] text-neutral-400 font-bold uppercase tracking-widest">{row.sub}</span>
+                          </div>
+                        </div>
+                        <span className={`text-neutral-300 group-hover/row:translate-x-1 transition-all ${row.color || 'group-hover/row:text-green-600'}`}>
+                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <span className="text-neutral-400">›</span>
-          </button>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 transition-colors">
-            <div className="flex items-center gap-3">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="text-red-500">
-                <path
-                  d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <polyline
-                  points="16 17 21 12 16 7"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <line
-                  x1="21"
-                  y1="12"
-                  x2="9"
-                  y2="12"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span className="text-[13px] font-medium text-red-500">
-                Log Out
-              </span>
-            </div>
-            <span className="text-neutral-400">›</span>
-          </button>
+          </div>
         </div>
       </div>
 

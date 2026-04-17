@@ -41,7 +41,19 @@ export default function OrderAgain() {
   const navigate = useNavigate();
   const [addedOrders, setAddedOrders] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
+  const [orderQuery, setOrderQuery] = useState('');
   const rowsPerPage = 10;
+
+  const filteredOrders = useMemo(() => {
+    if (!orders) return [];
+    if (!orderQuery.trim()) return orders;
+    
+    return orders.filter(order => {
+      const shortId = order.id.split('-').slice(-1)[0].toLowerCase();
+      return shortId.includes(orderQuery.toLowerCase()) || 
+             order.status.toLowerCase().includes(orderQuery.toLowerCase());
+    });
+  }, [orders, orderQuery]);
 
   // Handle "Order Again" - Add all items from an order to cart
   const handleOrderAgain = (order: any, e: React.MouseEvent) => {
@@ -109,11 +121,11 @@ export default function OrderAgain() {
   const hasOrders = orders && orders.length > 0;
 
   // Pagination Logic
-  const totalOrders = orders?.length || 0;
+  const totalOrders = filteredOrders?.length || 0;
   const displayTotalPages = Math.ceil(totalOrders / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = Math.min(startIndex + rowsPerPage, totalOrders);
-  const displayedOrders = orders?.slice(startIndex, endIndex) || [];
+  const displayedOrders = filteredOrders?.slice(startIndex, endIndex) || [];
 
   const getPageNumbers = () => {
     const pages = [];
@@ -131,32 +143,61 @@ export default function OrderAgain() {
   };
 
   return (
-    <div className="pb-4">
+    <div className="pb-4 md:pb-12 max-w-[1600px] mx-auto min-h-screen bg-stone-50 md:bg-white">
       {/* BESSELLERS SECTION REMOVED - If you see this comment, new code is loaded */}
       {/* Global Theme Context */}
       <div 
-        className="pb-2 pt-6 shadow-md relative overflow-hidden"
+        className="pb-2 pt-6 md:pt-10 md:pb-6 shadow-md md:shadow-none relative overflow-hidden md:overflow-visible md:rounded-none md:mx-0 md:mt-0"
         style={{
-          background: `linear-gradient(135deg, ${currentTheme?.primary?.[0] || '#0d9488'}, ${currentTheme?.primary?.[1] || '#0f766e'})`,
-        }}
+          background: 'var(--header-bg)',
+        } as any}
       >
+        <style>{`
+          :root {
+            --header-bg: linear-gradient(135deg, ${currentTheme?.primary?.[0] || '#0d9488'}, ${currentTheme?.primary?.[1] || '#0f766e'});
+          }
+          @media (min-width: 768px) {
+            :root {
+              --header-bg: none;
+            }
+          }
+        `}</style>
         {/* Decorative background element */}
-        <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-40 h-40 bg-black/5 rounded-full blur-3xl" />
+        {/* Decorative background element - Hidden on desktop */}
+        <div className="absolute top-[-10%] right-[-10%] w-32 h-32 md:hidden bg-white/10 rounded-full blur-2xl" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-40 h-40 md:hidden bg-black/5 rounded-full blur-3xl" />
 
-        <div className="px-4 md:px-6 lg:px-8 relative z-10">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="text-white hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95 flex-shrink-0 bg-white/10 backdrop-blur-sm"
-              aria-label="Back">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 18L9 12L15 6" />
-              </svg>
-            </button>
-            <div className="flex flex-col">
-              <h1 className="text-xl font-black text-white tracking-tight">Your Previous Order</h1>
-              <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-0.5">Quick Reorder Portal</p>
+        <div className="px-4 md:px-8 lg:px-12 relative z-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="flex items-center gap-4 md:gap-8">
+              <button
+                onClick={() => navigate(-1)}
+                className="text-white md:text-green-600 hover:bg-white/20 md:hover:bg-green-50 p-2 md:p-3 rounded-xl md:rounded-2xl transition-all active:scale-95 flex-shrink-0 bg-white/10 md:bg-green-50 backdrop-blur-sm shadow-sm md:shadow-none border md:border-green-100"
+                aria-label="Back">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="md:w-6 md:h-6">
+                  <path d="M15 18L9 12L15 6" />
+                </svg>
+              </button>
+              <div className="flex flex-col">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-white md:text-green-600 tracking-tighter uppercase leading-none">Reorder Portal</h1>
+                <p className="text-white/70 md:text-neutral-400 text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] mt-1">Quickly buy your regulars again</p>
+              </div>
+            </div>
+
+            {/* Desktop Order Search */}
+            <div className="hidden md:block relative w-full max-w-sm">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-green-600/50">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search orders (ID or Status)..."
+                value={orderQuery}
+                onChange={(e) => setOrderQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 bg-green-50 border-2 border-green-100 rounded-xl text-sm text-green-900 placeholder:text-green-600/40 focus:outline-none focus:ring-4 focus:ring-green-100 focus:border-green-600 transition-all font-bold"
+              />
             </div>
           </div>
         </div>
@@ -164,8 +205,19 @@ export default function OrderAgain() {
 
       {/* Orders Section - Show when orders exist */}
       {hasOrders && (
-        <div className="px-4 mt-2 mb-2">
-          <div className="space-y-1.5">
+        <div className="px-4 mt-2 mb-2 md:mt-12 md:mb-12 md:px-12">
+          {/* Section Header for Desktop */}
+          <div className="hidden md:flex items-center justify-between mb-8">
+             <div className="flex items-center gap-3">
+               <div className="w-1.5 h-8 bg-green-600 rounded-full" />
+               <h2 className="text-2xl font-black text-neutral-900 tracking-tight uppercase">Recent Orders</h2>
+             </div>
+             <div className="text-sm font-bold text-neutral-400 uppercase tracking-widest">
+               {totalOrders} {totalOrders === 1 ? 'Record' : 'Records'} Found
+             </div>
+          </div>
+
+          <div className="space-y-1.5 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 md:gap-8">
             {displayedOrders.map((order) => {
               const shortId = order.id.split('-').slice(-1)[0];
               const previewItems = order.items.slice(0, 3);
@@ -174,33 +226,32 @@ export default function OrderAgain() {
                 <div
                   key={order.id}
                   onClick={() => navigate(`/orders/${order.id}`)}
-                  className="bg-white rounded-lg border border-neutral-200 p-2 hover:shadow-sm transition-shadow cursor-pointer"
+                  className="bg-white rounded-lg border border-neutral-200 p-2 md:p-6 hover:shadow-xl hover:border-green-100 transition-all md:hover:-translate-y-1 md:hover:rotate-1 md:rounded-3xl cursor-pointer flex flex-col justify-between h-full group"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <div className="text-xs font-semibold text-neutral-900">
+                  <div className="flex items-start justify-between gap-2 md:gap-4 h-full">
+                    <div className="flex-1 min-w-0 flex flex-col h-full">
+                      <div className="flex items-center gap-2 mb-0.5 md:mb-1.5">
+                        <div className="text-xs md:text-sm font-semibold text-neutral-900">
                           Order #{shortId}
                         </div>
                         <span
-                          className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 ${getStatusColor(
+                          className={`px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[10px] md:text-xs font-medium flex-shrink-0 ${getStatusColor(
                             order.status
                           )}`}
                         >
                           {order.status}
                         </span>
                       </div>
-                      <div className="text-[10px] text-neutral-500 mb-1">{formatDate(order.createdAt)}</div>
+                      <div className="text-[10px] md:text-xs text-neutral-500 mb-1 md:mb-3">{formatDate(order.createdAt)}</div>
 
                       {/* Product Images Preview - Compact */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center mt-auto md:mt-2">
                         {previewItems
                           .filter(item => item?.product) // Filter out items with null/undefined products
                           .map((item, idx) => (
                             <div
                               key={item.product.id}
-                              className="w-6 h-6 bg-neutral-100 rounded flex items-center justify-center flex-shrink-0 overflow-hidden"
-                              style={{ marginLeft: idx > 0 ? '-4px' : '0' }}
+                              className={`w-6 h-6 md:w-12 md:h-12 bg-neutral-100 rounded md:rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden md:border md:border-neutral-200 ${idx > 0 ? '-ml-1 md:-ml-3' : ''}`}
                             >
                               {item.product.imageUrl ? (
                                 <img
@@ -209,37 +260,48 @@ export default function OrderAgain() {
                                   className="w-full h-full object-contain"
                                 />
                               ) : (
-                                <span className="text-[8px] text-neutral-400">
+                                <span className="text-[8px] md:text-xs font-bold text-neutral-400">
                                   {(item.product.name || item.product.productName || '?').charAt(0).toUpperCase()}
                                 </span>
                               )}
                             </div>
                           ))}
                         {order.items.length > 3 && (
-                          <div className="w-6 h-6 bg-neutral-200 rounded flex items-center justify-center text-[8px] font-medium text-neutral-600">
+                          <div className={`w-6 h-6 md:w-12 md:h-12 bg-neutral-200 rounded md:rounded-lg flex items-center justify-center text-[8px] md:text-sm font-bold text-neutral-600 md:border md:border-neutral-300 md:z-10 ${previewItems.length > 0 ? '-ml-1 md:-ml-3' : ''}`}>
                             +{order.items.length - 3}
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <div className="text-xs font-bold text-neutral-900">
-                        ₹{order.totalAmount.toFixed(0)}
-                      </div>
-                      <div className="text-[10px] text-neutral-500">
-                        {order.totalItems} {order.totalItems === 1 ? 'item' : 'items'}
+                    <div className="flex flex-col items-end flex-shrink-0 h-full justify-between">
+                      <div className="flex flex-col items-end gap-0.5 md:gap-1">
+                        <div className="text-xs md:text-lg font-bold text-neutral-900">
+                          ₹{order.totalAmount.toFixed(0)}
+                        </div>
+                        <div className="text-[10px] md:text-sm text-neutral-500 font-medium">
+                          {order.totalItems} {order.totalItems === 1 ? 'item' : 'items'}
+                        </div>
                       </div>
                       {/* Order Again Button */}
                       <button
                         onClick={(e) => handleOrderAgain(order, e)}
                         disabled={addedOrders.has(order.id)}
-                        className={`mt-1 text-[10px] font-semibold px-3 py-1 rounded-md transition-colors shadow-sm ${addedOrders.has(order.id)
+                        className={`mt-1 md:mt-4 text-[10px] md:text-sm font-semibold px-3 py-1 md:px-5 md:py-2.5 rounded-md md:rounded-lg transition-all shadow-sm md:shadow hover:shadow-md ${addedOrders.has(order.id)
                           ? 'bg-orange-200 text-neutral-600 cursor-not-allowed'
-                          : 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
+                          : 'bg-green-600 text-white hover:bg-green-700 md:hover:-translate-y-0.5 cursor-pointer'
                           }`}
                       >
-                        {addedOrders.has(order.id) ? 'Added to Cart!' : 'Order Again'}
+                        {addedOrders.has(order.id) ? (
+                            <span className="flex items-center gap-2">✓ Added</span>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="hidden md:block">
+                               <path d="M12 5v14M5 12h14"/>
+                             </svg>
+                             Order Again
+                          </span>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -301,10 +363,16 @@ export default function OrderAgain() {
         </div>
       )}
 
-      {/* Bestsellers Section - Using checkout-style cards */}
-      <div className="px-4 py-2.5 border-b border-neutral-200">
-        <h2 className="text-sm font-semibold text-neutral-900 mb-2">Bestsellers</h2>
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3" style={{ scrollSnapType: 'x mandatory' }}>
+      {/* Bestsellers Section - Desktop Grid */}
+      <div className="px-4 py-2.5 border-b border-neutral-200 md:px-12 md:py-16 md:bg-neutral-50 md:rounded-[40px] md:mx-8 md:mb-12 md:shadow-inner md:border-none">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 md:mb-10 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-1.5 h-8 bg-orange-500 rounded-full" />
+            <h2 className="text-sm font-semibold text-neutral-900 md:text-2xl md:font-black md:tracking-tight md:uppercase">Frequently Bought Together</h2>
+          </div>
+          <p className="hidden md:block text-neutral-400 text-sm font-medium">Bestsellers based on your recent orders</p>
+        </div>
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-8 md:pb-0" style={{ scrollSnapType: 'x mandatory' }}>
           {bestsellerProducts.map((product) => {
             // Get Price and MRP using utility
             const { displayPrice, mrp, discount, hasDiscount } = calculateProductPrice(product);
@@ -316,16 +384,16 @@ export default function OrderAgain() {
             return (
               <div
                 key={product.id}
-                className="flex-shrink-0 w-[140px]"
+                className="flex-shrink-0 w-[140px] md:w-[220px]"
                 style={{ scrollSnapAlign: 'start' }}
               >
-                <div className="bg-white rounded-lg overflow-hidden flex flex-col relative h-full" style={{ boxShadow: '0 1px 1px rgba(0, 0, 0, 0.03)' }}>
+                <div className="bg-white rounded-lg md:rounded-xl overflow-hidden flex flex-col relative h-full md:border md:border-neutral-100 md:hover:shadow-xl transition-all duration-300 md:hover:-translate-y-1" style={{ boxShadow: '0 1px 1px rgba(0, 0, 0, 0.03)' }}>
                   {/* Product Image Area */}
                   <div
                     onClick={() => navigate(`/product/${product.id}`)}
-                    className="relative block cursor-pointer"
+                    className="relative block cursor-pointer group"
                   >
-                    <div className="w-full h-28 bg-neutral-100 flex items-center justify-center overflow-hidden relative">
+                    <div className="w-full h-28 md:h-44 bg-neutral-100 flex items-center justify-center overflow-hidden relative">
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
@@ -353,7 +421,7 @@ export default function OrderAgain() {
                       />
 
                       {/* ADD Button or Quantity Stepper - Overlaid on bottom right of image */}
-                      <div className="absolute bottom-1.5 right-1.5 z-10">
+                      <div className="absolute bottom-1.5 right-1.5 md:bottom-3 md:right-3 z-10">
                         <AnimatePresence mode="wait">
                           {inCartQty === 0 ? (
                             <motion.button
@@ -368,7 +436,7 @@ export default function OrderAgain() {
                                 e.stopPropagation();
                                 addToCart(product, e.currentTarget);
                               }}
-                              className="bg-white/95 backdrop-blur-sm text-green-600 border-2 border-green-600 text-[10px] font-semibold px-2 py-1 rounded shadow-md hover:bg-white transition-colors"
+                              className="bg-white/95 backdrop-blur-sm text-green-600 border-2 border-green-600 text-[10px] md:text-sm md:font-bold md:px-4 md:py-1.5 font-semibold px-2 py-1 rounded md:rounded-lg shadow-md hover:bg-green-50 transition-colors"
                             >
                               ADD
                             </motion.button>
@@ -379,7 +447,7 @@ export default function OrderAgain() {
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.8 }}
                               transition={{ duration: 0.2 }}
-                              className="flex items-center gap-1 bg-green-600 rounded px-1.5 py-1 shadow-md"
+                              className="flex items-center gap-1 md:gap-3 bg-green-600 rounded md:rounded-lg px-1.5 md:px-2 py-1 md:py-1.5 shadow-md"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <motion.button
@@ -389,7 +457,7 @@ export default function OrderAgain() {
                                   e.stopPropagation();
                                   updateQuantity(product.id, inCartQty - 1);
                                 }}
-                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
+                                className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
                                 style={{ lineHeight: 1, fontSize: '14px' }}
                               >
                                 <span className="relative top-[-1px]">−</span>
@@ -399,7 +467,7 @@ export default function OrderAgain() {
                                 initial={{ scale: 1.2, y: -2 }}
                                 animate={{ scale: 1, y: 0 }}
                                 transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                                className="text-white font-bold min-w-[0.75rem] text-center"
+                                className="text-white font-bold min-w-[0.75rem] md:min-w-[1rem] md:text-sm text-center"
                                 style={{ fontSize: '12px' }}
                               >
                                 {inCartQty}
@@ -411,7 +479,7 @@ export default function OrderAgain() {
                                   e.stopPropagation();
                                   updateQuantity(product.id, inCartQty + 1);
                                 }}
-                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
+                                className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
                                 style={{ lineHeight: 1, fontSize: '14px' }}
                               >
                                 <span className="relative top-[-1px]">+</span>
@@ -425,13 +493,13 @@ export default function OrderAgain() {
                   </div>
 
                   {/* Product Details */}
-                  <div className="p-1.5 flex-1 flex flex-col bg-white">
+                  <div className="p-1.5 md:p-4 flex-1 flex flex-col bg-white">
                     {/* Product Name */}
                     <div
                       onClick={() => navigate(`/product/${product.id}`)}
-                      className="mb-0.5 cursor-pointer"
+                      className="mb-0.5 md:mb-2 cursor-pointer"
                     >
-                      <h3 className="text-[10px] font-bold text-neutral-900 line-clamp-2 leading-tight">
+                      <h3 className="text-[10px] md:text-[13px] md:leading-snug md:font-black md:text-neutral-800 font-bold text-neutral-900 line-clamp-2 leading-tight md:hover:text-green-600 transition-colors">
                         {(() => {
                           // Remove description suffixes like " - Fresh & Quality Assured", " - Premium Quality", etc.
                           const productName = product.name || product.productName || '';
@@ -441,13 +509,12 @@ export default function OrderAgain() {
                     </div>
 
                     {/* Rating and Reviews */}
-                    <div className="flex items-center gap-0.5 mb-0.5">
+                    <div className="flex items-center gap-0.5 md:gap-1 mb-0.5 md:mb-1.5">
                       <div className="flex items-center">
                         {[...Array(5)].map((_, i) => (
                           <svg
                             key={i}
-                            width="8"
-                            height="8"
+                            className="w-2 h-2 md:w-3.5 md:h-3.5"
                             viewBox="0 0 24 24"
                             fill={i < 4 ? '#fbbf24' : '#e5e7eb'}
                             xmlns="http://www.w3.org/2000/svg"
@@ -456,29 +523,29 @@ export default function OrderAgain() {
                           </svg>
                         ))}
                       </div>
-                      <span className="text-[8px] text-neutral-500">(85)</span>
+                      <span className="text-[8px] md:text-[11px] text-neutral-500 font-medium">(85)</span>
                     </div>
 
                     {/* Delivery Time */}
-                    <div className="text-[9px] text-neutral-600 mb-0.5">
+                    <div className="text-[9px] md:text-[10px] text-neutral-600 mb-0.5 md:mb-2 font-bold bg-neutral-100 w-fit px-1 md:px-2 py-0.5 rounded text-center">
                       20 MINS
                     </div>
 
                     {/* Discount - Blue Text */}
                     {discount > 0 && (
-                      <div className="text-[9px] text-blue-600 font-semibold mb-0.5">
+                      <div className="text-[9px] md:text-xs text-blue-600 font-bold mb-0.5 md:mb-1">
                         {discount}% OFF
                       </div>
                     )}
 
                     {/* Price */}
-                    <div className="mb-1">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[13px] font-bold text-neutral-900">
+                    <div className="mb-1 md:mb-3">
+                      <div className="flex items-baseline gap-1 md:gap-2">
+                        <span className="text-[13px] md:text-[1.1rem] font-black text-neutral-900">
                           ₹{displayPrice.toLocaleString('en-IN')}
                         </span>
                         {hasDiscount && (
-                          <span className="text-[10px] text-neutral-400 line-through">
+                          <span className="text-[10px] md:text-sm text-neutral-400 line-through font-medium">
                             ₹{mrp.toLocaleString('en-IN')}
                           </span>
                         )}
@@ -488,12 +555,12 @@ export default function OrderAgain() {
                     {/* Bottom Link */}
                     <div
                       onClick={() => navigate(`/category/${product.categoryId || 'all'}`)}
-                      className="w-full bg-green-100 text-green-700 text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-green-200 transition-colors mt-auto cursor-pointer"
+                      className="w-full bg-green-100 text-green-700 text-[8px] md:text-xs md:font-semibold py-0.5 md:py-2 md:mt-2 rounded-lg md:rounded-xl flex items-center justify-between px-1 md:px-3 hover:bg-green-200 md:hover:bg-green-100 transition-colors mt-auto cursor-pointer border border-transparent md:border-green-100"
                     >
                       <span>See more like this</span>
-                      <div className="flex items-center gap-0.5">
-                        <div className="w-px h-2 bg-green-300"></div>
-                        <svg width="6" height="6" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <div className="flex items-center gap-0.5 md:gap-2">
+                        <div className="w-px h-2 md:h-3 bg-green-300"></div>
+                        <svg className="w-1.5 h-1.5 md:w-2.5 md:h-2.5" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M0 0L8 4L0 8Z" fill="#16a34a" />
                         </svg>
                       </div>
@@ -508,41 +575,47 @@ export default function OrderAgain() {
 
       {/* Empty State Illustration - Show when no orders */}
       {!hasOrders && (
-        <div className="bg-stone-50 py-6 px-4">
-          <div className="flex flex-col items-center justify-center max-w-md mx-auto">
+        <div className="bg-stone-50 py-12 px-4 md:py-32 md:my-16 md:mx-12 md:rounded-[50px] md:bg-white md:shadow-2xl md:shadow-neutral-200/50 md:border md:border-neutral-100 flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center max-w-md md:max-w-2xl mx-auto">
             {/* Grocery Illustration */}
-            <div className="relative w-full max-w-xs mb-4">
-              <div className="relative flex items-center justify-center">
-                {/* Yellow Shopping Bag */}
-                <div className="relative w-40 h-48 bg-gradient-to-b from-yellow-400 via-yellow-300 to-yellow-500 rounded-b-2xl rounded-t-lg shadow-xl border-2 border-yellow-500/30 flex items-center justify-center">
-                  {/* Enhanced bag opening/top with depth */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-8 bg-gradient-to-b from-yellow-500 to-yellow-400 rounded-t-lg shadow-inner"></div>
-
-                  {/* Enhanced bag handle with 3D effect */}
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-20 h-7 border-[4px] border-yellow-600 rounded-full border-b-transparent shadow-lg">
-                    <div className="absolute top-1 left-1/2 -translate-x-1/2 w-12 h-4 border-[2px] border-yellow-500/50 rounded-full border-b-transparent"></div>
-                  </div>
-
-                  {/* Decorative pattern/stitching on bag */}
-                  <div className="absolute top-12 left-1/2 -translate-x-1/2 w-32 h-0.5 bg-yellow-600/30"></div>
-                  <div className="absolute top-20 left-1/2 -translate-x-1/2 w-28 h-0.5 bg-yellow-600/20"></div>
+            <div className="relative w-full max-w-xs md:max-w-sm mb-8 md:mb-16">
+              <div className="relative flex items-center justify-center md:scale-150 transition-transform duration-500 hover:scale-[1.55]">
+                {/* Yellow Shopping Bag with Premium Gradient */}
+                <div className="relative w-40 h-48 bg-gradient-to-br from-yellow-400 via-orange-400 to-yellow-600 rounded-b-[2rem] rounded-t-xl shadow-2xl border-2 border-white/20 flex items-center justify-center overflow-hidden">
+                  {/* Glass highlight */}
+                  <div className="absolute top-0 right-0 w-full h-1/2 bg-white/20 -skew-y-12 translate-y--4" />
+                  
+                  {/* Enhanced bag handle */}
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-24 h-10 border-[6px] border-orange-600 rounded-full border-b-transparent shadow-lg" />
 
                   {/* KLYDO CART text inside basket */}
                   <div className="relative z-10 text-center px-4">
-                    <span className="text-2xl font-extrabold text-neutral-900 tracking-tight drop-shadow-sm uppercase">KLYDO CART</span>
-                    <span className="inline-block w-2.5 h-2.5 bg-green-500 rounded-full ml-1.5 shadow-sm"></span>
+                    <span className="text-2xl font-black text-white tracking-tighter drop-shadow-lg uppercase leading-none">KLYDO<br/>CART</span>
+                    <div className="w-12 h-1.5 bg-white mx-auto mt-2 rounded-full opacity-50" />
                   </div>
                 </div>
+                
+                {/* Floating elements for depth */}
+                <div className="absolute -top-10 -right-10 w-16 h-16 bg-green-500/20 rounded-full blur-xl animate-pulse" />
+                <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl animate-pulse" />
               </div>
             </div>
 
             {/* Reordering Message */}
-            <h2 className="text-xl font-bold text-neutral-900 mb-1.5 text-center">
-              Reordering will be easy
-            </h2>
-            <p className="text-xs text-neutral-600 text-center max-w-xs leading-snug">
-              Items you order will show up here so you can buy them again easily
-            </p>
+            <div className="text-center space-y-4">
+              <h2 className="text-2xl md:text-5xl font-black text-neutral-900 tracking-tighter uppercase leading-tight">
+                No orders yet,<br/><span className="text-green-600">Start filling your cart!</span>
+              </h2>
+              <p className="text-sm md:text-lg text-neutral-500 font-medium max-w-md mx-auto leading-relaxed">
+                Your previous orders will appear here so you can reorder your favorites in a single tap.
+              </p>
+              <button 
+                onClick={() => navigate('/')}
+                className="hidden md:inline-flex mt-8 px-10 py-4 bg-neutral-900 text-white font-black rounded-2xl hover:bg-neutral-800 hover:-translate-y-1 transition-all shadow-xl hover:shadow-2xl uppercase tracking-widest text-sm"
+              >
+                Go Shopping
+              </button>
+            </div>
           </div>
         </div>
       )}

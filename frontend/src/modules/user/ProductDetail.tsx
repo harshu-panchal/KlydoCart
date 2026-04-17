@@ -318,47 +318,49 @@ export default function ProductDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <>
+      <div className="min-h-screen bg-white pb-24">
       {/* Header with back button and action icons */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-transparent">
-        <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 py-3 md:py-4">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-transparent pointer-events-none">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-12 py-3 md:py-6">
           {/* Back button - top left */}
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-sm hover:bg-neutral-50 transition-colors"
+            className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-lg border border-neutral-100/50 hover:bg-neutral-50 transition-all hover:scale-110 pointer-events-auto"
             aria-label="Go back">
             <svg
               width="20"
               height="20"
               viewBox="0 0 24 24"
               fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M6 9l6 6 6-6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round">
+              <path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>
             </svg>
           </button>
 
           {/* Action icons - top right */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pointer-events-auto">
             {/* Heart icon */}
             {product?.id && (
               <WishlistButton
                 productId={product.id}
                 size="md"
-                className="bg-white rounded-full shadow-sm"
+                className="bg-white rounded-full shadow-lg border border-neutral-100/50 hover:scale-110 transition-transform"
               />
             )}
           </div>
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div className="pt-16">
+      {/* Main Content Container - Centered and constrained on desktop */}
+      <div className="max-w-6xl mx-auto md:px-8 pt-12 md:pt-16 lg:pt-20">
+        <div className="md:flex md:gap-8 lg:gap-12">
+          
+          {/* Left Column: Image Gallery (Sticky on Desktop) */}
+          <div className="md:w-1/2 lg:w-[450px] md:sticky md:top-20 h-fit">
         {/* Location Availability Banner */}
         {!isAvailableAtLocation && (
           <div className="bg-amber-50 border-l-4 border-amber-500 px-4 py-3 mx-4 mt-4 rounded-r-lg">
@@ -392,7 +394,7 @@ export default function ProductDetail() {
         )}
 
         {/* Product Image Gallery */}
-        <div className="relative w-full bg-gradient-to-br from-neutral-100 to-neutral-200 overflow-hidden">
+        <div className="relative w-full bg-white overflow-hidden">
           {/* Main Product Image - Swipeable on mobile */}
           <div
             className="w-full aspect-square relative overflow-hidden"
@@ -410,18 +412,18 @@ export default function ProductDetail() {
                 transform: `translateX(-${selectedImageIndex * 100}%)`,
               }}>
               {allImages.map((image: string, index: number) => (
-                <div
-                  key={index}
-                  className="w-full h-full flex-shrink-0 flex items-center justify-center relative"
-                  style={{ minWidth: "100%" }}>
-                  {image ? (
-                    <img
-                      src={image}
-                      alt={`${product.name} - Image ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                      draggable={false}
-                    />
+                  <div
+                    key={index}
+                    className="w-full h-full flex-shrink-0 flex items-center justify-center relative p-8"
+                    style={{ minWidth: "100%" }}>
+                    {image ? (
+                      <img
+                        src={image}
+                        alt={`${product.name} - Image ${index + 1}`}
+                        className="w-full h-full object-contain"
+                        referrerPolicy="no-referrer"
+                        draggable={false}
+                      />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-neutral-400 text-6xl">
                       {(product.name || product.productName || "?")
@@ -433,17 +435,19 @@ export default function ProductDetail() {
               ))}
             </div>
 
-            {/* Desktop: Single image display */}
-            <div className="hidden md:flex w-full h-full items-center justify-center">
+            {/* Desktop: Single image display with zoom effect */}
+            <div className="hidden md:flex w-full h-full items-center justify-center p-4">
               {currentImage ? (
-                <img
-                  src={currentImage}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+                <div className="w-full h-full relative group/image overflow-hidden rounded-2xl bg-white shadow-sm border border-neutral-50">
+                  <img
+                    src={currentImage}
+                    alt={product.name}
+                    className="w-full h-full object-contain p-2 group-hover/image:scale-105 transition-transform duration-700"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-neutral-400 text-6xl">
+                <div className="w-full h-full flex items-center justify-center bg-white rounded-3xl text-neutral-400 text-6xl shadow-inner italic font-serif">
                   {(product.name || product.productName || "?")
                     .charAt(0)
                     .toUpperCase()}
@@ -462,22 +466,9 @@ export default function ProductDetail() {
                       setSelectedImageIndex(selectedImageIndex - 1);
                       setTimeout(() => setIsTransitioning(false), 300);
                     }}
-                    className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full items-center justify-center shadow-md hover:bg-white transition-colors z-10"
+                    className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/95 backdrop-blur-md rounded-full items-center justify-center shadow-xl border border-neutral-100 hover:bg-white hover:scale-110 transition-all z-10 text-neutral-900"
                     aria-label="Previous image">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M15 18l-6-6 6-6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
                   </button>
                 )}
 
@@ -489,27 +480,14 @@ export default function ProductDetail() {
                       setSelectedImageIndex(selectedImageIndex + 1);
                       setTimeout(() => setIsTransitioning(false), 300);
                     }}
-                    className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full items-center justify-center shadow-md hover:bg-white transition-colors z-10"
+                    className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/95 backdrop-blur-md rounded-full items-center justify-center shadow-xl border border-neutral-100 hover:bg-white hover:scale-110 transition-all z-10 text-neutral-900"
                     aria-label="Next image">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M9 18l6-6-6-6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                   </button>
                 )}
 
                 {/* Image Indicators - Show on both mobile and desktop */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 md:hidden">
                   {allImages.map((_: string, index: number) => (
                     <button
                       key={index}
@@ -530,58 +508,156 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* Thumbnail Gallery - Show below main image if multiple images */}
-          {allImages.length > 1 && (
-            <div className="px-4 py-2 bg-white/50 backdrop-blur-sm mb-4">
-              {/* Mobile swipe hint */}
-              <div className="md:hidden flex items-center justify-center gap-1 mb-2">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="text-neutral-500">
-                  <path
-                    d="M7 12l5-5M17 12l-5-5M12 7l-5 5M12 17l5-5"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span className="text-xs text-neutral-500">
-                  Swipe to view more
-                </span>
+          {/* Desktop Thumbnail Gallery */}
+          <div className="hidden md:flex gap-4 mt-8 px-4 overflow-x-auto scrollbar-hide pb-2">
+            {allImages.map((image: string, index: number) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setIsTransitioning(true);
+                  setSelectedImageIndex(index);
+                  setTimeout(() => setIsTransitioning(false), 300);
+                }}
+                className={`flex-shrink-0 w-24 h-24 rounded-[20px] overflow-hidden border-2 transition-all duration-300 ${index === selectedImageIndex
+                  ? "border-green-600 shadow-xl shadow-green-100 scale-105"
+                  : "border-neutral-100 hover:border-neutral-200 opacity-60 hover:opacity-100"
+                  }`}>
+                <img
+                  src={image}
+                  alt={`${product.name} - ${index + 1}`}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+          {/* Right Column: Information Sections (Scrollable on Desktop) */}
+          <div className="flex-1 md:bg-white md:rounded-[32px] md:shadow-sm md:border md:border-neutral-100 md:p-6 md:mb-10">
+            
+            {/* Location Availability Banner */}
+            {!isAvailableAtLocation && (
+              <div className="bg-amber-50 border-l-4 border-amber-500 px-4 py-3 md:mb-8 rounded-r-2xl">
+                <div className="flex items-start gap-3">
+                  <div className="p-1.5 bg-amber-100 rounded-lg text-amber-600">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21 10-8-7-8 7V21h16V10z"/><path d="M12 22V12"/></svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-black text-amber-900 uppercase tracking-widest">Not available here</p>
+                    <p className="text-xs text-amber-800 font-medium mt-1">This product cannot be delivered to your current location.</p>
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 scroll-smooth">
-                {allImages.map((image: string, index: number) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setIsTransitioning(true);
-                      setSelectedImageIndex(index);
-                      setTimeout(() => setIsTransitioning(false), 300);
-                    }}
-                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${index === selectedImageIndex
-                      ? "border-green-600 ring-2 ring-green-200"
-                      : "border-neutral-200 hover:border-neutral-300"
-                      }`}>
-                    <img
-                      src={image}
-                      alt={`${product.name} - Image ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  </button>
+            )}
+
+            {/* Product Details Header */}
+            <div className="md:mb-5">
+              {/* Desktop back-to-department breadcrumb breadcrumb */}
+              <div className="hidden md:flex items-center gap-1.5 mb-3">
+                <button onClick={() => navigate(-1)} className="text-[9px] font-black uppercase tracking-[0.2em] text-neutral-400 hover:text-green-600 transition-colors">Catalog</button>
+                <span className="text-neutral-200 text-[10px]">/</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-green-600 truncate">{category?.name || 'Department'}</span>
+              </div>
+
+              {/* Delivery time */}
+              <div className="flex items-center gap-2 mb-2 bg-white md:w-fit md:px-3 md:py-1 md:rounded-full border border-neutral-100">
+                <div className="w-4 h-4 bg-green-100/50 rounded-full flex items-center justify-center text-green-600">
+                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </div>
+                <span className="text-[9px] md:text-[10px] text-neutral-600 font-black uppercase tracking-widest">17 MINS DELIVERY</span>
+              </div>
+
+              {/* Rating Summary (Reference look) */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex text-yellow-500">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                  ))}
+                </div>
+                <span className="text-[10px] font-bold text-neutral-400">({reviews.length > 0 ? reviews.length : "120+"} reviews)</span>
+              </div>
+
+              <h2 className="text-xl md:text-2xl font-black text-neutral-900 mb-1 leading-[1.1] tracking-tighter">
+                {product.name}
+              </h2>
+              <p className="text-sm md:text-md text-neutral-400 font-bold mb-4 italic leading-tight">{variantTitle}</p>
+
+              </div>
+              
+              {/* Variation Selection (Desktop) */}
+              {product.variations && product.variations.length > 1 && (
+                <div className="mb-6">
+                  <span className="block text-[9px] font-black uppercase tracking-[0.4em] text-neutral-400 mb-3">{product.variationType || "Select Size"}</span>
+                  <div className="grid grid-cols-1 gap-2">
+                    {product.variations.map((variant: any, index: number) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedVariantIndex(index)}
+                        className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all border-2 ${index === selectedVariantIndex
+                          ? "border-green-600 bg-white shadow-sm ring-1 ring-green-600/10"
+                          : "border-neutral-100 bg-white hover:border-neutral-200"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                           <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${index === selectedVariantIndex ? 'border-green-600' : 'border-neutral-200'}`}>
+                              {index === selectedVariantIndex && <div className="w-2 h-2 bg-green-600 rounded-full" />}
+                           </div>
+                           <span className={`text-[11px] font-black uppercase tracking-widest ${index === selectedVariantIndex ? 'text-neutral-900' : 'text-neutral-400'}`}>
+                              {variant.title || variant.value}
+                           </span>
+                        </div>
+                        <span className="text-[11px] font-black text-neutral-900">₹{variant.price?.toLocaleString("en-IN") || variantPrice}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quantity Selector Group (Desktop) */}
+              <div className="flex items-center gap-3 mb-6">
+                {inCartQty === 0 ? (
+                  <Button
+                    variant="default"
+                    size="lg"
+                    onClick={handleAddToCart}
+                    disabled={!isAvailableAtLocation}
+                    className="flex-1 bg-green-600 py-3 h-[48px] rounded-xl shadow-lg shadow-green-100/50 hover:shadow-green-200 transition-all font-black uppercase tracking-widest text-xs"
+                  >
+                    {!isAvailableAtLocation ? "Unavailable Nearby" : "Add to Shopping Bag"}
+                  </Button>
+                ) : (
+                  <div className="flex-1 flex items-center justify-between bg-white border-2 border-green-600 rounded-xl p-0.5 h-[48px] shadow-sm">
+                    <button onClick={() => updateQuantity(product.id || product._id, inCartQty - 1, selectedVariant?._id, variantTitle)} className="w-10 h-10 flex items-center justify-center bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors font-black text-lg">−</button>
+                    <span className="text-base font-black text-green-600">{inCartQty}</span>
+                    <button onClick={() => updateQuantity(product.id || product._id, inCartQty + 1, selectedVariant?._id, variantTitle)} className="w-10 h-10 flex items-center justify-center bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors font-black text-lg">+</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Service Guarantees (Desktop Only - Moved below button) */}
+              <div className="hidden md:grid grid-cols-3 gap-3 mb-8">
+                {[
+                  { label: '48 Hours', sub: 'Replacement', icon: <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3M20.49 15a9 9 0 0 1-14.85 3" /> },
+                  { label: '24/7', sub: 'Support', icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /> },
+                  { label: 'Fast', sub: 'Delivery', icon: <path d="M5 17H2l1-7h18l1 7h-3M5 17l-1-5h20l-1 5M5 17v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5" /> },
+                ].map((box, i) => (
+                  <div key={i} className="bg-white border border-neutral-100 rounded-2xl p-3 flex flex-col items-center text-center shadow-xs">
+                    <div className="w-8 h-8 bg-white border border-neutral-50 rounded-xl flex items-center justify-center text-neutral-300 mb-1.5">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">{box.icon}</svg>
+                    </div>
+                    <span className="block text-[8px] font-black text-neutral-900 uppercase tracking-widest">{box.label}</span>
+                    <span className="text-[7px] font-bold text-neutral-400 uppercase tracking-widest leading-none">{box.sub}</span>
+                  </div>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* Product Details Card - White section */}
-        <div className="bg-white rounded-t-3xl -mt-6 relative z-10 px-4 md:px-6 lg:px-8 pt-2.5 md:pt-4 pb-2 md:pb-4">
+
+            {/* Content Body - Mobile Card Wrapper */}
+            <div className="md:px-0">
+        {/* Mobile-only variant selection and basic info */}
+        <div className="md:hidden">
           {/* Delivery time */}
           <div className="flex items-center gap-0.5 mb-1">
             <svg
@@ -1005,6 +1081,7 @@ export default function ProductDetail() {
             </div>
           </div>
         )}
+      </div>
 
         {/* Reviews Section */}
         <div className="bg-white px-4 md:px-6 lg:px-8 py-6 border-t border-neutral-100">
@@ -1079,230 +1156,31 @@ export default function ProductDetail() {
           )}
         </div>
 
-        {/* Top products in this category */}
-        {similarProducts.length > 0 && (
-          <div className="mt-6 mb-24">
-            <div className="bg-neutral-100/50 border-t border-b border-neutral-200/50 py-4 px-3">
-              <h3 className="text-lg font-semibold text-neutral-900 mb-4 px-1">
-                Top products in this category
-              </h3>
-              <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2 px-1">
-                {similarProducts.map((similarProduct) => {
-                  const similarCartItem = cart.items.find(
-                    (item) =>
-                      item?.product &&
-                      (item.product.id === similarProduct.id ||
-                        item.product.id === similarProduct._id)
-                  );
-                  const similarInCartQty = similarCartItem?.quantity || 0;
-
-                  return (
-                    <div
-                      key={similarProduct.id}
-                      className="flex-shrink-0 w-40 bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden relative">
-                      {/* Heart icon - top right */}
-                      <WishlistButton
-                        productId={similarProduct.id || similarProduct._id}
-                        size="sm"
-                        className="absolute top-2 right-2 shadow-md"
-                      />
-
-                      {/* Image */}
-                      <div
-                        onClick={() =>
-                          navigate(
-                            `/product/${similarProduct.id || similarProduct._id
-                            }`,
-                            { state: { fromStore: true } }
-                          )
-                        }
-                        className="w-full h-32 bg-neutral-100 flex items-center justify-center overflow-hidden cursor-pointer">
-                        {similarProduct.imageUrl || similarProduct.mainImage ? (
-                          <img
-                            src={
-                              similarProduct.imageUrl ||
-                              similarProduct.mainImage
-                            }
-                            alt={
-                              similarProduct.name || similarProduct.productName
-                            }
-                            className="w-full h-full object-cover"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400 text-2xl">
-                            {(
-                              similarProduct.name ||
-                              similarProduct.productName ||
-                              "P"
-                            )
-                              .charAt(0)
-                              .toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="p-3">
-                        <h4 className="text-sm font-semibold text-neutral-900 mb-1 line-clamp-2 min-h-[2.5rem]">
-                          {similarProduct.name || similarProduct.productName}
-                        </h4>
-
-                        {/* Rating and Delivery time */}
-                        <div className="flex flex-col gap-1 mb-2">
-                          <StarRating
-                            rating={similarProduct.rating || 0}
-                            reviewCount={similarProduct.reviews || 0}
-                            size="sm"
-                            showCount={true}
-                          />
-                          <p className="text-[10px] text-neutral-600 flex items-center gap-1">
-                            <svg
-                              width="10"
-                              height="10"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg">
-                              <circle
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              />
-                              <path
-                                d="M12 6v6l4 2"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                            <span>
-                              {similarProduct.deliveryTime || 15} MINS
-                            </span>
-                          </p>
+              {/* Similar Products (Full Width Grid) */}
+              {similarProducts.length > 0 && (
+                <div className="mt-12 md:mt-16 mb-24 md:mb-12">
+                   <h3 className="text-xl md:text-2xl font-black text-neutral-900 mb-6 px-1 md:px-0 tracking-tight">Recommended for you</h3>
+                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                      {similarProducts.map((similarProduct) => (
+                        <div key={similarProduct.id} className="group bg-white rounded-[32px] border border-neutral-100 shadow-sm hover:shadow-xl transition-all p-3 flex flex-col items-center text-center">
+                           <div onClick={() => navigate(`/product/${similarProduct.id || similarProduct._id}`)} className="w-full aspect-square bg-neutral-50 rounded-[24px] mb-4 overflow-hidden cursor-pointer relative">
+                              <img src={similarProduct.mainImage || similarProduct.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={similarProduct.name} />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+                           </div>
+                           <h4 className="text-xs font-black uppercase tracking-widest text-neutral-900 line-clamp-1 mb-2">{similarProduct.name || similarProduct.productName}</h4>
+                           <span className="text-[10px] font-black text-green-600 tracking-tighter">₹{calculateProductPrice(similarProduct).displayPrice.toLocaleString("en-IN")}</span>
                         </div>
-
-                        {/* Price display for similar products */}
-                        <div className="mb-2">
-                          {(() => {
-                            const {
-                              displayPrice,
-                              mrp,
-                              discount: sDiscount,
-                              hasDiscount: sHasDiscount,
-                            } = calculateProductPrice(similarProduct);
-                            return (
-                              <div className="flex flex-col">
-                                {sHasDiscount && (
-                                  <Badge className="!bg-blue-500 !text-white !border-blue-500 text-[10px] px-1.5 py-0.5 rounded-full font-semibold mb-1 w-fit">
-                                    {sDiscount}% OFF
-                                  </Badge>
-                                )}
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-sm font-bold text-neutral-900">
-                                    ₹{displayPrice.toLocaleString("en-IN")}
-                                  </span>
-                                  {sHasDiscount && (
-                                    <span className="text-[10px] text-neutral-500 line-through">
-                                      ₹{mrp.toLocaleString("en-IN")}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-
-                        {/* ADD button or Quantity stepper */}
-                        <AnimatePresence mode="wait">
-                          {similarInCartQty === 0 ? (
-                            <motion.div
-                              key="add-button"
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              transition={{ duration: 0.2 }}
-                              className="flex justify-center w-full">
-                              <Button
-                                variant="outline"
-                                size="default"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  addToCart(similarProduct);
-                                }}
-                                className="w-full border-2 border-green-600 text-green-600 bg-transparent hover:bg-green-50 rounded-full font-semibold text-sm h-9">
-                                ADD
-                              </Button>
-                            </motion.div>
-                          ) : (
-                            <motion.div
-                              key="stepper"
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              transition={{ duration: 0.2 }}
-                              className="flex items-center justify-center gap-2 bg-white border-2 border-green-600 rounded-full px-2 py-1.5 w-full">
-                              <motion.div whileTap={{ scale: 0.9 }}>
-                                <Button
-                                  variant="default"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateQuantity(
-                                      similarProduct.id,
-                                      similarInCartQty - 1
-                                    );
-                                  }}
-                                  className="w-7 h-7 p-0"
-                                  aria-label="Decrease quantity">
-                                  −
-                                </Button>
-                              </motion.div>
-                              <motion.span
-                                key={similarInCartQty}
-                                initial={{ scale: 1.2, y: -4 }}
-                                animate={{ scale: 1, y: 0 }}
-                                transition={{
-                                  type: "spring",
-                                  stiffness: 500,
-                                  damping: 15,
-                                }}
-                                className="text-sm font-bold text-green-600 min-w-[1.5rem] text-center">
-                                {similarInCartQty}
-                              </motion.span>
-                              <motion.div whileTap={{ scale: 0.9 }}>
-                                <Button
-                                  variant="default"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateQuantity(
-                                      similarProduct.id,
-                                      similarInCartQty + 1
-                                    );
-                                  }}
-                                  className="w-7 h-7 p-0"
-                                  aria-label="Increase quantity">
-                                  +
-                                </Button>
-                              </motion.div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                      ))}
+                   </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Sticky Footer */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 shadow-lg">
-        <div className="px-4 py-2.5 flex items-center justify-between">
+      {/* Sticky Footer (Contrained on Desktop) */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-100 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] md:hidden">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           {/* Left side - Product details */}
           <div className="flex-1">
             {/* First line - Pack size */}
@@ -1438,6 +1316,7 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
-    </div>
-  );
+      </div>
+  </>
+);
 }

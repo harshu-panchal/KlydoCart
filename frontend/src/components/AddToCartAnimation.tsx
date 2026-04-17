@@ -265,7 +265,7 @@ export default function AddToCartAnimation({
   return (
     <>
       {/* Removed product thumbnail - blasting out */}
-      {removedProduct && (
+      {removedProduct && !shouldHidePill && (
         <div
           ref={removedThumbnailRef}
           className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-white flex-shrink-0 shadow-lg"
@@ -285,7 +285,7 @@ export default function AddToCartAnimation({
       )}
 
       {/* Flying product thumbnail - going to cart */}
-      {flyingProduct && (
+      {flyingProduct && !shouldHidePill && (
         <div
           ref={flyingThumbnailRef}
           className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-white flex-shrink-0 shadow-lg"

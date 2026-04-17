@@ -90,7 +90,12 @@ export default function CategoryTileSection({
         {title}
       </h2>
       <div className="px-4 md:px-6 lg:px-8 overflow-visible">
-        <div className={`grid ${gridCols} ${gapClass} overflow-visible auto-rows-fr`}>
+        <div className="max-w-fit overflow-visible">
+          <div className={`${
+            showProductCount 
+              ? `grid ${gridCols} ${gapClass}` 
+              : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5"
+          } overflow-visible auto-rows-fr`}>
           {tiles.map((tile) => {
             const images =
               tile.productImages || (tile.image ? [tile.image] : []);
@@ -104,7 +109,7 @@ export default function CategoryTileSection({
                 transition={{ duration: 0.2 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex flex-col">
+                className={`flex flex-col w-full h-full ${showProductCount ? "" : "w-[160px] md:w-[200px] lg:w-[220px]"}`}>
                 <Link
                   to={
                     tile.subcategoryId || tile.type === "subcategory"
@@ -140,11 +145,11 @@ export default function CategoryTileSection({
                       handleTileClick(tile);
                     }
                   }}
-                  className={`block bg-white rounded-xl shadow-sm border border-neutral-200 hover:shadow-md transition-shadow h-full ${showProductCount ? "px-2.5" : "px-1.5"
+                  className={`block bg-white rounded-xl shadow-sm border border-neutral-200 hover:shadow-md transition-shadow h-full ${showProductCount ? "px-2.5 py-1.5 md:py-2" : "px-1.5 py-1.5"
                     }`}>
                   {/* Image - Single image for non-bestsellers, 2x2 grid for bestsellers */}
                   <div
-                    className={`w-full rounded-lg overflow-hidden ${showProductCount ? "h-32 md:h-36 mb-2" : "aspect-square"
+                    className={`w-full rounded-lg overflow-hidden ${showProductCount ? "h-32 md:h-32 lg:h-36 xl:h-40 mb-2 md:mb-1.5" : "aspect-square"
                       } ${tile.bgColor || "bg-cyan-50"}`}>
                     {hasImages ? (
                       showProductCount ? (
@@ -156,7 +161,7 @@ export default function CategoryTileSection({
                                 key={idx}
                                 src={img}
                                 alt=""
-                                className="w-full h-full object-contain bg-white rounded-sm"
+                                className="w-full h-full object-contain bg-white rounded-sm p-1 md:p-[6px]"
                                 onError={(e) => {
                                   // Hide broken image
                                   const target = e.target as HTMLImageElement;
@@ -177,7 +182,7 @@ export default function CategoryTileSection({
                         <img
                           src={images[0]}
                           alt={tile.name}
-                          className="w-full h-full object-contain rounded-lg"
+                          className="w-full h-full object-contain rounded-lg md:scale-[1.15] lg:scale-125 md:origin-top"
                           onError={(e) => {
                             // Hide broken image and show fallback
                             const target = e.target as HTMLImageElement;
@@ -198,7 +203,7 @@ export default function CategoryTileSection({
 
                   {/* Product count - shown first (only for bestsellers) */}
                   {showProductCount && tile.productCount && (
-                    <div className="mb-1.5 flex justify-center">
+                    <div className="mb-1.5 md:mb-1 flex justify-center">
                       <span className="inline-block bg-neutral-100 text-neutral-600 text-[10px] font-medium px-2 py-0.5 rounded-full leading-tight">
                         +{tile.productCount} more
                       </span>
@@ -207,7 +212,7 @@ export default function CategoryTileSection({
 
                   {/* Tile name - inside card only for bestsellers */}
                   {showProductCount && (
-                    <div className="text-[11px] font-semibold text-neutral-900 line-clamp-2 leading-tight text-center w-full block">
+                    <div className="text-[11px] md:text-xs font-semibold text-neutral-900 line-clamp-2 leading-tight text-center w-full block">
                       {tile.name}
                     </div>
                   )}
@@ -224,6 +229,7 @@ export default function CategoryTileSection({
               </motion.div>
             );
           })}
+          </div>
         </div>
       </div>
     </div>

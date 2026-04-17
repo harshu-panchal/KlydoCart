@@ -30,8 +30,8 @@ const HomeBannerCarousel = ({ banners }: HomeBannerCarouselProps) => {
   if (!banners || banners.length === 0) return null;
 
   return (
-    <div className="w-full px-4 md:px-6 lg:px-8 mt-4 md:mt-6">
-      <div className="relative overflow-hidden rounded-2xl aspect-[21/9] md:aspect-[3/1] lg:aspect-[4/1] bg-neutral-100">
+    <div className="w-full px-4 md:px-6 lg:px-8 mt-4 md:mt-6 md:max-w-5xl md:mx-auto">
+      <div className="relative overflow-hidden rounded-2xl aspect-[21/9] bg-neutral-100">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSlide}
@@ -42,13 +42,14 @@ const HomeBannerCarousel = ({ banners }: HomeBannerCarouselProps) => {
             className="absolute inset-0">
             <Link
               to={banners[currentSlide].link}
-              className="block w-full h-full">
+              className="block w-full h-full relative group">
+              {/* Foreground Image - Fully Visible */}
               <img
                 src={banners[currentSlide].image}
                 alt={banners[currentSlide].title}
-                className="w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover z-10"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none z-20" />
             </Link>
           </motion.div>
         </AnimatePresence>

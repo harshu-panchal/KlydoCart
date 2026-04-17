@@ -8,6 +8,7 @@ import { LocationProvider } from "./context/LocationContext";
 import { ToastProvider } from "./context/ToastContext";
 
 import { LoadingProvider } from "./context/LoadingContext";
+import { WishlistProvider } from "./context/WishlistContext";
 import { AxiosLoadingInterceptor } from "./context/AxiosLoadingInterceptor";
 import IconLoader from "./components/loaders/IconLoader";
 import RouteLoaderTrigger from "./components/loaders/RouteLoaderTrigger";
@@ -38,6 +39,8 @@ const Login = lazy(() => import("./modules/user/Login"));
 
 const AboutUs = lazy(() => import("./modules/user/AboutUs"));
 const FAQ = lazy(() => import("./modules/user/FAQ"));
+const PrivacyPolicy = lazy(() => import("./modules/user/PrivacyPolicy"));
+const TermsOfUse = lazy(() => import("./modules/user/TermsOfUse"));
 const Wishlist = lazy(() => import("./modules/user/Wishlist"));
 const Addresses = lazy(() => import("./modules/user/Addresses"));
 const AddressBook = lazy(() => import("./modules/user/AddressBook"));
@@ -300,7 +303,8 @@ function AppContent() {
               <ToastProvider>
                 <CartProvider>
                   <OrdersProvider>
-                    <BrowserRouter
+                    <WishlistProvider>
+                      <BrowserRouter
                       future={{
                         v7_startTransition: true,
                         v7_relativeSplatPath: true,
@@ -768,6 +772,8 @@ function AppContent() {
                                     element={<AboutUs />}
                                   />
                                   <Route path="/faq" element={<FAQ />} />
+                                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                                  <Route path="/terms-of-use" element={<TermsOfUse />} />
                                   <Route
                                     path="/wishlist"
                                     element={<Wishlist />}
@@ -848,7 +854,8 @@ function AppContent() {
                         />
                       </Routes>
                     </BrowserRouter>
-                  </OrdersProvider>
+                  </WishlistProvider>
+                </OrdersProvider>
                 </CartProvider>
               </ToastProvider>
             </LocationProvider>

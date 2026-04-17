@@ -364,10 +364,10 @@ export default function HomeHero({
         marginBottom: 0,
       }}>
       {/* Top section with delivery info and buttons - NOT sticky */}
-      <div>
+      <div className="md:hidden">
         <div
           ref={topSectionRef}
-          className="px-4 md:px-6 lg:px-8 pt-2 md:pt-3 pb-2">
+          className="px-4 pt-2 pb-2">
           <div className="flex items-center justify-between">
             {/* Left: Text content */}
             <div className="flex-1">

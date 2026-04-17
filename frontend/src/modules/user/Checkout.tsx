@@ -590,8 +590,8 @@ export default function Checkout() {
 
   return (
     <div
-      className="bg-white min-h-screen flex flex-col opacity-100"
-      style={{ opacity: 1, height: "1250px" }}>
+      className="bg-white min-h-screen flex flex-col"
+      style={{ opacity: 1 }}>
       {/* Party Popper Animation */}
       <PartyPopper
         show={showPartyPopper}
@@ -888,7 +888,7 @@ export default function Checkout() {
       )}
       {/* Header */}
       <div className="sticky top-0 z-50 bg-white border-b border-neutral-200">
-        <div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-2 md:py-3 flex items-center justify-between">
           {/* Back Arrow */}
           <button
             onClick={() => navigate(-1)}
@@ -910,1070 +910,479 @@ export default function Checkout() {
             </svg>
           </button>
 
-          {/* Title */}
-          <h1 className="text-base font-bold text-neutral-900">Checkout</h1>
+          {/* Title - Center on mobile, left-aligned with products on desktop */}
+          <h1 className="text-base font-bold text-neutral-900 lg:flex-1 lg:ml-8">Checkout</h1>
 
-          {/* Spacer to maintain layout */}
-          <div className="w-7 h-7"></div>
+          {/* Spacer to maintain layout or additional desktop actions */}
+          <div className="w-7 h-7 lg:hidden"></div>
         </div>
       </div>
 
-      {/* Ordering for someone else */}
-      <div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 bg-neutral-50 border-b border-neutral-200">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-neutral-700">
-            Ordering for someone else?
-          </span>
-          <button
-            onClick={() =>
-              navigate("/checkout/address", {
-                state: {
-                  editAddress: savedAddress,
-                },
-              })
-            }
-            className="text-xs text-green-600 font-medium hover:text-green-700 transition-colors">
-            Add details
-          </button>
-        </div>
-      </div>
-
-      {/* Saved Address Section */}
-      {savedAddress && (
-        <div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 border-b border-neutral-200">
-          <div className="mb-2">
-            <h3 className="text-xs font-semibold text-neutral-900 mb-0.5">
-              Delivery Address
-            </h3>
-            <p className="text-[10px] text-neutral-600">
-              Select or edit your saved address
-            </p>
-          </div>
-
-          <div
-            className={`border rounded-lg p-2.5 cursor-pointer transition-all ${selectedAddress && !isMapSelected
-              ? "border-green-600 bg-green-50"
-              : "border-neutral-300 bg-white"
-              }`}
-            onClick={() => {
-              setSelectedAddress(savedAddress);
-              setIsMapSelected(false);
-            }}>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div
-                    className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedAddress && !isMapSelected
-                      ? "border-green-600 bg-green-600"
-                      : "border-neutral-400"
-                      }`}>
-                    {selectedAddress && !isMapSelected && (
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg">
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          stroke="white"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span className="text-xs font-semibold text-neutral-900">
-                    {savedAddress.name}
-                  </span>
-                </div>
-                <p className="text-[10px] text-neutral-600 mb-0.5">
-                  {savedAddress.phone}
-                </p>
-                <p className="text-[10px] text-neutral-600">
-                  {savedAddress.flat ? `${savedAddress.flat}, ` : ""}
-                  {savedAddress.street}
-                  {savedAddress.landmark ? (
-                    <>
-                      ,{" "}
-                      <span className="font-medium text-green-700">
-                        Near {savedAddress.landmark}
-                      </span>
-                    </>
-                  ) : (
-                    ""
-                  )}
-                  , {savedAddress.city} - {savedAddress.pincode}
-                </p>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate("/checkout/address", {
-                    state: {
-                      editAddress: savedAddress,
-                    },
-                  });
-                }}
-                className="text-xs text-green-600 font-medium ml-2">
-                Edit
-              </button>
-            </div>
-          </div>
-          {/* Set Location on Map Button */}
-          <div className="mt-2.5">
-            <button
-              onClick={() => {
-                // Prioritize current GPS location (matches homepage header), then saved address
-                setMapLocation({
-                  lat: userLocation?.latitude || selectedAddress?.latitude || 0,
-                  lng:
-                    userLocation?.longitude || selectedAddress?.longitude || 0,
-                });
-                setShowMapPicker(true);
-              }}
-              className={`flex items-center gap-3 text-base font-bold px-5 py-4 rounded-xl w-full justify-center transition-colors ${isMapSelected
-                ? "text-green-700 bg-green-100 border-2 border-green-500 ring-2 ring-green-600"
-                : "text-green-600 hover:text-green-700 bg-green-50 border-2 border-green-300 hover:bg-green-100 hover:border-green-400"
-                }`}>
-              {isMapSelected ? (
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              ) : (
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <circle
-                    cx="12"
-                    cy="10"
-                    r="3"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
-              {isMapSelected
-                ? "Precise Location Selected"
-                : selectedAddress?.latitude
-                  ? "Update Precise Location on Map"
-                  : "Set Exact Location on Map"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Main Product Card */}
-      <div className="px-4 md:px-6 lg:px-8 py-2 md:py-3 bg-white border-b border-neutral-200">
-        <div className="bg-white rounded-lg border border-neutral-200 p-2.5">
-          {/* Delivery info */}
-
-          <p className="text-[10px] text-neutral-600 mb-2.5">
-            Shipment of {displayCart.itemCount || 0}{" "}
-            {(displayCart.itemCount || 0) === 1 ? "item" : "items"}
-          </p>
-
-          {/* Cart Items */}
-          <div className="space-y-3">
-            {displayItems
-              .filter((item) => item.product)
-              .map((item) => (
-                <div
-                  key={item.product?.id || Math.random()}
-                  className="flex gap-2.5 items-start pb-2.5 border-b border-neutral-50 last:border-0">
-                  {/* Product Image */}
-                  <div className="w-12 h-12 bg-neutral-100 rounded-lg flex-shrink-0 overflow-hidden">
-                    {item.product?.imageUrl ? (
-                      <img
-                        src={item.product?.imageUrl}
-                        alt={item.product?.name}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-neutral-400">
-                        {(item.product?.name || "").charAt(0)}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Product Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-xs font-semibold text-neutral-900 mb-0.5 line-clamp-2">
-                          {item.product?.name}
-                        </h3>
-                        <p className="text-[10px] text-neutral-600 mb-0.5">
-                          {item.quantity} × {item.product?.pack}
-                        </p>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
-                            const variantTitle = (item.product as any).variantTitle || item.product.pack;
-                            handleMoveToWishlist(item.product, variantId, variantTitle);
-                          }}
-                          className="text-[10px] text-green-600 font-medium mb-1.5 hover:text-green-700 transition-colors">
-                          Move to wishlist
-                        </button>
-                      </div>
-                      {/* Quantity Selector and Price */}
-                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0 pt-0.5">
-                        <div className="flex items-center gap-1.5 bg-white border border-green-600 rounded-full px-1.5 py-0.5 shadow-sm">
-                          <button
-                            onClick={() => {
-                              const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
-                              const variantTitle = (item.product as any).variantTitle || item.product.pack;
-                              updateQuantity(item.product?.id, item.quantity - 1, variantId, variantTitle);
-                            }}
-                            className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors p-0 leading-none">
-                            <span className="relative top-[-0.5px]">−</span>
-                          </button>
-                          <span className="text-green-700 font-bold min-w-[0.85rem] text-center text-[11px]">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => {
-                              const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
-                              const variantTitle = (item.product as any).variantTitle || item.product.pack;
-                              updateQuantity(item.product?.id, item.quantity + 1, variantId, variantTitle);
-                            }}
-                            className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors p-0 leading-none">
-                            <span className="relative top-[-0.5px]">+</span>
-                          </button>
-                        </div>
-
-                        {/* Price */}
-                        {(() => {
-                          const { displayPrice, mrp, hasDiscount } =
-                            calculateProductPrice(item.product, item.variant);
-                          return (
-                            <div className="flex flex-col items-end leading-tight">
-                              {hasDiscount && (
-                                <span className="text-[9px] text-neutral-400 line-through">
-                                  ₹{(mrp * item.quantity).toLocaleString("en-IN")}
-                                </span>
-                              )}
-                              <span className="text-sm font-bold text-neutral-900">
-                                ₹{(displayPrice * item.quantity).toLocaleString("en-IN")}
-                              </span>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+      {/* Main Content Layout */}
+      <div className="flex-1 bg-neutral-50/30">
+        <div className="max-w-7xl mx-auto lg:p-8">
+          <div className="lg:grid lg:grid-cols-12 lg:gap-10 lg:items-start">
             
-            {/* Add more items button */}
-            <button 
-              onClick={() => navigate('/')}
-              className="w-full flex items-center justify-center gap-2 py-2 mt-2 border-2 border-dashed border-green-200 rounded-xl text-green-600 hover:bg-green-50 transition-all font-bold text-xs active:scale-[0.98]">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Add more items
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* You might also like */}
-      <div className="px-4 md:px-6 lg:px-8 py-2.5 md:py-3 border-b border-neutral-200">
-        <h2 className="text-sm font-semibold text-neutral-900 mb-2">
-          You might also like
-        </h2>
-        <div
-          className="flex gap-2 overflow-x-auto scrollbar-hide pb-3"
-          style={{ scrollSnapType: "x mandatory" }}>
-          {similarProducts.map((product) => {
-            // Get price details
-            const { displayPrice, mrp, discount, hasDiscount } =
-              calculateProductPrice(product);
-
-            // Get quantity in cart
-            const productId = product.id || product._id;
-            const inCartItem = (cart?.items || []).find((item) => {
-              const itemProductId = item.product?.id || item.product?._id;
-              return itemProductId === productId;
-            });
-            const inCartQty = inCartItem?.quantity || 0;
-
-            return (
-              <div
-                key={product.id}
-                className="flex-shrink-0 w-[140px]"
-                style={{ scrollSnapAlign: "start" }}>
-                <div
-                  className="bg-white rounded-lg overflow-hidden flex flex-col relative h-full"
-                  style={{ boxShadow: "0 1px 1px rgba(0, 0, 0, 0.03)" }}>
-                  {/* Product Image Area */}
-                  <div
+            {/* Left Column: Items, Recommendations, and Options */}
+            <div className="lg:col-span-8 space-y-4">
+              
+              {/* Ordering for someone else */}
+              <div className="px-4 md:px-0 py-2 md:py-3 bg-white lg:rounded-2xl lg:shadow-sm border-b lg:border border-neutral-200 overflow-hidden">
+                <div className="px-4 flex items-center justify-between">
+                  <span className="text-xs text-neutral-700">
+                    Ordering for someone else?
+                  </span>
+                  <button
                     onClick={() =>
-                      navigate(`/product/${product.id || product._id}`)
+                      navigate("/checkout/address", {
+                        state: {
+                          editAddress: savedAddress,
+                        },
+                      })
                     }
-                    className="relative block cursor-pointer">
-                    <div className="w-full h-28 bg-neutral-100 flex items-center justify-center overflow-hidden relative">
-                      {product.imageUrl || product.mainImage ? (
-                        <img
-                          src={product.imageUrl || product.mainImage}
-                          alt={product.name || product.productName || "Product"}
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = "none";
-                            const parent = target.parentElement;
-                            if (
-                              parent &&
-                              !parent.querySelector(".fallback-icon")
-                            ) {
-                              const fallback = document.createElement("div");
-                              fallback.className =
-                                "w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400 text-4xl fallback-icon";
-                              fallback.textContent = (
-                                product.name ||
-                                product.productName ||
-                                "?"
-                              )
-                                .charAt(0)
-                                .toUpperCase();
-                              parent.appendChild(fallback);
-                            }
-                          }}
+                    className="text-xs text-green-600 font-medium hover:text-green-700 transition-colors">
+                    Add details
+                  </button>
+                </div>
+              </div>
+
+              {/* Main Product Card */}
+              <div className="px-4 md:px-0 py-2 md:py-3 bg-white lg:rounded-2xl lg:shadow-sm border-b lg:border border-neutral-200 overflow-hidden">
+                <div className="px-4 bg-white p-2.5">
+                  <p className="text-[10px] text-neutral-600 mb-2.5 uppercase tracking-wider font-bold">
+                    Cart Items ({displayCart.itemCount || 0})
+                  </p>
+
+                  <div className="space-y-4">
+                    {displayItems
+                      .filter((item) => item.product)
+                      .map((item) => (
+                        <div
+                          key={item.product?.id || Math.random()}
+                          className="flex gap-4 items-start pb-4 border-b border-neutral-50 last:border-0 last:pb-0">
+                          {/* Product Image */}
+                          <div className="w-16 h-16 bg-neutral-100 rounded-xl flex-shrink-0 overflow-hidden border border-neutral-100">
+                            {item.product?.imageUrl ? (
+                              <img
+                                src={item.product?.imageUrl}
+                                alt={item.product?.name}
+                                className="w-full h-full object-contain p-1"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-neutral-400">
+                                {(item.product?.name || "").charAt(0)}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Product Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start gap-4">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-semibold text-neutral-900 mb-1 line-clamp-2">
+                                  {item.product?.name}
+                                </h3>
+                                <p className="text-xs text-neutral-500 mb-2">
+                                  {item.quantity} × {item.product?.pack}
+                                </p>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
+                                    const variantTitle = (item.product as any).variantTitle || item.product.pack;
+                                    handleMoveToWishlist(item.product, variantId, variantTitle);
+                                  }}
+                                  className="text-[11px] text-green-600 font-bold flex items-center gap-1.5 hover:text-green-700 transition-colors">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                  </svg>
+                                  Move to wishlist
+                                </button>
+                              </div>
+
+                              <div className="flex flex-col items-end gap-2 flex-shrink-0 pt-0.5">
+                                <div className="flex items-center gap-2 bg-green-50/50 border border-green-200 rounded-full px-2 py-1 shadow-sm">
+                                  <button
+                                    onClick={() => {
+                                      const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
+                                      const variantTitle = (item.product as any).variantTitle || item.product.pack;
+                                      updateQuantity(item.product?.id, item.quantity - 1, variantId, variantTitle);
+                                    }}
+                                    className="w-6 h-6 flex items-center justify-center text-green-600 font-black hover:bg-green-100 rounded-full transition-colors leading-none">
+                                    <span className="relative top-[-1px]">−</span>
+                                  </button>
+                                  <span className="text-green-700 font-black min-w-[1rem] text-center text-xs">
+                                    {item.quantity}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
+                                      const variantTitle = (item.product as any).variantTitle || item.product.pack;
+                                      updateQuantity(item.product?.id, item.quantity + 1, variantId, variantTitle);
+                                    }}
+                                    className="w-6 h-6 flex items-center justify-center text-green-600 font-black hover:bg-green-100 rounded-full transition-colors leading-none">
+                                    <span className="relative top-[-1px]">+</span>
+                                  </button>
+                                </div>
+
+                                {(() => {
+                                  const { displayPrice, mrp, hasDiscount } = calculateProductPrice(item.product, item.variant);
+                                  return (
+                                    <div className="flex flex-col items-end leading-tight">
+                                      {hasDiscount && (
+                                        <span className="text-[10px] text-neutral-400 line-through">
+                                          ₹{(mrp * item.quantity).toLocaleString("en-IN")}
+                                        </span>
+                                      )}
+                                      <span className="text-sm font-bold text-neutral-900 italic">
+                                        ₹{(displayPrice * item.quantity).toLocaleString("en-IN")}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    
+                    <button 
+                      onClick={() => navigate('/')}
+                      className="w-full flex items-center justify-center gap-2 py-3 mt-2 border-2 border-dashed border-green-200 rounded-2xl text-green-600 hover:bg-green-50 transition-all font-bold text-sm active:scale-[0.98]">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Add more items from store
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* You might also like */}
+              <div className="px-4 md:px-0 py-3 bg-white lg:rounded-2xl lg:shadow-sm border-b lg:border border-neutral-200 overflow-hidden">
+                <div className="px-4">
+                  <h2 className="text-sm font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    You might also like
+                  </h2>
+                  <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+                    {similarProducts.map((product) => {
+                      const { displayPrice, mrp, discount, hasDiscount } = calculateProductPrice(product);
+                      const productId = product.id || product._id;
+                      const inCartQty = (cart?.items || []).find((item) => (item.product?.id || item.product?._id) === productId)?.quantity || 0;
+
+                      return (
+                        <div key={product.id} className="flex-shrink-0 w-[160px]">
+                          <div className="bg-white rounded-xl overflow-hidden flex flex-col relative h-full border border-neutral-100 shadow-sm">
+                            <div onClick={() => navigate(`/product/${product.id || product._id}`)} className="relative cursor-pointer">
+                              <div className="w-full h-32 bg-neutral-50 flex items-center justify-center p-2">
+                                <img src={product.imageUrl || product.mainImage} alt={product.name} className="w-full h-full object-contain" />
+                                {discount > 0 && (
+                                  <div className="absolute top-2 left-2 z-10 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm italic">
+                                    {discount}% OFF
+                                  </div>
+                                )}
+                                <WishlistButton productId={product.id || product._id} size="sm" className="top-2 right-2" />
+                              </div>
+                            </div>
+                            <div className="p-2 flex-1 flex flex-col">
+                              <h3 className="text-xs font-bold text-neutral-900 line-clamp-2 leading-tight mb-1">{product.name}</h3>
+                              <div className="text-[10px] text-neutral-500 mb-1">{product.pack}</div>
+                              <div className="flex items-baseline gap-1.5 mt-auto">
+                                <span className="text-sm font-black text-neutral-900 italic">₹{displayPrice}</span>
+                                {hasDiscount && <span className="text-[10px] text-neutral-400 line-through">₹{mrp}</span>}
+                              </div>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); addToCart(product, e.currentTarget); }}
+                                className="mt-2 w-full py-1.5 bg-green-600 text-white text-[10px] font-bold rounded-lg hover:bg-green-700 transition-colors shadow-sm italic">
+                                ADD TO CART
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Options Section (Tip, GSTIN, Gift) */}
+              <div className="lg:grid lg:grid-cols-2 lg:gap-4">
+                {/* Tip your delivery partner */}
+                <div className="px-4 md:px-0 py-4 bg-white lg:rounded-2xl lg:shadow-sm border-b lg:border border-neutral-200 overflow-hidden">
+                  <div className="px-4">
+                    <h3 className="text-sm font-bold text-neutral-900 mb-1">Tip your delivery partner</h3>
+                    <p className="text-[11px] text-neutral-500 mb-4">100% of your tip goes to the partner.</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {[20, 30, 50].map(amt => (
+                        <button
+                          key={amt}
+                          onClick={() => { setTipAmount(amt); setShowCustomTipInput(false); }}
+                          className={`px-4 py-2 rounded-xl border-2 font-bold text-xs transition-all ${tipAmount === amt && !showCustomTipInput ? "border-green-600 bg-green-50 text-green-700" : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"}`}>
+                          ₹{amt}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => { setShowCustomTipInput(true); setTipAmount(null); }}
+                        className={`px-4 py-2 rounded-xl border-2 font-bold text-xs transition-all ${showCustomTipInput ? "border-green-600 bg-green-50 text-green-700" : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"}`}>
+                        Custom
+                      </button>
+                    </div>
+                    {showCustomTipInput && (
+                      <div className="mt-3 flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={customTipAmount || ""}
+                          onChange={(e) => setCustomTipAmount(Math.max(0, Number(e.target.value)))}
+                          placeholder="Amount"
+                          className="w-24 px-3 py-2 bg-white border-2 border-green-600 rounded-xl text-sm font-bold focus:outline-none"
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400 text-4xl">
-                          {(product.name || product.productName || "?")
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
-                      )}
-
-                      {/* Red Discount Badge - Top Left */}
-                      {discount > 0 && (
-                        <div className="absolute top-1 left-1 z-10 bg-red-600 text-white text-[9px] font-bold px-1 py-0.5 rounded">
-                          {discount}% OFF
-                        </div>
-                      )}
-
-                      {/* Heart Icon - Top Right */}
-                      <WishlistButton
-                        productId={product.id || product._id}
-                        size="sm"
-                        className="top-1 right-1 shadow-sm"
-                      />
-
-                      {/* ADD Button or Quantity Stepper - Overlaid on bottom right of image */}
-                      <div className="absolute bottom-1.5 right-1.5 z-10">
-                        <AnimatePresence mode="wait">
-                          {inCartQty === 0 ? (
-                            <motion.button
-                              key="add-button"
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              transition={{ duration: 0.2 }}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                addToCart(product, e.currentTarget);
-                              }}
-                              className="bg-white/95 backdrop-blur-sm text-green-600 border-2 border-green-600 text-[10px] font-semibold px-2 py-1 rounded shadow-md hover:bg-white transition-colors">
-                              ADD
-                            </motion.button>
-                          ) : (
-                            <motion.div
-                              key="stepper"
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              transition={{ duration: 0.2 }}
-                              className="flex items-center gap-1 bg-green-600 rounded px-1.5 py-1 shadow-md"
-                              onClick={(e) => e.stopPropagation()}>
-                              <motion.button
-                                whileTap={{ scale: 0.9 }}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  updateQuantity(productId, inCartQty - 1);
-                                }}
-                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
-                                style={{ lineHeight: 1, fontSize: "14px" }}>
-                                <span className="relative top-[-1px]">−</span>
-                              </motion.button>
-                              <motion.span
-                                key={inCartQty}
-                                initial={{ scale: 1.2, y: -2 }}
-                                animate={{ scale: 1, y: 0 }}
-                                transition={{
-                                  type: "spring",
-                                  stiffness: 500,
-                                  damping: 15,
-                                }}
-                                className="text-white font-bold min-w-[0.75rem] text-center"
-                                style={{ fontSize: "12px" }}>
-                                {inCartQty}
-                              </motion.span>
-                              <motion.button
-                                whileTap={{ scale: 0.9 }}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  updateQuantity(productId, inCartQty + 1);
-                                }}
-                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
-                                style={{ lineHeight: 1, fontSize: "14px" }}>
-                                <span className="relative top-[-1px]">+</span>
-                              </motion.button>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                        <button onClick={() => { setShowCustomTipInput(false); setCustomTipAmount(0); }} className="text-xs font-bold text-neutral-400">Cancel</button>
                       </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Other Options Wrapper */}
+                <div className="space-y-4">
+                  {/* GSTIN */}
+                  <div className="px-4 md:px-0 py-4 bg-white lg:rounded-2xl lg:shadow-sm border-b lg:border border-neutral-200 overflow-hidden">
+                    <div className="px-4">
+                      <button onClick={() => setShowGstinSheet(true)} className="w-full flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold italic">%</div>
+                          <div className="text-left">
+                            <p className="text-xs font-bold text-neutral-900">Add GSTIN</p>
+                            <p className="text-[10px] text-neutral-500">{gstin ? `Active: ${gstin}` : "Claim GST input credit"}</p>
+                          </div>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M9 18l6-6-6-6" /></svg>
+                      </button>
                     </div>
                   </div>
 
-                  {/* Product Details */}
-                  <div className="p-1.5 flex-1 flex flex-col bg-white">
-                    {/* Light Grey Tags */}
-                    <div className="flex gap-0.5 mb-0.5">
-                      <div className="bg-neutral-200 text-neutral-700 text-[8px] font-medium px-1 py-0.5 rounded">
-                        {product.pack || "1 unit"}
+                  {/* Gift Packaging */}
+                  <div className="px-4 md:px-0 py-4 bg-white lg:rounded-2xl lg:shadow-sm border-b lg:border border-neutral-200 overflow-hidden">
+                    <div className="px-4">
+                      <button onClick={() => setGiftPackaging(!giftPackaging)} className="w-full flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${giftPackaging ? "bg-green-600 text-white" : "bg-neutral-100 text-neutral-400"}`}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z" /></svg>
+                          </div>
+                          <div className="text-left">
+                            <p className="text-xs font-bold text-neutral-900">Gift Packaging</p>
+                            <p className="text-[10px] text-neutral-500">Elegant wrapping for ₹30</p>
+                          </div>
+                        </div>
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${giftPackaging ? "bg-green-600 border-green-600" : "border-neutral-200"}`}>
+                          {giftPackaging && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>}
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Policy and Branding */}
+              <div className="px-4 md:px-0 flex flex-col items-center gap-6 py-8">
+                <button onClick={() => setShowCancellationPolicy(true)} className="text-[11px] font-bold text-neutral-400 hover:text-neutral-600 border-b border-dashed border-neutral-200 pb-1 uppercase tracking-widest transition-colors">
+                  View Cancellation Policy
+                </button>
+                <div className="flex flex-col items-center">
+                  <div className="flex items-center gap-2 bg-green-50/50 px-4 py-2 rounded-xl border border-green-100 italic">
+                    <span className="text-[9px] font-black text-neutral-300 uppercase">Premium Service by</span>
+                    <span className="text-sm font-black text-green-600 tracking-tighter">KlydoCart</span>
+                  </div>
+                  <p className="mt-2 text-[9px] text-neutral-400 font-bold uppercase tracking-[0.2em]">Fastest Delivery in City</p>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column: Address, Billing, and Payment Selection as a Sidebar */}
+            <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-24 pb-32 lg:pb-0">
+              
+              {/* Delivery Address Card */}
+              <div className="px-4 md:px-0 py-4 bg-white lg:rounded-2xl lg:shadow-md border-b lg:border-2 lg:border-green-600/10 overflow-hidden">
+                <div className="px-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-black text-neutral-900 uppercase tracking-wider">Delivery Details</h3>
+                    <button onClick={() => navigate("/checkout/address", { state: { editAddress: savedAddress } })} className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase italic">Change</button>
+                  </div>
+
+                  {savedAddress ? (
+                    <div className="space-y-4">
+                      <div 
+                        className={`p-3 rounded-xl border-2 transition-all cursor-pointer ${selectedAddress?.id === savedAddress.id && !isMapSelected ? "border-green-600 bg-green-50" : "bg-neutral-50 border-neutral-100"}`}
+                        onClick={() => {
+                          setSelectedAddress(savedAddress);
+                          setIsMapSelected(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${selectedAddress?.id === savedAddress.id && !isMapSelected ? "bg-green-600 text-white" : "bg-neutral-200 text-neutral-500"}`}>
+                            {selectedAddress?.id === savedAddress.id && !isMapSelected ? (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
+                            ) : (
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-neutral-900">{savedAddress.name}</p>
+                            <p className="text-[10px] font-bold text-neutral-500 italic">{savedAddress.phone}</p>
+                          </div>
+                        </div>
+                        <p className="text-[11px] font-medium text-neutral-600 leading-relaxed pl-10">
+                          {savedAddress.flat ? `${savedAddress.flat}, ` : ""}{savedAddress.street}
+                          {savedAddress.landmark && <span className="block text-green-700 italic mt-1 underline decoration-green-200 font-bold">Near {savedAddress.landmark}</span>}
+                          <span className="block mt-1 uppercase font-black text-neutral-400">{savedAddress.city} - {savedAddress.pincode}</span>
+                        </p>
                       </div>
-                      {product.pack &&
-                        (product.pack.includes("g") ||
-                          product.pack.includes("kg")) && (
-                          <div className="bg-neutral-200 text-neutral-700 text-[8px] font-medium px-1 py-0.5 rounded">
-                            {product.pack.replace(/[gk]/gi, "").trim()} GSM
+                      
+                      <button onClick={() => { setMapLocation({ lat: userLocation?.latitude || selectedAddress?.latitude || 0, lng: userLocation?.longitude || selectedAddress?.longitude || 0 }); setShowMapPicker(true); }}
+                        className={`w-full py-3 rounded-xl border-2 font-black text-[11px] uppercase tracking-widest transition-all italic flex items-center justify-center gap-2 ${isMapSelected ? "bg-green-600 border-green-600 text-white shadow-lg" : "bg-white border-neutral-100 text-neutral-400 shadow-sm hover:border-green-200"}`}>
+                        {isMapSelected ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /></svg>}
+                        {isMapSelected ? "Precise Map Location set" : "Pin precise location on map"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => navigate("/checkout/address")} className="w-full py-6 bg-neutral-100 rounded-2xl border-2 border-dashed border-neutral-300 text-neutral-500 font-black italic uppercase tracking-widest">ADD ADDRESS TO CONTINUE</button>
+                  )}
+                </div>
+              </div>
+
+              {/* Coupons Secondary Entry */}
+              {!selectedCoupon && (
+                <div className="px-4 md:px-0">
+                  <button onClick={() => setShowCouponSheet(true)} 
+                    className="w-full py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-2xl shadow-lg shadow-teal-500/20 flex items-center justify-between px-6 transition-transform active:scale-[0.98]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center italic font-black text-sm">%</div>
+                      <div className="text-left leading-tight">
+                        <p className="text-xs font-black uppercase tracking-wider">Apply Coupon</p>
+                        <p className="text-[10px] text-teal-100 font-bold italic">Unlock mega savings!</p>
+                      </div>
+                    </div>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M9 18l6-6-6-6" /></svg>
+                  </button>
+                </div>
+              )}
+
+              {/* Billing Summary */}
+              <div className="px-4 md:px-0 py-6 bg-neutral-900 text-white lg:rounded-3xl lg:shadow-2xl border-b border-neutral-800 overflow-hidden relative group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 blur-3xl -mr-16 -mt-16 group-hover:bg-green-500/20 transition-colors"></div>
+                <div className="px-6 relative z-10">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-500 mb-6 italic">Payment Summary</h3>
+                  
+                  {/* Delivery charge progress banner inside billing summary */}
+                  {deliveryCharge > 0 && (
+                    <div className="mb-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">FREE Delivery Goal</span>
+                        <span className="text-[10px] font-black text-blue-200 italic">₹{amountNeededForFreeDelivery} more</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, ((199 - amountNeededForFreeDelivery) / 199) * 100)}%` }}
+                          className="h-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-neutral-400">Products Subtotal</span>
+                      <span className="text-xs font-black italic">₹{discountedTotal.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-teal-400">
+                      <span className="text-xs font-bold">Shipping & Logistics</span>
+                      <span className="text-xs font-black italic uppercase">{deliveryCharge === 0 ? "FREE" : `₹${deliveryCharge}`}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-neutral-400">Platform Handling</span>
+                      <span className="text-xs font-black italic">₹{handlingCharge}</span>
+                    </div>
+                    {selectedCoupon && (
+                      <div className="flex justify-between items-center p-2.5 bg-green-500/10 rounded-xl border border-green-500/20 shadow-inner">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-black bg-green-500 text-black px-2 py-0.5 rounded italic">SAVED</span>
+                          <span className="text-[10px] font-black text-green-400 uppercase">{selectedCoupon.code}</span>
+                        </div>
+                        <span className="text-xs font-black text-green-400 italic">-₹{currentCouponDiscount.toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
+                    {(finalTipAmount > 0 || giftPackaging) && (
+                      <div className="pt-4 border-t border-neutral-800 space-y-3">
+                        {finalTipAmount > 0 && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase">Gratitude Tip</span>
+                            <span className="text-xs font-black italic text-yellow-400">₹{finalTipAmount}</span>
                           </div>
                         )}
-                    </div>
-
-                    {/* Product Name */}
-                    <div
-                      onClick={() =>
-                        navigate(`/product/${product.id || product._id}`)
-                      }
-                      className="mb-0.5 cursor-pointer">
-                      <h3 className="text-[10px] font-bold text-neutral-900 line-clamp-2 leading-tight">
-                        {product.name || product.productName || "Product"}
-                      </h3>
-                    </div>
-
-                    {/* Rating and Reviews */}
-                    <div className="flex items-center gap-0.5 mb-0.5">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <svg
-                            key={i}
-                            width="8"
-                            height="8"
-                            viewBox="0 0 24 24"
-                            fill={i < 4 ? "#fbbf24" : "#e5e7eb"}
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                          </svg>
-                        ))}
-                      </div>
-                      <span className="text-[8px] text-neutral-500">(85)</span>
-                    </div>
-
-                    {/* Delivery Time */}
-                    <div className="text-[9px] text-neutral-600 mb-0.5">
-                      20 MINS
-                    </div>
-
-                    {/* Discount - Blue Text */}
-                    {discount > 0 && (
-                      <div className="text-[9px] text-blue-600 font-semibold mb-0.5">
-                        {discount}% OFF
-                      </div>
-                    )}
-
-                    {/* Price */}
-                    <div className="mb-1">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-[13px] font-bold text-neutral-900">
-                          ₹{(displayPrice || 0).toLocaleString("en-IN")}
-                        </span>
-                        {hasDiscount && (
-                          <span className="text-[10px] text-neutral-400 line-through">
-                            ₹{(mrp || 0).toLocaleString("en-IN")}
-                          </span>
+                        {giftPackaging && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-bold text-neutral-500 uppercase">Premium Gift Wrap</span>
+                            <span className="text-xs font-black italic">₹{giftPackagingFee}</span>
+                          </div>
                         )}
                       </div>
-                    </div>
-
-                    {/* Bottom Link */}
-                    <div
-                      onClick={() =>
-                        navigate(
-                          `/category/${product.categoryId || product.category || "all"
-                          }`
-                        )
-                      }
-                      className="w-full bg-green-100 text-green-700 text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-green-200 transition-colors mt-auto cursor-pointer">
-                      <span>See more like this</span>
-                      <div className="flex items-center gap-0.5">
-                        <div className="w-px h-2 bg-green-300"></div>
-                        <svg
-                          width="6"
-                          height="6"
-                          viewBox="0 0 8 8"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg">
-                          <path d="M0 0L8 4L0 8Z" fill="#16a34a" />
-                        </svg>
+                    )}
+                    <div className="pt-6 border-t border-neutral-700 flex justify-between items-end">
+                      <div>
+                        <p className="text-[11px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-1">Grand Total</p>
+                        <p className="text-3xl font-black italic tracking-tighter text-white">₹{Math.max(0, grandTotal).toLocaleString('en-IN')}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-black text-green-500 uppercase italic mb-1">Net Savings</p>
+                        <p className="text-lg font-black text-green-400 italic tracking-tight">₹{((savedAmount || 0) + (currentCouponDiscount || 0)).toLocaleString('en-IN')}</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-        
-        {/* Add more items button */}
-        <div className="px-4 py-3 bg-white border-b border-neutral-100">
-          <button 
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-green-600 font-bold text-sm group"
-          >
-            <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </div>
-            Add more items
-          </button>
-        </div>
-      </div>
 
-      {/* Get FREE delivery banner */}
-      {deliveryCharge > 0 && (
-        <div className="px-4 py-2 bg-blue-50 border-b border-blue-100">
-          <div className="flex items-center gap-2 mb-1.5">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M5 13h14M5 13l4-4m-4 4l4 4"
-                stroke="#3b82f6"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle cx="18" cy="5" r="2" fill="#3b82f6" />
-            </svg>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-blue-700">
-                  Get FREE delivery
-                </span>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M9 18l6-6-6-6"
-                    stroke="#3b82f6"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <p className="text-[10px] text-blue-600 mt-0.5">
-                Add products worth ₹{amountNeededForFreeDelivery.toLocaleString('en-IN')} more
-              </p>
-            </div>
-          </div>
-          {/* Progress bar */}
-          <div className="w-full h-1 bg-blue-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-600 transition-all duration-300"
-              style={{
-                width: `${Math.min(
-                  100,
-                  ((199 - amountNeededForFreeDelivery) / 199) * 100
-                )}%`,
-              }}
-            />
-          </div>
-        </div>
-      )}
+              {/* Payment Method Selection - Integrated into sidebar */}
+              <div className="px-4 md:px-0 py-6 bg-white lg:rounded-3xl lg:shadow-md lg:border border-neutral-100 overflow-hidden">
+                <div className="px-6">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-neutral-900 mb-4">Payment Method</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      { id: "Online", label: "Online Pay", sub: "Fast & Secure", icon: "🌐" },
+                      { id: "COD", label: "Cash on Delivery", sub: "Pay at door", icon: "🏠" }
+                    ].map(method => (
+                      <div key={method.id} onClick={() => setPaymentMethod(method.id as any)}
+                        className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMethod === method.id ? "border-green-600 bg-green-50 shadow-inner" : "border-neutral-50 bg-neutral-100/50 hover:bg-neutral-100"}`}>
+                        <div className="text-xl flex-shrink-0">{method.icon}</div>
+                        <div className="flex-1">
+                          <p className={`text-xs font-black uppercase tracking-tight ${paymentMethod === method.id ? "text-green-700" : "text-neutral-900"}`}>{method.label}</p>
+                          <p className="text-[9px] font-bold text-neutral-400 italic uppercase">{method.sub}</p>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${paymentMethod === method.id ? "bg-green-600 border-green-600" : "border-neutral-300"}`}>
+                          {paymentMethod === method.id && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M20 6L9 17l-5-5" /></svg>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-      {/* Coupon Section */}
-      {selectedCoupon ? (
-        <div className="px-4 py-1.5 border-b border-neutral-200">
-          <div className="flex items-center justify-between bg-green-50 rounded-lg p-2 border border-green-200">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M20 6L9 17l-5-5"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-green-700 truncate">
-                  {selectedCoupon.code}
-                </p>
-                <p className="text-[10px] text-green-600 truncate">
-                  {selectedCoupon.title}
-                </p>
+                {/* Desktop Place Order Button */}
+                <div className="hidden lg:block px-6 mt-8">
+                  <button
+                    onClick={() => handlePlaceOrder()}
+                    disabled={cart.items.length === 0 || !selectedAddress}
+                    className="w-full py-5 bg-green-600 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-green-600/30 hover:bg-green-700 hover:shadow-green-600/40 transition-all active:scale-[0.98] disabled:bg-neutral-200 disabled:shadow-none italic">
+                    Place Final Order
+                  </button>
+                  <p className="mt-4 text-[9px] text-center text-neutral-400 font-bold uppercase tracking-widest">Secured by KlydoTrust</p>
+                </div>
               </div>
             </div>
-            <button
-              onClick={handleRemoveCoupon}
-              className="text-xs text-green-600 font-medium ml-2 flex-shrink-0">
-              Remove
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="px-4 py-1.5 flex justify-end border-b border-neutral-200">
-          <button
-            onClick={() => setShowCouponSheet(true)}
-            className="text-xs text-neutral-600 flex items-center gap-1">
-            See all coupons
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M9 18l6-6-6-6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
-      )}
 
-      {/* Bill details */}
-      <div className="px-4 md:px-6 lg:px-8 py-2.5 md:py-3 border-b border-neutral-200">
-        <h2 className="text-base font-bold text-neutral-900 mb-2.5">
-          Bill details
-        </h2>
-
-        <div className="space-y-2">
-          {/* Items total */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-neutral-700">Items total</span>
-              {savedAmount > 0 && (
-                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">
-                  Saved ₹{savedAmount}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5">
-              {itemsTotal > discountedTotal && (
-                <span className="text-xs text-neutral-500 line-through">
-                  ₹{itemsTotal}
-                </span>
-              )}
-              <span className="text-xs font-medium text-neutral-900">
-                ₹{discountedTotal}
-              </span>
-            </div>
-          </div>
-
-          {/* Handling charge */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  fill="none"
-                />
-              </svg>
-              <span className="text-xs text-neutral-700">Handling charge</span>
-            </div>
-            <span className="text-xs font-medium text-neutral-900">
-              ₹{handlingCharge}
-            </span>
-          </div>
-
-          {/* Delivery charge */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  fill="none"
-                />
-                <circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" />
-                <circle cx="18.5" cy="18.5" r="1.5" fill="currentColor" />
-              </svg>
-              <span className="text-xs text-neutral-700">Delivery charge</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span
-                className={`text-xs font-medium ${deliveryCharge === 0 ? "text-green-600" : "text-neutral-900"
-                  }`}>
-                {deliveryCharge === 0 ? "FREE" : `₹${deliveryCharge}`}
-              </span>
-              {deliveryCharge > 0 && (
-                <span className="text-[10px] text-orange-600 mt-0.5">
-                  Shop for ₹{amountNeededForFreeDelivery} more to get FREE delivery
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Coupon discount */}
-          {selectedCoupon && currentCouponDiscount > 0 && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span className="text-xs text-neutral-700">
-                  Coupon discount
-                </span>
-                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
-                  {selectedCoupon.code}
-                </span>
-              </div>
-              <span className="text-xs font-medium text-green-600">
-                -₹{currentCouponDiscount.toLocaleString("en-IN")}
-              </span>
-            </div>
-          )}
-
-          {/* Tip amount */}
-          {finalTipAmount > 0 && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span className="text-xs text-neutral-700">
-                  Tip to delivery partner
-                </span>
-              </div>
-              <span className="text-xs font-medium text-neutral-900">
-                ₹{finalTipAmount}
-              </span>
-            </div>
-          )}
-
-          {/* Gift Packaging */}
-          {giftPackaging && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                </svg>
-                <span className="text-xs text-neutral-700">Gift Packaging</span>
-              </div>
-              <span className="text-xs font-medium text-neutral-900">
-                ₹{giftPackagingFee}
-              </span>
-            </div>
-          )}
-
-          {/* Grand total */}
-          <div className="pt-2 border-t border-neutral-200 flex items-center justify-between">
-            <span className="text-sm font-bold text-neutral-900">
-              Grand total
-            </span>
-            <span className="text-sm font-bold text-neutral-900">
-              ₹{Math.max(0, grandTotal)}
-            </span>
           </div>
         </div>
       </div>
-
-      {/* Add GSTIN */}
-      <div className="px-4 py-2 border-b border-neutral-200">
-        <button
-          onClick={() => setShowGstinSheet(true)}
-          className="w-full flex items-center justify-between bg-neutral-50 rounded-lg p-2 hover:bg-neutral-100 transition-colors">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-blue-600 font-bold text-sm">%</span>
-            </div>
-            <div className="text-left">
-              <p className="text-xs font-semibold text-neutral-900">
-                Add GSTIN
-              </p>
-              <p className="text-[10px] text-neutral-600">
-                {gstin
-                  ? `GSTIN: ${gstin}`
-                  : "Claim GST input credit up to 18% on your order"}
-              </p>
-            </div>
-          </div>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M9 18l6-6-6-6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-      </div>
-
-      {/* Tip your delivery partner */}
-      <div className="px-4 py-2 border-b border-neutral-200">
-        <h3 className="text-sm font-bold text-neutral-900 mb-0.5">
-          Tip your delivery partner
-        </h3>
-        <p className="text-xs text-neutral-600 mb-2">
-          Your kindness means a lot! 100% of your tip will go directly to your
-          delivery partner.
-        </p>
-
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1.5">
-          <button
-            onClick={() => {
-              setTipAmount(20);
-              setShowCustomTipInput(false);
-            }}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-lg border-2 font-medium text-xs ${tipAmount === 20 && !showCustomTipInput
-              ? "border-green-600 bg-green-50 text-green-700"
-              : "border-neutral-300 bg-white text-neutral-700"
-              }`}>
-            😊 ₹20
-          </button>
-          <button
-            onClick={() => {
-              setTipAmount(30);
-              setShowCustomTipInput(false);
-            }}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-lg border-2 font-medium text-xs ${tipAmount === 30 && !showCustomTipInput
-              ? "border-green-600 bg-green-50 text-green-700"
-              : "border-neutral-300 bg-white text-neutral-700"
-              }`}>
-            🤩 ₹30
-          </button>
-          <button
-            onClick={() => {
-              setTipAmount(50);
-              setShowCustomTipInput(false);
-            }}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-lg border-2 font-medium text-xs ${tipAmount === 50 && !showCustomTipInput
-              ? "border-green-600 bg-green-50 text-green-700"
-              : "border-neutral-300 bg-white text-neutral-700"
-              }`}>
-            😍 ₹50
-          </button>
-          <button
-            onClick={() => {
-              setShowCustomTipInput(true);
-              setTipAmount(null);
-            }}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-lg border-2 font-medium text-xs ${showCustomTipInput
-              ? "border-green-600 bg-green-50 text-green-700"
-              : "border-neutral-300 bg-white text-neutral-700"
-              }`}>
-            🎁 Custom
-          </button>
-        </div>
-
-        {/* Custom Tip Input */}
-        {showCustomTipInput && (
-          <div className="mt-2 flex items-center gap-2">
-            <input
-              type="number"
-              value={customTipAmount || ""}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                if (val >= 0) {
-                  setCustomTipAmount(val);
-                }
-              }}
-              onBlur={(e) => {
-                const val = Number(e.target.value);
-                if (val < 0) {
-                  setCustomTipAmount(0);
-                }
-              }}
-              placeholder="Enter custom tip amount"
-              className="flex-1 px-3 py-1.5 bg-white border-2 border-green-600 rounded-lg text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-green-500"
-              min="0"
-              step="1"
-            />
-            <button
-              onClick={() => {
-                setShowCustomTipInput(false);
-                setCustomTipAmount(0);
-                setTipAmount(null);
-              }}
-              className="px-3 py-1.5 text-xs font-medium text-neutral-700 hover:text-neutral-900">
-              Cancel
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Gift Packaging */}
-      <div className="px-4 py-2 border-b border-neutral-200">
-        <button
-          onClick={() => setGiftPackaging(!giftPackaging)}
-          className={`w-full flex items-center justify-between rounded-lg p-2 transition-colors ${giftPackaging
-            ? "bg-green-50 border-2 border-green-600"
-            : "bg-neutral-50 border-2 border-transparent hover:bg-neutral-100"
-            }`}>
-          <div className="flex items-center gap-2">
-            <div
-              className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${giftPackaging
-                ? "border-green-600 bg-green-600"
-                : "border-neutral-400 bg-white"
-                }`}>
-              {giftPackaging && (
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M20 6L9 17l-5-5"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              )}
-            </div>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z"
-                stroke="currentColor"
-                strokeWidth="2"
-                fill="none"
-              />
-            </svg>
-            <div className="text-left">
-              <p
-                className={`text-xs font-semibold ${giftPackaging ? "text-green-700" : "text-neutral-900"
-                  }`}>
-                Gift Packaging
-              </p>
-              <p className="text-[10px] text-neutral-600">
-                {giftPackaging
-                  ? "Add ₹30 for gift packaging"
-                  : "Add ₹30 for elegant gift packaging"}
-              </p>
-            </div>
-          </div>
-          {giftPackaging && (
-            <span className="text-xs font-semibold text-green-600">₹30</span>
-          )}
-        </button>
-      </div>
-
-      {/* Cancellation Policy */}
-      <div className="px-4 py-2">
-        <button
-          onClick={() => setShowCancellationPolicy(true)}
-          className="text-xs text-neutral-700 hover:text-neutral-900 transition-colors">
-          Cancellation Policy
-        </button>
-      </div>
-
 
       {/* GSTIN Sheet Modal */}
       <Sheet open={showGstinSheet} onOpenChange={setShowGstinSheet}>
@@ -2131,149 +1540,6 @@ export default function Checkout() {
           </div>
         </SheetContent>
       </Sheet>
-
-      {/* Payment Method Selection */}
-      <div className="px-4 py-3 border-b border-neutral-200 bg-neutral-50/50">
-        <h3 className="text-sm font-bold text-neutral-900 mb-2">Payment Method</h3>
-        <div className="space-y-3 mt-3">
-          {/* Online Payment Option */}
-          <div
-            onClick={() => setPaymentMethod("Online")}
-            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${paymentMethod === "Online"
-              ? "border-green-600 bg-green-50/50 shadow-green-100"
-              : "border-neutral-200 bg-white hover:border-neutral-300"
-              }`}>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "Online" ? "border-green-600" : "border-neutral-300"}`}>
-              {paymentMethod === "Online" && <motion.div layoutId="payment-indicator" className="w-2.5 h-2.5 rounded-full bg-green-600" />}
-            </div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "Online" ? "bg-white text-green-600 shadow-sm" : "bg-neutral-100 text-neutral-500"
-              }`}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="5" width="20" height="14" rx="2" ry="2" />
-                <line x1="2" y1="10" x2="22" y2="10" />
-              </svg>
-            </div>
-            <div>
-              <span className={`text-sm font-bold block ${paymentMethod === "Online" ? "text-green-700" : "text-neutral-900"}`}>Online Payment</span>
-              <span className="text-[10px] text-neutral-500">Secure payment via Razorpay</span>
-            </div>
-          </div>
-
-          {/* UPI Option */}
-          <div
-            onClick={() => setPaymentMethod("UPI")}
-            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${paymentMethod === "UPI"
-              ? "border-green-600 bg-green-50/50 shadow-green-100"
-              : "border-neutral-200 bg-white hover:border-neutral-300"
-              }`}>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "UPI" ? "border-green-600" : "border-neutral-300"}`}>
-              {paymentMethod === "UPI" && <motion.div layoutId="payment-indicator" className="w-2.5 h-2.5 rounded-full bg-green-600" />}
-            </div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "UPI" ? "bg-white text-green-600 shadow-sm" : "bg-neutral-100 text-neutral-500"
-              }`}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-            </div>
-            <div>
-              <span className={`text-sm font-bold block ${paymentMethod === "UPI" ? "text-green-700" : "text-neutral-900"}`}>UPI</span>
-              <span className="text-[10px] text-neutral-500">PhonePe, GPay, Paytm</span>
-            </div>
-          </div>
-
-          {/* Card Option */}
-          <div
-            onClick={() => setPaymentMethod("Card")}
-            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${paymentMethod === "Card"
-              ? "border-green-600 bg-green-50/50 shadow-green-100"
-              : "border-neutral-200 bg-white hover:border-neutral-300"
-              }`}>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "Card" ? "border-green-600" : "border-neutral-300"}`}>
-              {paymentMethod === "Card" && <motion.div layoutId="payment-indicator" className="w-2.5 h-2.5 rounded-full bg-green-600" />}
-            </div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "Card" ? "bg-white text-green-600 shadow-sm" : "bg-neutral-100 text-neutral-500"
-              }`}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                <line x1="1" y1="10" x2="23" y2="10" />
-              </svg>
-            </div>
-            <div>
-              <span className={`text-sm font-bold block ${paymentMethod === "Card" ? "text-green-700" : "text-neutral-900"}`}>Credit / Debit Card</span>
-              <span className="text-[10px] text-neutral-500">All major cards supported</span>
-            </div>
-          </div>
-
-          {/* Wallet Option */}
-          <div
-            onClick={() => setPaymentMethod("Wallet")}
-            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${paymentMethod === "Wallet"
-              ? "border-green-600 bg-green-50/50 shadow-green-100"
-              : "border-neutral-200 bg-white hover:border-neutral-300"
-              }`}>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "Wallet" ? "border-green-600" : "border-neutral-300"}`}>
-              {paymentMethod === "Wallet" && <motion.div layoutId="payment-indicator" className="w-2.5 h-2.5 rounded-full bg-green-600" />}
-            </div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "Wallet" ? "bg-white text-green-600 shadow-sm" : "bg-neutral-100 text-neutral-500"
-              }`}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v1" />
-                <path d="M19 5v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h16" />
-                <path d="M16 14h2" />
-              </svg>
-            </div>
-            <div>
-              <span className={`text-sm font-bold block ${paymentMethod === "Wallet" ? "text-green-700" : "text-neutral-900"}`}>Wallets</span>
-              <span className="text-[10px] text-neutral-500">Paytm, PhonePe, and more</span>
-            </div>
-          </div>
-
-          {/* COD Option */}
-          <div
-            onClick={() => setPaymentMethod("COD")}
-            className={`flex items-center gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all shadow-sm ${paymentMethod === "COD"
-              ? "border-green-600 bg-green-50/50 shadow-green-100"
-              : "border-neutral-200 bg-white hover:border-neutral-300"
-              }`}>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === "COD" ? "border-green-600" : "border-neutral-300"}`}>
-              {paymentMethod === "COD" && <motion.div layoutId="payment-indicator" className="w-2.5 h-2.5 rounded-full bg-green-600" />}
-            </div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === "COD" ? "bg-white text-green-600 shadow-sm" : "bg-neutral-100 text-neutral-500"
-              }`}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                <line x1="1" y1="10" x2="23" y2="10" />
-              </svg>
-            </div>
-            <div>
-              <span className={`text-sm font-bold block ${paymentMethod === "COD" ? "text-green-700" : "text-neutral-900"}`}>Cash on Delivery</span>
-              <span className="text-[10px] text-neutral-500">Pay when you receive your order</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Made with love branding inside Document Flow after payment options */}
-        <div className="px-4 py-8 mb-24 flex flex-col items-center justify-center bg-transparent">
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2.5 bg-green-50/50 border border-green-100 px-6 py-3 rounded-2xl shadow-sm">
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.1em]">Made with</span>
-            <div className="flex items-center gap-1.5">
-              <motion.span
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
-                className="text-red-500 text-sm drop-shadow-sm">
-                ❤️
-              </motion.span>
-              <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.1em]">by</span>
-              <span className="text-sm font-black text-green-600 tracking-tight">KlydoCart</span>
-            </div>
-          </motion.div>
-          <p className="mt-3 text-[10px] text-neutral-400 font-medium">Empowering Local Stores across India</p>
-        </div>
-      </div>
-
       {/* Coupon Sheet Modal */}
       <Sheet open={showCouponSheet} onOpenChange={setShowCouponSheet}>
         <SheetContent side="bottom" className="max-h-[85vh]">
@@ -2385,8 +1651,8 @@ export default function Checkout() {
         </SheetContent>
       </Sheet>
 
-      {/* Bottom Sticky Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] pb-safe">
+      {/* Bottom Sticky Button (Mobile Only) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] pb-safe lg:hidden">
         {selectedAddress ? (
           <div className="px-4 py-3">
             <button
