@@ -319,1004 +319,364 @@ export default function ProductDetail() {
 
   return (
     <>
-      <div className="min-h-screen bg-white pb-24">
-      {/* Header with back button and action icons */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-transparent pointer-events-none">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-12 py-3 md:py-6">
-          {/* Back button - top left */}
+      <div className="min-h-screen bg-white pb-24 md:pb-12">
+        {/* Mobile Header */}
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-100 px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-lg border border-neutral-100/50 hover:bg-neutral-50 transition-all hover:scale-110 pointer-events-auto"
-            aria-label="Go back">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round">
-              <path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>
-            </svg>
+            className="p-2 -ml-2 text-neutral-600"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5" /><path d="m12 19-7-7 7-7" /></svg>
           </button>
-
-          {/* Action icons - top right */}
-          <div className="flex items-center gap-2 pointer-events-auto">
-            {/* Heart icon */}
+          <div className="flex items-center gap-4">
             {product?.id && (
               <WishlistButton
                 productId={product.id}
                 size="md"
-                className="bg-white rounded-full shadow-lg border border-neutral-100/50 hover:scale-110 transition-transform"
+                className="text-neutral-600"
               />
             )}
+            <button className="text-neutral-600">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Main Content Container - Centered and constrained on desktop */}
-      <div className="max-w-6xl mx-auto md:px-8 pt-12 md:pt-16 lg:pt-20">
-        <div className="md:flex md:gap-8 lg:gap-12">
-          
-          {/* Left Column: Image Gallery (Sticky on Desktop) */}
-          <div className="md:w-1/2 lg:w-[450px] md:sticky md:top-20 h-fit">
-        {/* Location Availability Banner */}
-        {!isAvailableAtLocation && (
-          <div className="bg-amber-50 border-l-4 border-amber-500 px-4 py-3 mx-4 mt-4 rounded-r-lg">
-            <div className="flex items-start gap-2">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="flex-shrink-0 mt-0.5">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#f59e0b" />
-                <path
-                  d="M2 17l10 5 10-5M2 12l10 5 10-5"
-                  stroke="#f59e0b"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-900">
-                  Not available at your location
-                </p>
-                <p className="text-xs text-amber-800 mt-1">
-                  This product cannot be delivered to your current location. You
-                  can browse but cannot add to cart.
-                </p>
-              </div>
-            </div>
+        {/* Desktop Breadcrumbs */}
+        <div className="hidden md:block max-w-[1200px] mx-auto px-6 pt-6">
+          <div className="flex items-center gap-2 text-xs text-neutral-500">
+            <button onClick={() => navigate('/')} className="hover:text-green-600">Home</button>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+            <button onClick={() => category && navigate(`/category/${category.id}`)} className="hover:text-green-600">{category?.name || 'Products'}</button>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>
+            <span className="text-neutral-400 truncate max-w-[200px]">{product.name}</span>
           </div>
-        )}
+        </div>
 
-        {/* Product Image Gallery */}
-        <div className="relative w-full bg-white overflow-hidden">
-          {/* Main Product Image - Swipeable on mobile */}
-          <div
-            className="w-full aspect-square relative overflow-hidden"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-            style={{
-              touchAction: allImages.length > 1 ? "pan-x" : "pan-y pinch-zoom",
-              cursor: allImages.length > 1 ? "grab" : "default",
-            }}>
-            {/* Image Container with swipe animation - Mobile swipe carousel */}
-            <div
-              className="w-full h-full flex transition-transform duration-300 ease-out md:hidden"
-              style={{
-                transform: `translateX(-${selectedImageIndex * 100}%)`,
-              }}>
-              {allImages.map((image: string, index: number) => (
-                  <div
-                    key={index}
-                    className="w-full h-full flex-shrink-0 flex items-center justify-center relative p-8"
-                    style={{ minWidth: "100%" }}>
-                    {image ? (
-                      <img
-                        src={image}
-                        alt={`${product.name} - Image ${index + 1}`}
-                        className="w-full h-full object-contain"
-                        referrerPolicy="no-referrer"
-                        draggable={false}
-                      />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-neutral-400 text-6xl">
-                      {(product.name || product.productName || "?")
-                        .charAt(0)
-                        .toUpperCase()}
+        {/* Main Content Grid */}
+        <div className="max-w-[1200px] mx-auto px-0 md:px-6 mt-14 md:mt-8">
+          <div className="md:flex md:gap-12">
+            
+            {/* Left Column: Image Gallery */}
+            <div className="md:w-[45%] md:sticky md:top-8 h-fit">
+              <div className="relative bg-white md:rounded-2xl md:border md:border-neutral-100 overflow-hidden">
+                {/* Main Image */}
+                <div 
+                  className="w-full aspect-square relative flex items-center justify-center p-6 md:p-12 overflow-hidden"
+                  onTouchStart={onTouchStart}
+                  onTouchMove={onTouchMove}
+                  onTouchEnd={onTouchEnd}
+                >
+                  <motion.img
+                    key={currentImage}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    src={currentImage}
+                    alt={product.name}
+                    className="w-full h-full object-contain"
+                    referrerPolicy="no-referrer"
+                  />
+                  
+                  {/* Discount Badge */}
+                  {hasDiscount && (
+                    <div className="absolute top-4 left-4 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
+                      {discount}% OFF
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
 
-            {/* Desktop: Single image display with zoom effect */}
-            <div className="hidden md:flex w-full h-full items-center justify-center p-4">
-              {currentImage ? (
-                <div className="w-full h-full relative group/image overflow-hidden rounded-2xl bg-white shadow-sm border border-neutral-50">
-                  <img
-                    src={currentImage}
-                    alt={product.name}
-                    className="w-full h-full object-contain p-2 group-hover/image:scale-105 transition-transform duration-700"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-white rounded-3xl text-neutral-400 text-6xl shadow-inner italic font-serif">
-                  {(product.name || product.productName || "?")
-                    .charAt(0)
-                    .toUpperCase()}
-                </div>
-              )}
-            </div>
-
-            {/* Image Gallery Navigation - Only show if multiple images */}
-            {allImages.length > 1 && (
-              <>
-                {/* Previous Image Button - Desktop only */}
-                {selectedImageIndex > 0 && (
-                  <button
-                    onClick={() => {
-                      setIsTransitioning(true);
-                      setSelectedImageIndex(selectedImageIndex - 1);
-                      setTimeout(() => setIsTransitioning(false), 300);
-                    }}
-                    className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/95 backdrop-blur-md rounded-full items-center justify-center shadow-xl border border-neutral-100 hover:bg-white hover:scale-110 transition-all z-10 text-neutral-900"
-                    aria-label="Previous image">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-                  </button>
-                )}
-
-                {/* Next Image Button - Desktop only */}
-                {selectedImageIndex < allImages.length - 1 && (
-                  <button
-                    onClick={() => {
-                      setIsTransitioning(true);
-                      setSelectedImageIndex(selectedImageIndex + 1);
-                      setTimeout(() => setIsTransitioning(false), 300);
-                    }}
-                    className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/95 backdrop-blur-md rounded-full items-center justify-center shadow-xl border border-neutral-100 hover:bg-white hover:scale-110 transition-all z-10 text-neutral-900"
-                    aria-label="Next image">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                  </button>
-                )}
-
-                {/* Image Indicators - Show on both mobile and desktop */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 md:hidden">
-                  {allImages.map((_: string, index: number) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setIsTransitioning(true);
-                        setSelectedImageIndex(index);
-                        setTimeout(() => setIsTransitioning(false), 300);
-                      }}
-                      className={`w-2 h-2 rounded-full transition-all ${index === selectedImageIndex
-                        ? "bg-white w-6"
-                        : "bg-white/50 hover:bg-white/75"
-                        }`}
-                      aria-label={`Go to image ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Desktop Thumbnail Gallery */}
-          <div className="hidden md:flex gap-4 mt-8 px-4 overflow-x-auto scrollbar-hide pb-2">
-            {allImages.map((image: string, index: number) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setIsTransitioning(true);
-                  setSelectedImageIndex(index);
-                  setTimeout(() => setIsTransitioning(false), 300);
-                }}
-                className={`flex-shrink-0 w-24 h-24 rounded-[20px] overflow-hidden border-2 transition-all duration-300 ${index === selectedImageIndex
-                  ? "border-green-600 shadow-xl shadow-green-100 scale-105"
-                  : "border-neutral-100 hover:border-neutral-200 opacity-60 hover:opacity-100"
-                  }`}>
-                <img
-                  src={image}
-                  alt={`${product.name} - ${index + 1}`}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-          {/* Right Column: Information Sections (Scrollable on Desktop) */}
-          <div className="flex-1 md:bg-white md:rounded-[32px] md:shadow-sm md:border md:border-neutral-100 md:p-6 md:mb-10">
-            
-            {/* Location Availability Banner */}
-            {!isAvailableAtLocation && (
-              <div className="bg-amber-50 border-l-4 border-amber-500 px-4 py-3 md:mb-8 rounded-r-2xl">
-                <div className="flex items-start gap-3">
-                  <div className="p-1.5 bg-amber-100 rounded-lg text-amber-600">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21 10-8-7-8 7V21h16V10z"/><path d="M12 22V12"/></svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-black text-amber-900 uppercase tracking-widest">Not available here</p>
-                    <p className="text-xs text-amber-800 font-medium mt-1">This product cannot be delivered to your current location.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Product Details Header */}
-            <div className="md:mb-5">
-              {/* Desktop back-to-department breadcrumb breadcrumb */}
-              <div className="hidden md:flex items-center gap-1.5 mb-3">
-                <button onClick={() => navigate(-1)} className="text-[9px] font-black uppercase tracking-[0.2em] text-neutral-400 hover:text-green-600 transition-colors">Catalog</button>
-                <span className="text-neutral-200 text-[10px]">/</span>
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-green-600 truncate">{category?.name || 'Department'}</span>
-              </div>
-
-              {/* Delivery time */}
-              <div className="flex items-center gap-2 mb-2 bg-white md:w-fit md:px-3 md:py-1 md:rounded-full border border-neutral-100">
-                <div className="w-4 h-4 bg-green-100/50 rounded-full flex items-center justify-center text-green-600">
-                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                </div>
-                <span className="text-[9px] md:text-[10px] text-neutral-600 font-black uppercase tracking-widest">17 MINS DELIVERY</span>
-              </div>
-
-              {/* Rating Summary (Reference look) */}
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="flex text-yellow-500">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                  ))}
-                </div>
-                <span className="text-[10px] font-bold text-neutral-400">({reviews.length > 0 ? reviews.length : "120+"} reviews)</span>
-              </div>
-
-              <h2 className="text-xl md:text-2xl font-black text-neutral-900 mb-1 leading-[1.1] tracking-tighter">
-                {product.name}
-              </h2>
-              <p className="text-sm md:text-md text-neutral-400 font-bold mb-4 italic leading-tight">{variantTitle}</p>
-
-              </div>
-              
-              {/* Variation Selection (Desktop) */}
-              {product.variations && product.variations.length > 1 && (
-                <div className="mb-6">
-                  <span className="block text-[9px] font-black uppercase tracking-[0.4em] text-neutral-400 mb-3">{product.variationType || "Select Size"}</span>
-                  <div className="grid grid-cols-1 gap-2">
-                    {product.variations.map((variant: any, index: number) => (
+                {/* Thumbnail Gallery */}
+                {allImages.length > 1 && (
+                  <div className="flex gap-3 px-4 pb-6 overflow-x-auto scrollbar-hide">
+                    {allImages.map((image: string, index: number) => (
                       <button
                         key={index}
-                        onClick={() => setSelectedVariantIndex(index)}
-                        className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all border-2 ${index === selectedVariantIndex
-                          ? "border-green-600 bg-white shadow-sm ring-1 ring-green-600/10"
-                          : "border-neutral-100 bg-white hover:border-neutral-200"
+                        onClick={() => setSelectedImageIndex(index)}
+                        className={`flex-shrink-0 w-16 h-16 rounded-xl border-2 transition-all overflow-hidden ${
+                          index === selectedImageIndex ? "border-green-600" : "border-neutral-100"
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                           <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${index === selectedVariantIndex ? 'border-green-600' : 'border-neutral-200'}`}>
-                              {index === selectedVariantIndex && <div className="w-2 h-2 bg-green-600 rounded-full" />}
-                           </div>
-                           <span className={`text-[11px] font-black uppercase tracking-widest ${index === selectedVariantIndex ? 'text-neutral-900' : 'text-neutral-400'}`}>
-                              {variant.title || variant.value}
-                           </span>
-                        </div>
-                        <span className="text-[11px] font-black text-neutral-900">₹{variant.price?.toLocaleString("en-IN") || variantPrice}</span>
+                        <img src={image} className="w-full h-full object-contain p-1" alt="thumbnail" />
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Quantity Selector Group (Desktop) */}
-              <div className="flex items-center gap-3 mb-6">
-                {inCartQty === 0 ? (
-                  <Button
-                    variant="default"
-                    size="lg"
-                    onClick={handleAddToCart}
-                    disabled={!isAvailableAtLocation}
-                    className="flex-1 bg-green-600 py-3 h-[48px] rounded-xl shadow-lg shadow-green-100/50 hover:shadow-green-200 transition-all font-black uppercase tracking-widest text-xs"
-                  >
-                    {!isAvailableAtLocation ? "Unavailable Nearby" : "Add to Shopping Bag"}
-                  </Button>
-                ) : (
-                  <div className="flex-1 flex items-center justify-between bg-white border-2 border-green-600 rounded-xl p-0.5 h-[48px] shadow-sm">
-                    <button onClick={() => updateQuantity(product.id || product._id, inCartQty - 1, selectedVariant?._id, variantTitle)} className="w-10 h-10 flex items-center justify-center bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors font-black text-lg">−</button>
-                    <span className="text-base font-black text-green-600">{inCartQty}</span>
-                    <button onClick={() => updateQuantity(product.id || product._id, inCartQty + 1, selectedVariant?._id, variantTitle)} className="w-10 h-10 flex items-center justify-center bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors font-black text-lg">+</button>
-                  </div>
                 )}
               </div>
 
-              {/* Service Guarantees (Desktop Only - Moved below button) */}
-              <div className="hidden md:grid grid-cols-3 gap-3 mb-8">
-                {[
-                  { label: '48 Hours', sub: 'Replacement', icon: <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3M20.49 15a9 9 0 0 1-14.85 3" /> },
-                  { label: '24/7', sub: 'Support', icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /> },
-                  { label: 'Fast', sub: 'Delivery', icon: <path d="M5 17H2l1-7h18l1 7h-3M5 17l-1-5h20l-1 5M5 17v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5" /> },
-                ].map((box, i) => (
-                  <div key={i} className="bg-white border border-neutral-100 rounded-2xl p-3 flex flex-col items-center text-center shadow-xs">
-                    <div className="w-8 h-8 bg-white border border-neutral-50 rounded-xl flex items-center justify-center text-neutral-300 mb-1.5">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">{box.icon}</svg>
+              {/* Product Details - Desktop (Below Image) */}
+              <div className="hidden md:block mt-8 border-t border-neutral-100 pt-8">
+                <h3 className="text-lg font-bold text-neutral-900 mb-6">Product Details</h3>
+                <div className="space-y-6">
+                  {/* Specific fields from Blinkit look */}
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-neutral-900 uppercase tracking-wider">Description</p>
+                    <p className="text-sm text-neutral-600 leading-relaxed">{product.description || "Fresh and high quality product delivered to your doorstep."}</p>
+                  </div>
+                  
+                  {product.manufacturer && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-neutral-900 uppercase tracking-wider">Manufacturer Details</p>
+                      <p className="text-sm text-neutral-600 leading-relaxed">{product.manufacturer}</p>
                     </div>
-                    <span className="block text-[8px] font-black text-neutral-900 uppercase tracking-widest">{box.label}</span>
-                    <span className="text-[7px] font-bold text-neutral-400 uppercase tracking-widest leading-none">{box.sub}</span>
+                  )}
+
+                  <button 
+                    onClick={() => setIsProductDetailsExpanded(!isProductDetailsExpanded)}
+                    className="text-green-600 text-sm font-bold flex items-center gap-1 mt-4"
+                  >
+                    View more details
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`${isProductDetailsExpanded ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+
+                  <AnimatePresence>
+                    {isProductDetailsExpanded && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden space-y-4 pt-4"
+                      >
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-neutral-400 font-bold uppercase">Unit</p>
+                            <p className="text-sm text-neutral-700">{variantTitle}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-neutral-400 font-bold uppercase">Shelf Life</p>
+                            <p className="text-sm text-neutral-700">Refer to package</p>
+                          </div>
+                          {product.fssaiLicNo && (
+                            <div className="space-y-1">
+                              <p className="text-[10px] text-neutral-400 font-bold uppercase">FSSAI License</p>
+                              <p className="text-sm text-neutral-700">{product.fssaiLicNo}</p>
+                            </div>
+                          )}
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-neutral-400 font-bold uppercase">Country of Origin</p>
+                            <p className="text-sm text-neutral-700">{product.madeIn || "India"}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Info & Actions */}
+            <div className="flex-1 px-4 md:px-0 py-6 md:py-0">
+              {/* Product Info */}
+              <div className="mb-8">
+                <h1 className="text-xl md:text-2xl font-bold text-neutral-900 mb-1 leading-tight">
+                  {product.name}
+                </h1>
+                
+                {/* Delivery Indicator */}
+                <div className="flex items-center gap-1 mb-6">
+                  <div className="bg-neutral-100 rounded-md p-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-600"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  </div>
+                  <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">17 MINS DELIVERY</span>
+                </div>
+
+                {/* Variant Selection (Blinkit Style) */}
+                {product.variations && product.variations.length > 0 && (
+                  <div className="mb-8">
+                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4">Select Unit</p>
+                    <div className="flex flex-wrap gap-3">
+                      {product.variations.map((variant: any, index: number) => {
+                        const isSelected = index === selectedVariantIndex;
+                        const vPrice = calculateProductPrice(product, index).displayPrice;
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => setSelectedVariantIndex(index)}
+                            className={`flex flex-col items-center justify-center min-w-[80px] p-3 rounded-xl border-2 transition-all ${
+                              isSelected 
+                              ? "border-green-600 bg-green-50/30" 
+                              : "border-neutral-100 hover:border-neutral-200"
+                            }`}
+                          >
+                            <span className={`text-xs font-bold ${isSelected ? 'text-green-700' : 'text-neutral-900'}`}>
+                              {variant.title || variant.value}
+                            </span>
+                            <span className={`text-[10px] font-bold mt-0.5 ${isSelected ? 'text-green-600' : 'text-neutral-500'}`}>
+                              ₹{vPrice}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Price & Add to Cart (Desktop only, mobile is sticky footer) */}
+                <div className="hidden md:flex items-center gap-8 mb-10 pb-10 border-b border-neutral-100">
+                  <div className="flex flex-col">
+                    <span className="text-sm text-neutral-500 font-medium mb-1">{variantTitle}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-neutral-900">₹{variantPrice}</span>
+                      {hasDiscount && (
+                        <span className="text-sm text-neutral-400 line-through">₹{variantMrp}</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-neutral-400 mt-0.5">(Inclusive of all taxes)</p>
+                  </div>
+
+                  <div className="flex-1 max-w-[200px]">
+                    {inCartQty === 0 ? (
+                      <button
+                        onClick={handleAddToCart}
+                        className="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-green-100"
+                      >
+                        Add to cart
+                      </button>
+                    ) : (
+                      <div className="flex items-center justify-between bg-green-700 rounded-xl px-4 py-2 text-white">
+                        <button onClick={() => updateQuantity(product.id || product._id, inCartQty - 1, selectedVariant?._id, variantTitle)} className="p-1 hover:bg-white/10 rounded-lg text-xl font-bold">−</button>
+                        <span className="font-bold">{inCartQty}</span>
+                        <button onClick={() => updateQuantity(product.id || product._id, inCartQty + 1, selectedVariant?._id, variantTitle)} className="p-1 hover:bg-white/10 rounded-lg text-xl font-bold">+</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Why shop from us section (Blinkit style) */}
+                <div className="space-y-6">
+                  <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-widest">Why shop from Klydocart?</h3>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-yellow-50 flex items-center justify-center flex-shrink-0">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EAB308" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-neutral-900">Round The Clock Delivery</h4>
+                      <p className="text-xs text-neutral-500 mt-0.5 leading-relaxed">Get items delivered to your doorstep from dark stores near you, whenever you need them.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-yellow-50 flex items-center justify-center flex-shrink-0">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EAB308" strokeWidth="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-neutral-900">Best Prices & Offers</h4>
+                      <p className="text-xs text-neutral-500 mt-0.5 leading-relaxed">Best price destination with offers directly from the manufacturers.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-yellow-50 flex items-center justify-center flex-shrink-0">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#EAB308" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-neutral-900">Wide Assortment</h4>
+                      <p className="text-xs text-neutral-500 mt-0.5 leading-relaxed">Choose from 30,000+ products across food, personal care, household & other categories.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Similar Products Section */}
+          {similarProducts.length > 0 && (
+            <div className="mt-16 pt-12 border-t border-neutral-100">
+              <h3 className="text-xl font-bold text-neutral-900 mb-8 px-4 md:px-0">Similar products</h3>
+              <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4 md:px-0 pb-4">
+                {similarProducts.map((p) => (
+                  <div 
+                    key={p.id || p._id} 
+                    onClick={() => navigate(`/product/${p.id || p._id}`)}
+                    className="flex-shrink-0 w-[160px] md:w-[180px] bg-white rounded-2xl border border-neutral-100 p-3 cursor-pointer hover:shadow-md transition-shadow"
+                  >
+                    <div className="w-full aspect-square mb-3">
+                      <img src={p.mainImage || p.imageUrl} className="w-full h-full object-contain" alt={p.name} />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 mb-1">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-400"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        <span className="text-[9px] font-bold text-neutral-400 uppercase">17 MINS</span>
+                      </div>
+                      <h4 className="text-xs font-bold text-neutral-800 line-clamp-2 min-h-[32px]">{p.name || p.productName}</h4>
+                      <p className="text-[10px] text-neutral-500">{p.pack || "Standard"}</p>
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-sm font-bold text-neutral-900">₹{p.price}</span>
+                        <button className="bg-white border border-green-600 text-green-600 text-[10px] font-bold px-3 py-1 rounded-md hover:bg-green-50">ADD</button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-
-
-            {/* Content Body - Mobile Card Wrapper */}
-            <div className="md:px-0">
-        {/* Mobile-only variant selection and basic info */}
-        <div className="md:hidden">
-          {/* Delivery time */}
-          <div className="flex items-center gap-0.5 mb-1">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <circle
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              <path
-                d="M12 6v6l4 2"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="text-sm text-neutral-700 font-medium">
-              17 MINS
-            </span>
-          </div>
-
-          {/* Product name */}
-          <h2 className="text-lg md:text-2xl font-bold text-neutral-900 mb-0 leading-tight">
-            {product.name}
-          </h2>
-
-          {/* Variant Selection - Only show if multiple variants */}
-          {product.variations && product.variations.length > 1 && (
-            <div className="mb-2">
-              <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5">
-                Select {product.variationType || "Variant"}:
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {product.variations.map((variant: any, index: number) => {
-                  const variantTitle =
-                    variant.title || variant.value || `Variant ${index + 1}`;
-                  const isOutOfStock =
-                    variant.status === "Sold out" ||
-                    (variant.stock === 0 &&
-                      variant.stock !== undefined &&
-                      variant.stock !== null);
-                  const isSelected = index === selectedVariantIndex;
-
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedVariantIndex(index)}
-                      disabled={isOutOfStock}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border-2 ${isSelected
-                        ? "border-green-600 bg-green-50 text-green-700"
-                        : isOutOfStock
-                          ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                          : "border-neutral-300 bg-white text-neutral-700 hover:border-green-500 hover:bg-green-50"
-                        }`}>
-                      {variantTitle}
-                      {isOutOfStock && (
-                        <span className="ml-1 text-xs">(Out of Stock)</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           )}
 
-          {/* Quantity/Pack */}
-          <p className="text-sm md:text-base text-neutral-600 mb-1">
-            {variantTitle}
-          </p>
-
-          {/* Price section */}
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xl font-bold text-neutral-900">
-              ₹{variantPrice.toLocaleString("en-IN")}
-            </span>
-            {hasDiscount && (
-              <>
-                <span className="text-sm text-neutral-500 line-through">
-                  ₹{variantMrp.toLocaleString("en-IN")}
-                </span>
-                {discount > 0 && (
-                  <Badge className="!bg-blue-500 !text-white !border-blue-500 text-xs px-1.5 py-0.5 rounded-full font-semibold">
-                    {discount}% OFF
-                  </Badge>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Stock Status */}
-          {variantStock !== 0 &&
-            variantStock !== undefined &&
-            variantStock !== null && (
-              <p className="text-sm text-neutral-600 mb-1">
-                {variantStock > 0 ? `${variantStock} in stock` : "Out of stock"}
-              </p>
-            )}
-
-          {/* Divider line */}
-          <div className="border-t border-neutral-200 mb-1.5"></div>
-
-          {/* View product details link */}
-          <button
-            onClick={() =>
-              setIsProductDetailsExpanded(!isProductDetailsExpanded)
-            }
-            className="flex items-center gap-0.5 text-sm text-green-600 font-medium">
-            View product details
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className={`transition-transform ${isProductDetailsExpanded ? "rotate-180" : ""
-                }`}>
-              <path
-                d="M6 9l6 6 6-6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Expanded Product Details Section */}
-        {isProductDetailsExpanded && (
-          <div className="mt-1.5">
-            {/* Service Guarantees Card */}
-            <div className="bg-white rounded-lg p-3 mb-2">
-              <div className="grid grid-cols-3 gap-2">
-                {/* Replacement */}
-                <div className="flex flex-col items-center">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mb-1">
-                    <path
-                      d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3M20.49 15a9 9 0 0 1-14.85 3"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="text-sm font-bold text-neutral-900">
-                    48 hours
-                  </span>
-                  <span className="text-xs text-neutral-600">Replacement</span>
-                </div>
-
-                {/* Support */}
-                <div className="flex flex-col items-center">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mb-1">
-                    <path
-                      d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M13 8H7M17 12H7"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className="text-sm font-bold text-neutral-900">
-                    24/7
-                  </span>
-                  <span className="text-xs text-neutral-600">Support</span>
-                </div>
-
-                {/* Delivery */}
-                <div className="flex flex-col items-center">
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="mb-1">
-                    <path
-                      d="M5 17H2l1-7h18l1 7h-3M5 17l-1-5h20l-1 5M5 17v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5M9 22h6"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span className="text-sm font-bold text-neutral-900">
-                    Fast
-                  </span>
-                  <span className="text-xs text-neutral-600">Delivery</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Highlights Section */}
-            <div className="bg-neutral-100 rounded-lg mb-2 overflow-hidden">
-              <button
-                onClick={() => setIsHighlightsExpanded(!isHighlightsExpanded)}
-                className="w-full px-2 py-2.5 flex items-center justify-between bg-neutral-100">
-                <span className="text-sm font-semibold text-neutral-700">
-                  Highlights
-                </span>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`transition-transform ${isHighlightsExpanded ? "rotate-180" : ""
-                    }`}>
-                  <path
-                    d="M6 9l6 6 6-6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {isHighlightsExpanded && (
-                <div className="bg-white px-2 py-2">
-                  <div className="space-y-1.5">
-                    {product.tags && product.tags.length > 0 && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Key Features:
-                        </span>
-                        <span className="text-xs text-neutral-600">
-                          {product.tags.map((tag: string, index: number) => (
-                            <span key={tag}>
-                              {tag
-                                .replace(/-/g, " ")
-                                .split(" ")
-                                .map(
-                                  (word: string) =>
-                                    word.charAt(0).toUpperCase() + word.slice(1)
-                                )
-                                .join(" ")}
-                              {index < (product.tags?.length || 0) - 1
-                                ? ", "
-                                : ""}
-                            </span>
-                          ))}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Source:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        {product.madeIn || "From India"}
-                      </span>
-                    </div>
-                    {category && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Category:
-                        </span>
-                        <span className="text-xs text-neutral-600">
-                          {category.name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Info Section */}
-            <div className="bg-neutral-100 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setIsInfoExpanded(!isInfoExpanded)}
-                className="w-full px-2 py-2.5 flex items-center justify-between bg-neutral-100">
-                <span className="text-sm font-semibold text-neutral-700">
-                  Info
-                </span>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`transition-transform ${isInfoExpanded ? "rotate-180" : ""
-                    }`}>
-                  <path
-                    d="M6 9l6 6 6-6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-              {isInfoExpanded && (
-                <div className="bg-white px-2 py-2">
-                  <div className="space-y-1.5">
-                    {product.description && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Description:
-                        </span>
-                        <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                          {product.description}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Unit:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        {product.pack}
-                      </span>
-                    </div>
-                    {product.fssaiLicNo && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          FSSAI License:
-                        </span>
-                        <span className="text-xs text-neutral-600">
-                          {product.fssaiLicNo}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Shelf Life:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        Refer to package
-                      </span>
-                    </div>
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Disclaimer:
-                      </span>
-                      <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                        Every effort is made to maintain accuracy of all
-                        Information. However, actual product packaging and
-                        materials may contain more and/or different information.
-                        It is recommended not to solely rely on the information
-                        presented.
-                      </span>
-                    </div>
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Customer Care Details:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        Email: help@klydocart.com
-                      </span>
-                    </div>
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Country of Origin:
-                      </span>
-                      <span className="text-xs text-neutral-600">
-                        {product.madeIn || "India"}
-                      </span>
-                    </div>
-                    {product.manufacturer && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Manufacturer:
-                        </span>
-                        <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                          {product.manufacturer}
-                        </span>
-                      </div>
-                    )}
-                    {/* Marketer same as manufacturer if not present, or hidden */}
-
-                    <div className="flex items-start">
-                      <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                        Return Policy:
-                      </span>
-                      <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                        {product.isReturnable
-                          ? `This product is returnable within ${product.maxReturnDays || 2
-                          } days.`
-                          : "This product is non-returnable."}
-                      </span>
-                    </div>
-                    {product.sellerId && (
-                      <div className="flex items-start">
-                        <span className="text-xs font-semibold text-neutral-800 w-[180px] flex-shrink-0">
-                          Seller:
-                        </span>
-                        <span className="text-xs text-neutral-600 leading-relaxed flex-1">
-                          KlydoCart Partner (
-                          {product.sellerId.slice(-6).toUpperCase()})
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-        {/* Reviews Section */}
-        <div className="bg-white px-4 md:px-6 lg:px-8 py-6 border-t border-neutral-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-neutral-900">
-              Ratings & Reviews
-            </h3>
-            {reviews.length > 0 && (
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-bold text-neutral-900">
-                  {product.rating || "4.5"}
-                </span>
-                <div className="flex text-yellow-500">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="currentColor">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                </div>
-                <span className="text-xs text-neutral-500">
-                  ({reviews.length} reviews)
-                </span>
-              </div>
-            )}
-          </div>
-
-          {reviewsLoading ? (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
-            </div>
-          ) : reviews.length > 0 ? (
-            <div className="space-y-4">
-              {reviews.map((review) => (
-                <div
-                  key={review._id}
-                  className="border-b border-neutral-50 pb-4 last:border-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-base font-semibold text-neutral-900">
-                      {review.customer?.name || "Customer"}
-                    </span>
-                    <div className="flex items-center gap-1 bg-green-100 px-1.5 py-0.5 rounded">
-                      <span className="text-xs font-bold text-green-700">
-                        {review.rating}
-                      </span>
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        className="text-green-700">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <p className="text-sm text-neutral-600 leading-relaxed mb-1">
-                    {review.comment}
-                  </p>
-                  <span className="text-xs text-neutral-400">
-                    {new Date(review.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-sm text-neutral-500">
-                No reviews yet. Be the first to review!
-              </p>
-            </div>
-          )}
-        </div>
-
-              {/* Similar Products (Full Width Grid) */}
-              {similarProducts.length > 0 && (
-                <div className="mt-12 md:mt-16 mb-24 md:mb-12">
-                   <h3 className="text-xl md:text-2xl font-black text-neutral-900 mb-6 px-1 md:px-0 tracking-tight">Recommended for you</h3>
-                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                      {similarProducts.map((similarProduct) => (
-                        <div key={similarProduct.id} className="group bg-white rounded-[32px] border border-neutral-100 shadow-sm hover:shadow-xl transition-all p-3 flex flex-col items-center text-center">
-                           <div onClick={() => navigate(`/product/${similarProduct.id || similarProduct._id}`)} className="w-full aspect-square bg-neutral-50 rounded-[24px] mb-4 overflow-hidden cursor-pointer relative">
-                              <img src={similarProduct.mainImage || similarProduct.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={similarProduct.name} />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
-                           </div>
-                           <h4 className="text-xs font-black uppercase tracking-widest text-neutral-900 line-clamp-1 mb-2">{similarProduct.name || similarProduct.productName}</h4>
-                           <span className="text-[10px] font-black text-green-600 tracking-tighter">₹{calculateProductPrice(similarProduct).displayPrice.toLocaleString("en-IN")}</span>
+          {/* Reviews Section - Simplified for Blinkit feel */}
+          <div className="mt-16 pt-12 border-t border-neutral-100 mb-12">
+            <h3 className="text-xl font-bold text-neutral-900 mb-8 px-4 md:px-0">Ratings & Reviews</h3>
+            <div className="px-4 md:px-0 max-w-2xl">
+              {reviews.length > 0 ? (
+                <div className="space-y-8">
+                  {reviews.map((review) => (
+                    <div key={review._id} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-xs font-bold text-neutral-400">
+                            {review.customer?.name?.[0] || 'C'}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-neutral-900">{review.customer?.name || "Customer"}</p>
+                            <p className="text-[10px] text-neutral-400">{new Date(review.createdAt).toLocaleDateString()}</p>
+                          </div>
                         </div>
-                      ))}
-                   </div>
+                        <div className="flex items-center gap-1 bg-green-700 text-white px-2 py-0.5 rounded text-[10px] font-bold">
+                          {review.rating} <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                        </div>
+                      </div>
+                      <p className="text-sm text-neutral-600 leading-relaxed pl-10">{review.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-neutral-400">No reviews yet for this product.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Sticky Footer */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-100 p-4 z-50">
+          <div className="max-w-md mx-auto flex items-center justify-between gap-4">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-bold text-neutral-900">₹{variantPrice}</span>
+                {hasDiscount && (
+                  <span className="text-xs text-neutral-400 line-through">₹{variantMrp}</span>
+                )}
+              </div>
+              <p className="text-[10px] text-neutral-500 font-medium">Inclusive of all taxes</p>
+            </div>
+            
+            <div className="flex-1">
+              {inCartQty === 0 ? (
+                <button
+                  onClick={handleAddToCart}
+                  className="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-green-100"
+                >
+                  Add to cart
+                </button>
+              ) : (
+                <div className="flex items-center justify-between bg-green-700 rounded-xl px-4 py-3 text-white">
+                  <button onClick={() => updateQuantity(product.id || product._id, inCartQty - 1, selectedVariant?._id, variantTitle)} className="text-xl font-bold">−</button>
+                  <span className="font-bold">{inCartQty}</span>
+                  <button onClick={() => updateQuantity(product.id || product._id, inCartQty + 1, selectedVariant?._id, variantTitle)} className="text-xl font-bold">+</button>
                 </div>
               )}
             </div>
           </div>
         </div>
-
-      {/* Sticky Footer (Contrained on Desktop) */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-100 shadow-[0_-8px_30px_rgb(0,0,0,0.04)] md:hidden">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Left side - Product details */}
-          <div className="flex-1">
-            {/* First line - Pack size */}
-            <div>
-              <span className="text-sm text-neutral-900 font-medium">
-                {variantTitle}
-              </span>
-            </div>
-            {/* Second line - Price, MRP, and OFF */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-bold text-neutral-900">
-                ₹{variantPrice.toLocaleString("en-IN")}
-              </span>
-              {hasDiscount && (
-                <>
-                  <span className="text-xs text-neutral-500 line-through">
-                    MRP ₹{variantMrp.toLocaleString("en-IN")}
-                  </span>
-                  {discount > 0 && (
-                    <Badge className="!bg-blue-500 !text-white !border-blue-500 text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
-                      {discount}% OFF
-                    </Badge>
-                  )}
-                </>
-              )}
-            </div>
-            {/* Third line - Inclusive of all taxes */}
-            <p className="text-[11px] text-neutral-500 leading-none">
-              Inclusive of all taxes
-            </p>
-          </div>
-
-          {/* Right side - Add to cart button or Quantity Stepper */}
-          <div className="ml-3 flex items-center">
-            <AnimatePresence mode="wait">
-              {inCartQty === 0 ? (
-                <motion.div
-                  key="add-button"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center">
-                  <Button
-                    ref={addButtonRef}
-                    variant="default"
-                    size="default"
-                    onClick={handleAddToCart}
-                    disabled={
-                      !isAvailableAtLocation ||
-                      (!isVariantAvailable && variantStock !== 0)
-                    }
-                    className={`px-6 py-2 text-sm font-semibold h-[36px] ${!isAvailableAtLocation ||
-                      (!isVariantAvailable && variantStock !== 0)
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                      }`}
-                    title={
-                      !isAvailableAtLocation
-                        ? "Not available at your location"
-                        : !isVariantAvailable && variantStock !== 0
-                          ? "This variant is out of stock"
-                          : ""
-                    }>
-                    {!isAvailableAtLocation
-                      ? "Unavailable"
-                      : !isVariantAvailable && variantStock !== 0
-                        ? "Out of Stock"
-                        : "Add to cart"}
-                  </Button>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="stepper"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center gap-2 bg-white border-2 border-green-600 rounded-full px-2 py-1 h-[36px]">
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        showToast('Login to continue', 'info');
-                        navigate('/login');
-                        return;
-                      }
-                      const productId = product.id || product._id;
-                      const variantId = selectedVariant?._id;
-                      updateQuantity(
-                        productId,
-                        inCartQty - 1,
-                        variantId,
-                        variantTitle
-                      );
-                    }}
-                    className="w-6 h-6 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors border border-green-600 p-0 leading-none text-base"
-                    style={{ lineHeight: 1 }}>
-                    <span className="relative top-[-1px]">−</span>
-                  </motion.button>
-                  <motion.span
-                    key={inCartQty}
-                    initial={{ scale: 1.2, y: -2 }}
-                    animate={{ scale: 1, y: 0 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                    className="text-sm font-bold text-green-600 min-w-[1.5rem] text-center">
-                    {inCartQty}
-                  </motion.span>
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => {
-                      if (!isAuthenticated) {
-                        showToast('Login to continue', 'info');
-                        navigate('/login');
-                        return;
-                      }
-                      const productId = product.id || product._id;
-                      const variantId = selectedVariant?._id;
-                      updateQuantity(
-                        productId,
-                        inCartQty + 1,
-                        variantId,
-                        variantTitle
-                      );
-                    }}
-                    className="w-6 h-6 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors border border-green-600 p-0 leading-none text-base"
-                    style={{ lineHeight: 1 }}>
-                    <span className="relative top-[-1px]">+</span>
-                  </motion.button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
       </div>
-      </div>
-  </>
-);
+    </>
+  );
 }

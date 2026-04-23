@@ -340,118 +340,92 @@ export default function ProductCard({
           )}
         </div>
 
-        {categoryStyle && (
-          <div className="px-2.5 pt-1.5 pb-0">
-            {inCartQty === 0 ? (
-              <div className="flex flex-col items-center w-full">
-                <div className="flex justify-center w-full">
-                  <Button
-                    ref={addButtonRef}
-                    variant="outline"
-                    size="sm"
-                    disabled={product.isAvailable === false}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAdd(e);
-                    }}
-                    className={`w-full border rounded-full font-semibold text-xs h-7 px-3 flex items-center justify-center uppercase tracking-wide ${
-                      product.isAvailable === false
-                      ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
-                      : 'border-green-600 text-green-600 bg-transparent hover:bg-green-50'
-                    }`}
-                  >
-                    {product.isAvailable === false ? 'Out of Range' : 'ADD'}
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-1.5 bg-white border border-green-600 rounded-full px-1.5 py-0.5 h-7 w-full">
-                <Button
-                  variant="default"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDecrease(e);
-                  }}
-                  className="w-5 h-5 p-0 bg-transparent text-green-600 hover:bg-green-50 shadow-none"
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </Button>
-                <span className="text-xs font-bold text-green-600 min-w-[1rem] text-center">
-                  {inCartQty}
-                </span>
-                <Button
-                  variant="default"
-                  size="icon"
-                  disabled={product.isAvailable === false}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleIncrease(e);
-                  }}
-                  className={`w-5 h-5 p-0 bg-transparent text-green-600 shadow-none ${
-                    product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-green-50'
-                  }`}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
         <div className={`${compact ? 'p-3 md:p-4' : categoryStyle ? 'px-2.5 md:px-3 pt-1.5 md:pt-2 pb-2 md:pb-3' : 'p-4 md:p-5'} flex-1 flex flex-col`}>
           {categoryStyle ? (
-            // Category Style Layout: Quantity, Name, Time, % off, Price
+            // Category Style Layout: Time -> Name -> Quantity -> [Price | ADD]
             <>
-              {/* 1. Quantity */}
-              {!showPackBadge && (product.pack || product.variations?.[0]?.value) && (
-                <p className="text-[9px] text-neutral-600 mb-0.5 leading-tight">
-                  {product.variations?.[0]?.value || product.pack}
-                </p>
-              )}
+              {/* 1. Delivery Time */}
+              <p className="text-[10px] font-bold text-amber-600 mb-1 flex items-center gap-1 leading-tight uppercase tracking-wide">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                  <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.1.8-1.2-4.5-2.7V7z" />
+                </svg>
+                <span>16 MINS</span>
+              </p>
 
-              {/* 2. Name */}
-              <h3 className="text-[10px] font-bold text-neutral-900 mb-0.5 line-clamp-2 leading-tight min-h-[1.75rem] max-h-[1.75rem] overflow-hidden">
+              {/* 2. Product Name */}
+              <h3 className="text-[13px] font-bold text-neutral-900 mb-1 line-clamp-2 leading-[1.3] min-h-[2.2rem] max-h-[2.2rem] overflow-hidden">
                 {product.name || product.productName || ''}
               </h3>
 
-              {/* 2.5. Rating */}
-              <div className="mb-0.5">
-                <StarRating
-                  rating={(product.rating || (product as any).rating) || 0}
-                  reviewCount={(product.reviews || (product as any).reviewsCount) || 0}
-                  size="sm"
-                  showCount={true}
-                />
-              </div>
-
-              {/* 3. Time */}
-              <p className="text-[9px] text-neutral-600 mb-0.5 flex items-center gap-0.5 leading-tight">
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                  <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                <span>14 MINS</span>
+              {/* 3. Quantity / Weight */}
+              <p className="text-[12px] text-neutral-500 mb-3 leading-tight">
+                {product.variations?.[0]?.value || product.pack}
               </p>
 
-              {/* 4. % OFF */}
-              {discount > 0 && (
-                <p className="text-[9px] font-semibold text-green-600 mb-0.5 leading-tight">
-                  {discount}% OFF
-                </p>
-              )}
-
-              {/* 5. Price with discount */}
-              <div className="mt-auto">
-                <div className="flex items-baseline gap-1 flex-wrap">
-                  <span className="text-[11px] font-bold text-neutral-900 leading-tight">
+              {/* 4. Footer Row: Price and ADD Button */}
+              <div className="mt-auto flex items-end justify-between gap-2">
+                {/* Price Information */}
+                <div className="flex flex-col">
+                  <span className="text-[13px] font-black text-neutral-900 leading-none">
                     ₹{displayPrice.toLocaleString('en-IN')}
                   </span>
                   {mrp && mrp > displayPrice && (
-                    <span className="text-[8px] text-neutral-500 line-through leading-tight">
+                    <span className="text-[11px] text-neutral-400 line-through leading-none mt-1">
                       ₹{mrp.toLocaleString('en-IN')}
+                    </span>
+                  )}
+                </div>
+
+                {/* ADD Button Section */}
+                <div className="flex flex-col items-center">
+                  {inCartQty === 0 ? (
+                    <Button
+                      ref={addButtonRef}
+                      variant="outline"
+                      size="sm"
+                      disabled={product.isAvailable === false}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAdd(e);
+                      }}
+                      className={`min-w-[70px] h-8 px-4 border rounded-lg font-bold text-[12px] uppercase tracking-wide transition-all shadow-sm ${
+                        product.isAvailable === false
+                        ? 'border-neutral-200 text-neutral-400 bg-neutral-50 cursor-not-allowed'
+                        : 'border-green-600 text-green-600 bg-white hover:bg-green-50 active:scale-95'
+                      }`}
+                    >
+                      ADD
+                    </Button>
+                  ) : (
+                    <div className="flex items-center justify-between bg-green-600 text-white rounded-lg h-8 px-1 min-w-[70px] shadow-sm">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDecrease(e);
+                        }}
+                        className="w-6 h-full flex items-center justify-center text-lg font-bold hover:bg-green-700 rounded-l-lg transition-colors"
+                      >
+                        −
+                      </button>
+                      <span className="text-xs font-black px-1">
+                        {inCartQty}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleIncrease(e);
+                        }}
+                        className="w-6 h-full flex items-center justify-center text-lg font-bold hover:bg-green-700 rounded-r-lg transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Options Text below ADD button */}
+                  {(product.variations?.length || 0) >= 2 && (
+                    <span className="text-[9px] text-neutral-400 mt-1 font-medium">
+                      {product.variations?.length} options
                     </span>
                   )}
                 </div>
