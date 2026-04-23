@@ -49,15 +49,33 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
             $group: {
                 _id: null,
                 // Pending: Active statuses
+                // Pending: Active statuses AND touched today
                 pendingOrders: {
                     $sum: {
-                        $cond: [{ $in: ["$status", ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"]] }, 1, 0]
+                        $cond: [
+                            {
+                                $and: [
+                                    { $in: ["$status", ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"]] },
+                                    {
+                                        $or: [
+                                            { $and: [{ $gte: ["$createdAt", todayStart] }, { $lte: ["$createdAt", todayEnd] }] },
+                                            { $and: [{ $gte: ["$updatedAt", todayStart] }, { $lte: ["$updatedAt", todayEnd] }] }
+                                        ]
+                                    }
+                                ]
+                            },
+                            1, 0]
                     }
                 },
                 // All Orders Today: Created today OR Updated today
                 allOrdersToday: {
                     $sum: {
-                        $cond: [{ $and: [{ $gte: ["$updatedAt", todayStart] }, { $lte: ["$updatedAt", todayEnd] }] }, 1, 0]
+                        $cond: [{
+                            $or: [
+                                { $and: [{ $gte: ["$createdAt", todayStart] }, { $lte: ["$createdAt", todayEnd] }] },
+                                { $and: [{ $gte: ["$updatedAt", todayStart] }, { $lte: ["$updatedAt", todayEnd] }] }
+                            ]
+                        }, 1, 0]
                     }
                 },
                 // Return Orders Today
@@ -67,8 +85,12 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
                             {
                                 $and: [
                                     { $in: ["$status", ["Returned", "Cancelled"]] },
-                                    { $gte: ["$updatedAt", todayStart] },
-                                    { $lte: ["$updatedAt", todayEnd] }
+                                    {
+                                        $or: [
+                                            { $and: [{ $gte: ["$createdAt", todayStart] }, { $lte: ["$createdAt", todayEnd] }] },
+                                            { $and: [{ $gte: ["$updatedAt", todayStart] }, { $lte: ["$updatedAt", todayEnd] }] }
+                                        ]
+                                    }
                                 ]
                             }, 1, 0]
                     }
@@ -134,7 +156,11 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
     // Fetch list of Pending Orders for the "Today's Pending Order" section
     const pendingOrdersList = await Order.find({
         deliveryBoy: deliveryId,
-        status: { $in: ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"] }
+        status: { $in: ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"] },
+        $or: [
+            { createdAt: { $gte: todayStart, $lte: todayEnd } },
+            { updatedAt: { $gte: todayStart, $lte: todayEnd } }
+        ]
     })
         .select("orderNumber customerName deliveryAddress status total estimatedDeliveryDate") // Select necessary fields
         .sort({ createdAt: -1 })

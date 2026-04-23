@@ -116,10 +116,20 @@ export const getTodayOrders = asyncHandler(async (req: Request, res: Response) =
 export const getPendingOrders = asyncHandler(async (req: Request, res: Response) => {
     const deliveryId = req.user?.userId;
 
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
     // Pending statuses: Ready for pickup, Out for delivery, Picked Up, Assigned, In Transit
     const orders = await Order.find({
         deliveryBoy: deliveryId,
-        status: { $in: ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"] }
+        status: { $in: ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"] },
+        $or: [
+            { createdAt: { $gte: todayStart, $lte: todayEnd } },
+            { updatedAt: { $gte: todayStart, $lte: todayEnd } }
+        ]
     })
         .populate("items")
         .sort({ createdAt: -1 });

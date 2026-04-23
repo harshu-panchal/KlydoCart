@@ -830,14 +830,14 @@ export default function OrderDetail() {
         <div className="flex items-center justify-between px-4 py-3">
           <Link to="/orders">
             <motion.button
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10"
+              className="w-10 h-10 flex items-center justify-center rounded-none hover:bg-white/10"
               whileTap={{ scale: 0.9 }}>
               <ArrowLeftIcon className="w-6 h-6" />
             </motion.button>
           </Link>
           <h2 className="font-bold text-lg tracking-tight uppercase">Order Details</h2>
           <motion.button
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10"
+            className="w-10 h-10 flex items-center justify-center rounded-none hover:bg-white/10"
             whileTap={{ scale: 0.9 }}
             onClick={handleShare}>
             <Share2Icon className="w-5 h-5" />
@@ -846,9 +846,9 @@ export default function OrderDetail() {
       </div>
 
       <div className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-2 lg:py-4">
           {/* Desktop Breadcrumbs and Header */}
-          <div className="hidden lg:flex items-center justify-between mb-8">
+          <div className="hidden lg:flex items-center justify-between mb-3">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <Link to="/" className="hover:text-green-600 transition-colors">Home</Link>
@@ -857,7 +857,7 @@ export default function OrderDetail() {
                 <ChevronRightIcon className="w-3 h-3" />
                 <span className="text-gray-900 font-medium">Order #{id?.split("-").slice(-1)[0]}</span>
               </div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight mt-1">
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight mt-1">
                 Order <span className="text-green-600">Details</span>
               </h1>
             </div>
@@ -865,13 +865,13 @@ export default function OrderDetail() {
               <Button 
                 variant="outline" 
                 onClick={handleShare}
-                className="rounded-xl px-6 border-gray-200 hover:bg-gray-50">
+                className="rounded-none px-6 border-gray-200 hover:bg-gray-50">
                 <Share2Icon className="w-4 h-4 mr-2" />
                 Share Tracking
               </Button>
               <motion.button
                 onClick={handleRefresh}
-                className="w-11 h-11 flex items-center justify-center rounded-xl bg-white border border-gray-200 shadow-sm hover:border-green-600 group transition-all"
+                className="w-11 h-11 flex items-center justify-center rounded-none bg-white border border-gray-200 shadow-sm hover:border-green-600 group transition-all"
                 whileTap={{ scale: 0.95 }}
                 animate={{ rotate: isRefreshing ? 360 : 0 }}
                 transition={{ duration: 0.5 }}>
@@ -882,25 +882,25 @@ export default function OrderDetail() {
 
           <div className="lg:grid lg:grid-cols-12 lg:gap-8 items-start">
             {/* Main Content (Status & Tracking) */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-8 space-y-3">
               {/* Order Status Hero Card */}
               <motion.div
-                className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100"
+                className="bg-white rounded-none overflow-hidden shadow-sm border border-gray-100"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}>
-                <div className={`${currentStatus.color} p-6 lg:p-8 text-white relative overflow-hidden`}>
+                <div className={`${currentStatus.color} p-3 lg:p-4 text-white relative overflow-hidden`}>
                   {/* Decorative background circle */}
-                  <div className="absolute top-1/2 right-0 -translate-y-1/2 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 pointer-events-none" />
+                  <div className="absolute top-1/2 right-0 -translate-y-1/2 w-64 h-64 bg-white/10 rounded-none blur-3xl -mr-32 pointer-events-none" />
                   
                   <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <p className="text-white/80 text-sm font-bold uppercase tracking-widest mb-1">Current Status</p>
-                      <h2 className="text-3xl lg:text-4xl font-black tracking-tight">{currentStatus.title}</h2>
+                      <h2 className="text-2xl lg:text-3xl font-black tracking-tight">{currentStatus.title}</h2>
                       <p className="mt-2 text-white/90 font-medium flex items-center gap-2">
                         {currentStatus.subtitle}
                         {(orderStatus === "Accepted" || orderStatus === "On the way") && (
-                          <span className="flex items-center gap-1.5 px-2 py-0.5 bg-white/20 rounded-full text-xs backdrop-blur-md">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                          <span className="flex items-center gap-1.5 px-2 py-0.5 bg-white/20 rounded-none text-xs backdrop-blur-md">
+                            <span className="w-1.5 h-1.5 rounded-none bg-white animate-pulse" />
                             On time
                           </span>
                         )}
@@ -908,7 +908,7 @@ export default function OrderDetail() {
                     </div>
                     {["Accepted", "On the way", "Out for Delivery"].includes(orderStatus) && (
                       <div className="flex flex-col items-center sm:items-end">
-                        <div className="text-5xl font-black tracking-tighter">{estimatedTime}</div>
+                        <div className="text-4xl font-black tracking-tighter">{estimatedTime}</div>
                         <div className="text-xs font-bold uppercase tracking-widest opacity-80">Minutes Left</div>
                       </div>
                     )}
@@ -973,20 +973,20 @@ export default function OrderDetail() {
               )}
 
               {/* Order Items Desktop List */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+              <div className="bg-white rounded-none shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-50 flex items-center justify-between">
                   <h3 className="font-bold text-gray-900 flex items-center gap-2">
                     <ReceiptIcon className="w-5 h-5 text-green-600" />
                     Order Summary
                   </h3>
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-none">
                     {order.items?.length || 0} Items
                   </span>
                 </div>
                 <div className="divide-y divide-gray-50">
                   {order.items?.map((item: any, index: number) => (
-                    <div key={index} className="px-6 py-4 flex gap-4 hover:bg-gray-50/50 transition-colors group">
-                      <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
+                    <div key={index} className="px-3 py-2 flex gap-4 hover:bg-gray-50/50 transition-colors group">
+                      <div className="w-14 h-14 bg-gray-100 rounded-none overflow-hidden flex-shrink-0 border border-gray-100">
                         {item.product?.mainImage ? (
                           <img 
                             src={item.product.mainImage} 
@@ -1009,7 +1009,7 @@ export default function OrderDetail() {
                               Qty: {item.quantity} × ₹{item.unitPrice?.toFixed(0) || "0"}
                             </p>
                             {item.variant && (
-                              <p className="text-xs text-green-600 bg-green-50 w-max px-2 py-0.5 rounded-full mt-1.5 font-bold uppercase tracking-wider">
+                              <p className="text-xs text-green-600 bg-green-50 w-max px-2 py-0.5 rounded-none mt-1.5 font-bold uppercase tracking-wider">
                                 {item.variant}
                               </p>
                             )}
@@ -1022,43 +1022,43 @@ export default function OrderDetail() {
                     </div>
                   ))}
                 </div>
-                <div className="bg-gray-50 px-6 py-4 flex items-center justify-between">
+                <div className="bg-gray-50 px-3 py-2 flex items-center justify-between">
                   <p className="text-sm text-gray-600 font-medium">Order Subtotal</p>
                   <p className="font-bold text-gray-900">₹{order.totalAmount?.toFixed(0)}</p>
                 </div>
               </div>
 
               {/* Seller Information (Desktop Only) */}
-              <div className="hidden lg:grid grid-cols-2 gap-4">
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center text-2xl shadow-inner">
+              <div className="hidden lg:grid grid-cols-2 gap-3">
+                <div className="bg-white rounded-none p-3 shadow-sm border border-gray-100 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-none bg-orange-100 flex items-center justify-center text-xl shadow-inner">
                     🛒
                   </div>
                   <div className="flex-1">
-                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-0.5">Store Information</p>
-                    <p className="font-bold text-gray-900 text-lg leading-tight">KlydoCart Managed Store</p>
-                    <p className="text-sm text-gray-500 mt-1">{order.address?.city || "Local Hub"}</p>
+                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-0.5">Store Information</p>
+                    <p className="font-bold text-gray-900 text-base leading-tight">KlydoCart Managed Store</p>
+                    <p className="text-xs text-gray-500 mt-1">{order.address?.city || "Local Hub"}</p>
                   </div>
                   <motion.button
                     onClick={handleCallStore}
-                    className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center hover:bg-green-600 hover:text-white transition-all shadow-sm"
+                    className="w-10 h-10 rounded-none bg-green-50 text-green-600 flex items-center justify-center hover:bg-green-600 hover:text-white transition-all shadow-sm"
                     whileTap={{ scale: 0.9 }}>
                     <PhoneIcon className="w-5 h-5" />
                   </motion.button>
                 </div>
                 
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center shadow-inner">
-                    <HelpCircleIcon className="w-7 h-7 text-red-600" />
+                <div className="bg-white rounded-none p-3 shadow-sm border border-gray-100 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-none bg-red-100 flex items-center justify-center shadow-inner">
+                    <HelpCircleIcon className="w-6 h-6 text-red-600" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-0.5">Need Assistance?</p>
-                    <p className="font-bold text-gray-900 text-lg leading-tight">Priority Support</p>
-                    <p className="text-sm text-gray-500 mt-1">Available 24/7 for this order</p>
+                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-0.5">Need Assistance?</p>
+                    <p className="font-bold text-gray-900 text-base leading-tight">Priority Support</p>
+                    <p className="text-xs text-gray-500 mt-1">Available 24/7 for this order</p>
                   </div>
                   <Link to="/help">
                     <motion.button
-                      className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                      className="w-10 h-10 rounded-none bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm"
                       whileTap={{ scale: 0.9 }}>
                       <ChevronRightIcon className="w-5 h-5" />
                     </motion.button>
@@ -1068,22 +1068,22 @@ export default function OrderDetail() {
             </div>
 
             {/* Sticky Sidebar (Payment & Details) */}
-            <div className="lg:col-span-4 mt-6 lg:mt-0 space-y-6 lg:sticky lg:top-24">
+            <div className="lg:col-span-4 mt-4 lg:mt-0 space-y-3 lg:sticky lg:top-24">
               {/* Payment Summary Box */}
               <motion.div
-                className="bg-gray-900 rounded-2xl p-6 text-white shadow-xl shadow-gray-200"
+                className="bg-gray-900 rounded-none p-4 text-white shadow-xl shadow-gray-200"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}>
-                <h3 className="text-lg font-bold mb-6 flex items-center justify-between uppercase tracking-widest opacity-80 decoration-green-500 decoration-2">
+                <h3 className="text-base font-bold mb-4 flex items-center justify-between uppercase tracking-widest opacity-80 decoration-green-500 decoration-2">
                   Payment Detail
                   <span className="text-xs px-2 py-0.5 bg-white/10 rounded uppercase tracking-normal">Receipt</span>
                 </h3>
                 
-                <div className="space-y-4 mb-8">
+                <div className="space-y-4 mb-6">
                   <div className="flex justify-between items-center text-gray-400">
                     <span className="text-sm font-medium">Grand Total</span>
-                    <span className="text-2xl font-black text-white">₹{order.totalAmount?.toFixed(0)}</span>
+                    <span className="text-xl font-black text-white">₹{order.totalAmount?.toFixed(0)}</span>
                   </div>
                   <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                     <p className="text-sm font-bold text-yellow-500 uppercase tracking-wider mb-1">
@@ -1100,7 +1100,7 @@ export default function OrderDetail() {
                 {!order.paymentStatus?.toLowerCase().includes('paid') && (
                   <Button 
                     onClick={() => setShowRazorpayCheckout(true)}
-                    className="w-full bg-green-600 hover:bg-green-500 h-14 rounded-xl text-lg font-bold shadow-lg shadow-green-900/40 group">
+                    className="w-full bg-green-600 hover:bg-green-500 h-12 rounded-none text-lg font-bold shadow-lg shadow-green-900/40 group">
                     PAY NOW
                     <ChevronRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
@@ -1109,13 +1109,13 @@ export default function OrderDetail() {
 
               {/* Address & Contact Card */}
               <motion.div
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+                className="bg-white rounded-none shadow-sm border border-gray-100 overflow-hidden"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}>
-                <div className="p-6 space-y-6">
+                <div className="p-4 space-y-4">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-none bg-blue-50 flex items-center justify-center flex-shrink-0">
                       <HomeIcon className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
@@ -1127,8 +1127,8 @@ export default function OrderDetail() {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4 pt-6 border-t border-gray-50">
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                  <div className="flex items-start gap-4 pt-4 border-t border-gray-50">
+                    <div className="w-10 h-10 rounded-none bg-purple-50 flex items-center justify-center flex-shrink-0">
                       <PhoneIcon className="w-5 h-5 text-purple-600" />
                     </div>
                     <div className="flex-1">
@@ -1151,15 +1151,15 @@ export default function OrderDetail() {
 
               {/* Delivery Safety Banner */}
               <motion.button
-                className="w-full bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 hover:border-green-600 hover:shadow-md transition-all group"
+                className="w-full bg-white rounded-none p-4 shadow-sm border border-gray-100 flex items-center gap-4 hover:border-green-600 hover:shadow-md transition-all group"
                 onClick={() => setShowSafetyModal(true)}
                 whileTap={{ scale: 0.98 }}>
-                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-colors">
-                  <ShieldIcon className="w-6 h-6" />
+                <div className="w-10 h-10 rounded-none bg-green-50 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-colors">
+                  <ShieldIcon className="w-5 h-5" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-bold text-gray-900">Super Safety Measures</p>
-                  <p className="text-xs text-gray-500 font-medium">100% contactless & sanitized</p>
+                  <p className="font-bold text-gray-900 text-sm">Super Safety Measures</p>
+                  <p className="text-[10px] text-gray-500 font-medium">100% contactless & sanitized</p>
                 </div>
                 <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-green-600" />
               </motion.button>
@@ -1168,7 +1168,7 @@ export default function OrderDetail() {
               <div className="grid grid-cols-2 gap-3">
                 {order?.invoiceEnabled ? (
                   <Link to={`/orders/${id}/invoice`} className="col-span-2">
-                    <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 h-12 rounded-xl border border-gray-200 transition-all font-bold">
+                    <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 h-10 rounded-none border border-gray-200 transition-all font-bold text-sm">
                       <ReceiptIcon className="w-4 h-4 mr-2 text-gray-500" />
                       View Invoice
                     </Button>
@@ -1176,21 +1176,21 @@ export default function OrderDetail() {
                 ) : (
                   <div className="col-span-2">
                     <Button
-                      className="w-full bg-gray-50 cursor-not-allowed text-gray-400 h-12 rounded-xl font-bold border border-gray-100"
+                      className="w-full bg-gray-50 cursor-not-allowed text-gray-400 h-10 rounded-none font-bold border border-gray-100 text-sm"
                       disabled>
                       Invoice Still Processing
                     </Button>
                   </div>
                 )}
                 <Link to="/orders" className="flex-1">
-                  <Button variant="outline" className="w-full h-11 rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50 font-bold text-sm">
+                  <Button variant="outline" className="w-full h-10 rounded-none border-gray-200 text-gray-600 hover:bg-gray-50 font-bold text-xs">
                     History
                   </Button>
                 </Link>
                 <Button 
                   onClick={() => setShowCancelModal(true)}
                   variant="outline" 
-                  className="flex-1 h-11 rounded-xl border-red-50 text-red-500 hover:bg-red-50 font-bold text-sm">
+                  className="flex-1 h-10 rounded-none border-red-50 text-red-500 hover:bg-red-50 font-bold text-xs">
                   Cancel
                 </Button>
               </div>
