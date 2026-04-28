@@ -30,7 +30,8 @@ export interface IDelivery extends Document {
   bonusType?: string; // 'Fixed' | 'Salaried' | 'Commission Based'
   commissionRate?: number; // Individual commission rate (overrides global setting)
   status: 'Active' | 'Inactive';
-  isOnline: boolean; // Availability status
+  isOnline: boolean; // Availability status (synced with available field)
+  available?: string; // 'Available' | 'Not Available' (admin-facing label)
   location?: {
     type: "Point";
     coordinates: [number, number]; // [longitude, latitude]
@@ -164,6 +165,11 @@ const DeliverySchema = new Schema<IDelivery>(
     isOnline: {
       type: Boolean,
       default: false,
+    },
+    available: {
+      type: String,
+      enum: ['Available', 'Not Available'],
+      default: 'Not Available',
     },
     location: {
       type: {

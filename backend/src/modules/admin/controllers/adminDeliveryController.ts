@@ -269,9 +269,12 @@ export const updateDeliveryBoyAvailability = asyncHandler(
       });
     }
 
+    // Sync isOnline with the available field so notification system works correctly
+    const isOnline = available === "Available";
+
     const deliveryBoy = await Delivery.findByIdAndUpdate(
       id,
-      { available },
+      { available, isOnline },
       { new: true, runValidators: true }
     ).select("-password");
 

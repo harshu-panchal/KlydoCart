@@ -272,13 +272,17 @@ export async function notifyDeliveryBoysOfNewOrder(
     order: any
 ): Promise<void> {
     try {
+        console.log(`🔔 Starting notification process for order ${order.orderNumber || order._id}`);
+        
         // Find delivery boys near seller locations (within service radius)
         let nearbyDeliveryBoyIds = await findDeliveryBoysNearSellerLocations(order);
 
         if (nearbyDeliveryBoyIds.length === 0) {
-            console.log('No available delivery boys to notify (including fallback)');
+            console.log('❌ No available delivery boys to notify (including fallback)');
             return;
         }
+
+        console.log(`✅ Found ${nearbyDeliveryBoyIds.length} available delivery boys`);
 
         // --- FILTER BUSY DELIVERY BOYS ---
         // Check if any of these delivery boys already have an active order
@@ -296,7 +300,7 @@ export async function notifyDeliveryBoysOfNewOrder(
             const originalCount = nearbyDeliveryBoyIds.length;
             nearbyDeliveryBoyIds = nearbyDeliveryBoyIds.filter(id => !busyIdsSet.has(id.toString()));
 
-            console.log(`ℹ️ Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Active: ${nearbyDeliveryBoyIds.length}`);
+            console.log(`ℹ️ Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Available: ${nearbyDeliveryBoyIds.length}`);
 
             if (nearbyDeliveryBoyIds.length === 0) {
                 console.log('⚠️ All nearby delivery boys are currently busy with other orders.');
@@ -327,6 +331,7 @@ export async function notifyDeliveryBoysOfNewOrder(
         // Initialize notification state
         const orderId = order._id.toString();
         const notifiedIds = new Set<string>();
+        const disconnectedIds: string[] = [];
 
         // Only add delivery boys who are actually connected to the notification room
         for (const id of nearbyDeliveryBoyIds) {
@@ -339,29 +344,37 @@ export async function notifyDeliveryBoysOfNewOrder(
                 io.to(roomName).emit('new-order', orderData);
                 console.log(`📤 Emitted new-order to connected delivery boy room: ${roomName}`);
             } else {
+                disconnectedIds.push(idString);
                 console.log(`⏩ Skipping disconnected delivery boy: ${idString}`);
             }
         }
 
-        if (notifiedIds.size === 0) {
-            console.log('⚠️ No connected delivery boys found to notify');
-            // Don't emit to general room as it includes offline delivery boys
-            return;
-        }
+        // Store ALL eligible delivery boys in state (connected + disconnected)
+        // so when a disconnected delivery boy connects, they can still receive the order
+        const allEligibleIds = new Set<string>(nearbyDeliveryBoyIds.map(id => id.toString().trim()));
 
         notificationStates.set(orderId, {
             orderId,
-            notifiedDeliveryBoys: notifiedIds,
+            notifiedDeliveryBoys: allEligibleIds,
             rejectedDeliveryBoys: new Set(),
             acceptedBy: null,
         });
 
+        if (notifiedIds.size === 0) {
+            console.log(`⚠️ No connected delivery boys found to notify right now. ${disconnectedIds.length} delivery boys are offline.`);
+            console.log(`💡 Notification state saved for order ${orderId}. Delivery boys will receive it when they connect.`);
+            return;
+        }
+
         // Only notify individual active delivery boys, not the general room
         // This prevents offline delivery boys from receiving notifications
 
-        console.log(`📢 Notified ${notifiedIds.size} connected delivery boys near seller locations about order ${order.orderNumber}`);
+        console.log(`📢 Successfully notified ${notifiedIds.size} connected delivery boys about order ${order.orderNumber}`);
+        if (disconnectedIds.length > 0) {
+            console.log(`⚠️ ${disconnectedIds.length} delivery boys were not notified (offline/disconnected)`);
+        }
     } catch (error) {
-        console.error('Error notifying delivery boys:', error);
+        console.error('❌ Error notifying delivery boys:', error);
     }
 }
 
