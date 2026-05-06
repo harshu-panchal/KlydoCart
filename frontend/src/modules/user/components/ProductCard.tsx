@@ -245,19 +245,19 @@ export default function ProductCard({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
-      className={`${categoryStyle ? 'bg-green-50' : 'bg-white'} rounded-lg shadow-sm overflow-hidden flex flex-col relative`}
+      className={`${categoryStyle ? 'bg-white' : 'bg-white'} rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col relative border border-neutral-100`}
     >
       <div
         onClick={handleCardClick}
         className="cursor-pointer flex-1 flex flex-col"
       >
-        <div className={`w-full ${compact ? 'h-32 md:h-40' : categoryStyle ? 'h-28 md:h-36' : 'h-40 md:h-48'} bg-neutral-100 flex items-center justify-center overflow-hidden relative`}>
+        <div className={`w-full ${compact ? 'h-32 md:h-40' : categoryStyle ? 'h-36 md:h-44' : 'h-40 md:h-48'} bg-white flex items-center justify-center overflow-hidden relative border-b border-neutral-100`}>
           {product.imageUrl || product.mainImage ? (
             <img
               ref={imageRef}
               src={product.imageUrl || product.mainImage}
               alt={product.name || product.productName || 'Product'}
-              className="w-full h-full object-cover"
+              className={`w-full h-full ${categoryStyle ? 'object-contain p-2' : 'object-cover'}`}
               referrerPolicy="no-referrer"
               onError={(e) => {
                 // Hide broken image and show fallback
@@ -358,8 +358,8 @@ export default function ProductCard({
               </h3>
 
               {/* 3. Quantity / Weight */}
-              <p className="text-[12px] text-neutral-500 mb-3 leading-tight">
-                {product.variations?.[0]?.value || product.pack}
+              <p className="text-[11px] font-medium text-neutral-400 mb-2 leading-tight">
+                {product.variations?.[0]?.value || product.pack || '1 unit'}
               </p>
 
               {/* 4. Footer Row: Price and ADD Button */}
@@ -379,23 +379,44 @@ export default function ProductCard({
                 {/* ADD Button Section */}
                 <div className="flex flex-col items-center">
                   {inCartQty === 0 ? (
-                    <Button
-                      ref={addButtonRef}
-                      variant="outline"
-                      size="sm"
-                      disabled={product.isAvailable === false}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAdd(e);
-                      }}
-                      className={`min-w-[70px] h-8 px-4 border rounded-lg font-bold text-[12px] uppercase tracking-wide transition-all shadow-sm ${
-                        product.isAvailable === false
-                        ? 'border-neutral-200 text-neutral-400 bg-neutral-50 cursor-not-allowed'
-                        : 'border-green-600 text-green-600 bg-white hover:bg-green-50 active:scale-95'
-                      }`}
-                    >
-                      ADD
-                    </Button>
+                    <div className="flex flex-col items-center">
+                      <Button
+                        ref={addButtonRef}
+                        variant="outline"
+                        size="sm"
+                        disabled={product.isAvailable === false && !showHeartIcon} // Heart icon handles wishlist if button is notify
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (product.isAvailable === false) {
+                            showToast('We will notify you when this product is available in your area!', 'info');
+                            if (!isWishlisted) toggleWishlist(e);
+                          } else {
+                            handleAdd(e);
+                          }
+                        }}
+                        className={`min-w-[70px] h-8 px-4 border rounded-lg font-bold text-[12px] uppercase tracking-wide transition-all shadow-sm ${
+                          product.isAvailable === false
+                          ? 'border-amber-600 text-amber-600 bg-amber-50 hover:bg-amber-100'
+                          : 'border-green-600 text-green-600 bg-white hover:bg-green-50 active:scale-95'
+                        }`}
+                      >
+                        {product.isAvailable === false ? 'NOTIFY' : 'ADD'}
+                      </Button>
+                      {product.isAvailable === false && (
+                        <button
+                          onClick={(e) => {
+                             e.stopPropagation();
+                             toggleWishlist(e);
+                          }}
+                          className="mt-1 text-[9px] text-red-500 font-bold flex items-center gap-0.5 hover:underline"
+                        >
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill={isWishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5">
+                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                          </svg>
+                          {isWishlisted ? 'Wishlisted' : 'Wishlist'}
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <div className="flex items-center justify-between bg-green-600 text-white rounded-lg h-8 px-1 min-w-[70px] shadow-sm">
                       <button
@@ -503,7 +524,20 @@ export default function ProductCard({
                     : 'border-green-600 text-green-600 hover:bg-green-50'
                   }`}
                 >
-                  {product.isAvailable === false ? 'Out of Range' : 'Add'}
+                  {product.isAvailable === false ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        showToast('We will notify you when this product is available in your area!', 'info');
+                        if (!isWishlisted) toggleWishlist(e);
+                      }}
+                      className="w-full border-amber-600 text-amber-600 hover:bg-amber-50 h-8 text-xs font-bold uppercase"
+                    >
+                      Notify Me
+                    </Button>
+                  ) : 'Add'}
                 </Button>
                 <div className="h-4 mt-1">
                 </div>

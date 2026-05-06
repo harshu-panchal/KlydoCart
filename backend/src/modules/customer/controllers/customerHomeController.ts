@@ -100,12 +100,9 @@ async function fetchSectionData(
         ],
       };
 
-      // We fetch these irrespective of location radius to show preview images on home page
-      // Location validation still happens at cart/order level
+      // Do NOT filter out-of-range products here (user wants to see them with Notify Me)
       if (nearbySellerIds && nearbySellerIds.length > 0) {
-        // If we have nearby sellers, we can still filter by them if we want to prioritize
-        // But the user requested to show them irrespective of location radius
-        // For now, let's keep it simple and show all active products for the section
+        // query.seller = { $in: nearbySellerIds };
       }
 
       if (categories && categories.length > 0) {
@@ -310,7 +307,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .sort({ order: 1 })
       .lean();
 
-    // Filter out any products that were null (due to match condition)
+    // Filter out only null products, keep out-of-range ones
     const validLowestPricesProducts = lowestPricesProducts
       .filter((item: any) => item.product !== null)
       .map((item: any) => {
@@ -322,7 +319,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
               (id) => id.toString() === product.seller.toString(),
             )
             : false;
-
+ 
         return {
           id: product._id.toString(),
           _id: product._id.toString(),

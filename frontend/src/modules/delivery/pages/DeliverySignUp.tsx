@@ -54,9 +54,20 @@ export default function DeliverySignUp() {
   ) => {
     const { name, value } = e.target;
     if (name === "mobile") {
+      let val = value.replace(/\D/g, "");
+      // If user types 91xxxxxxxxxx (12 digits), strip the 91
+      if (val.startsWith("91") && val.length === 12) {
+        val = val.slice(2);
+      } else if (val.startsWith("0") && val.length === 11) {
+        val = val.slice(1);
+      }
+
+      // Allow typing up to 12 digits if it starts with 91, 11 if 0, else 10
+      const limit = val.startsWith("91") ? 12 : val.startsWith("0") ? 11 : 10;
+
       setFormData((prev) => ({
         ...prev,
-        [name]: value.replace(/\D/g, "").slice(0, 10),
+        [name]: val.slice(0, limit),
       }));
     } else if (name === "name" || name === "city" || name === "accountName" || name === "bankName") {
       // Only alphabets and spaces
@@ -72,7 +83,7 @@ export default function DeliverySignUp() {
     } else if (name === "accountNumber") {
       setFormData((prev) => ({
         ...prev,
-        [name]: value.replace(/\D/g, "").slice(0, 15),
+        [name]: value.replace(/\D/g, "").slice(0, 18),
       }));
     } else if (name === "ifscCode") {
       setFormData((prev) => ({
@@ -158,8 +169,14 @@ export default function DeliverySignUp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.mobile || !formData.email || !formData.address || !formData.city) {
-      setError("Please fill all required fields");
+    if (!formData.name || !formData.mobile || !formData.email || !formData.address || !formData.city || 
+        !formData.accountName || !formData.bankName || !formData.accountNumber || !formData.ifscCode || !formData.bonusType) {
+      setError("Please fill all required personal and banking fields");
+      return;
+    }
+
+    if (!drivingLicenseFile || !nationalIdentityCardFile) {
+      setError("Please upload both Driving License and Identity Card");
       return;
     }
 
@@ -199,8 +216,8 @@ export default function DeliverySignUp() {
       return;
     }
 
-    if (formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 15)) {
-      setError("Account number must be 9-15 digits");
+    if (formData.accountNumber && (formData.accountNumber.length < 8 || formData.accountNumber.length > 18)) {
+      setError("Account number must be 8-18 digits");
       return;
     }
 
@@ -343,7 +360,7 @@ export default function DeliverySignUp() {
                       </h3>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-700 ml-1">Full Name *</label>
+                        <label className="text-[10px] font-bold text-slate-700 ml-1">Full Name <span className="text-red-500">*</span></label>
                         <input
                           type="text"
                           name="name"
@@ -361,7 +378,7 @@ export default function DeliverySignUp() {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-700 ml-1">Mobile Number *</label>
+                        <label className="text-[10px] font-bold text-slate-700 ml-1">Mobile Number <span className="text-red-500">*</span></label>
                         <div className="relative flex items-center bg-slate-50 rounded-xl border border-transparent focus-within:border-teal-500 focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(20,184,166,0.1)] transition-all overflow-hidden group">
                           <div className="pl-3 pr-2 py-2.5 flex items-center border-r border-slate-200 group-focus-within:border-teal-100 transition-colors">
                             <span className="text-slate-600 font-bold text-sm">+91</span>
@@ -372,18 +389,18 @@ export default function DeliverySignUp() {
                             value={formData.mobile}
                             onChange={handleInputChange}
                             placeholder="00000 00000"
-                            maxLength={10}
+                            maxLength={12}
                             className="w-full px-3 py-2 bg-transparent text-slate-900 placeholder:text-slate-500 focus:outline-none text-sm font-bold placeholder:font-normal"
                             disabled={loading}
                           />
                         </div>
-                        {formData.mobile && formData.mobile.length !== 10 && (
+                        {formData.mobile && formData.mobile.length !== 10 && !formData.mobile.startsWith("91") && !formData.mobile.startsWith("0") && (
                           <p className="text-[9px] text-red-500 font-bold ml-1 italic">Must be exactly 10 digits</p>
                         )}
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-700 ml-1">Email *</label>
+                        <label className="text-[10px] font-bold text-slate-700 ml-1">Email <span className="text-red-500">*</span></label>
                         <input
                           type="email"
                           name="email"
@@ -418,7 +435,7 @@ export default function DeliverySignUp() {
                       </h3>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-700 ml-1">Full Address *</label>
+                        <label className="text-[10px] font-bold text-slate-700 ml-1">Full Address <span className="text-red-500">*</span></label>
                         <input
                           type="text"
                           name="address"
@@ -431,7 +448,7 @@ export default function DeliverySignUp() {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1 relative">
-                          <label className="text-[10px] font-bold text-slate-700 ml-1">City *</label>
+                          <label className="text-[10px] font-bold text-slate-700 ml-1">City <span className="text-red-500">*</span></label>
                           <input
                             type="text"
                             name="city"
@@ -476,10 +493,11 @@ export default function DeliverySignUp() {
                     {/* Banking Details */}
                     <div className="space-y-3 pt-3 flex flex-col items-start w-full">
                       <h3 className="text-[10px] w-full font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 pb-1.5">
-                        Banking (Optional)
+                        Banking Details
                       </h3>
                       <div className="grid grid-cols-2 gap-2.5 w-full">
                         <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-slate-700 ml-1">Account Holder <span className="text-red-500">*</span></label>
                           <input
                             name="accountName"
                             value={formData.accountName}
@@ -492,6 +510,7 @@ export default function DeliverySignUp() {
                           )}
                         </div>
                         <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-slate-700 ml-1">Bank Name <span className="text-red-500">*</span></label>
                           <input
                             name="bankName"
                             value={formData.bankName}
@@ -504,18 +523,20 @@ export default function DeliverySignUp() {
                           )}
                         </div>
                         <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-slate-700 ml-1">Account Number <span className="text-red-500">*</span></label>
                           <input
                             name="accountNumber"
                             value={formData.accountNumber}
                             onChange={handleInputChange}
                             placeholder="Account Number"
-                            className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 15) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
+                            className={`w-full px-3 py-2.5 bg-slate-50 border rounded-xl text-xs focus:bg-white transition-all outline-none placeholder:text-slate-500 ${formData.accountNumber && (formData.accountNumber.length < 8 || formData.accountNumber.length > 18) ? 'border-red-500' : 'border-transparent focus:border-teal-500'}`}
                           />
-                          {formData.accountNumber && (formData.accountNumber.length < 9 || formData.accountNumber.length > 15) && (
-                            <p className="text-[9px] text-red-500 font-bold ml-1">Must be 9-15 digits</p>
+                          {formData.accountNumber && (formData.accountNumber.length < 8 || formData.accountNumber.length > 18) && (
+                            <p className="text-[9px] text-red-500 font-bold ml-1">Must be 8-18 digits</p>
                           )}
                         </div>
                         <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-slate-700 ml-1">IFSC Code <span className="text-red-500">*</span></label>
                           <input
                             name="ifscCode"
                             value={formData.ifscCode}
@@ -528,18 +549,21 @@ export default function DeliverySignUp() {
                           )}
                         </div>
                       </div>
-                      <select
-                        name="bonusType"
-                        value={formData.bonusType}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2.5 mt-2 bg-slate-50 border border-transparent rounded-xl text-xs focus:bg-white focus:border-teal-500 outline-none transition-all"
-                      >
-                        {bonusTypes.map((type) => (
-                          <option key={type} value={type === "Select Bonus Type" ? "" : type}>
-                            {type}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="space-y-1 w-full">
+                        <label className="text-[9px] font-bold text-slate-700 ml-1">Bonus Type <span className="text-red-500">*</span></label>
+                        <select
+                          name="bonusType"
+                          value={formData.bonusType}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-xs focus:bg-white focus:border-teal-500 outline-none transition-all"
+                        >
+                          {bonusTypes.map((type) => (
+                            <option key={type} value={type === "Select Bonus Type" ? "" : type}>
+                              {type}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     {/* Documents */}
@@ -549,7 +573,7 @@ export default function DeliverySignUp() {
                       </h3>
                       <div className="space-y-2">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-700 ml-1">Driving License</label>
+                          <label className="text-[10px] font-bold text-slate-700 ml-1">Driving License <span className="text-red-500">*</span></label>
                           <input
                             type="file"
                             name="drivingLicense"
@@ -560,7 +584,7 @@ export default function DeliverySignUp() {
                           {drivingLicenseFile && <p className="text-[9px] text-teal-600 font-bold ml-1">✓ {drivingLicenseFile.name}</p>}
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-700 ml-1">Identity (Aadhar/PAN)</label>
+                          <label className="text-[10px] font-bold text-slate-700 ml-1">Identity (Aadhar/PAN) <span className="text-red-500">*</span></label>
                           <input
                             type="file"
                             name="nationalIdentityCard"

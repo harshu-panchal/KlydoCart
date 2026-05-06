@@ -144,15 +144,21 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Check if delivery partner already exists
-  const existingDelivery = await Delivery.findOne({
-    $or: [{ mobile }, { email }],
-  });
-
-  if (existingDelivery) {
+  // Check if delivery partner already exists with mobile
+  const existingMobile = await Delivery.findOne({ mobile });
+  if (existingMobile) {
     return res.status(409).json({
       success: false,
-      message: "Delivery partner already exists with this mobile or email",
+      message: "Delivery partner already exists with this mobile number",
+    });
+  }
+
+  // Check if delivery partner already exists with email
+  const existingEmail = await Delivery.findOne({ email });
+  if (existingEmail) {
+    return res.status(409).json({
+      success: false,
+      message: "Delivery partner already exists with this email address",
     });
   }
 

@@ -82,19 +82,20 @@ export default function CategoryTileSection({
   };
 
   const gridCols = getGridCols();
-  const gapClass = columns >= 6 ? "gap-1.5 md:gap-2.5" : "gap-2.5 md:gap-4";
+  // Compact gaps for mobile, standard gaps for desktop
+  const gapClass = columns >= 6 ? "gap-2 md:gap-2.5" : "gap-3 md:gap-4";
 
   return (
     <div className="mb-6 md:mb-8 mt-0 overflow-visible">
-      <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight">
+      <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-2 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight capitalize">
         {title}
       </h2>
       <div className="px-4 md:px-6 lg:px-8 overflow-visible">
-        <div className="max-w-fit overflow-visible">
+        <div className="overflow-visible">
           <div className={`${
             showProductCount 
               ? `grid ${gridCols} ${gapClass}` 
-              : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5"
+              : `grid grid-cols-3 sm:grid-cols-4 md:${gridCols} ${gapClass}`
           } overflow-visible auto-rows-fr`}>
           {tiles.map((tile) => {
             const images =
@@ -109,7 +110,7 @@ export default function CategoryTileSection({
                 transition={{ duration: 0.2 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className={`flex flex-col w-full h-full ${showProductCount ? "" : "w-[160px] md:w-[200px] lg:w-[220px]"}`}>
+                className="flex flex-col w-full h-full">
                 <Link
                   to={
                     tile.subcategoryId || tile.type === "subcategory"
@@ -149,7 +150,7 @@ export default function CategoryTileSection({
                     }`}>
                   {/* Image - Single image for non-bestsellers, 2x2 grid for bestsellers */}
                   <div
-                    className={`w-full rounded-lg overflow-hidden ${showProductCount ? "h-32 md:h-32 lg:h-36 xl:h-40 mb-2 md:mb-1.5" : "aspect-square"
+                    className={`w-full rounded-lg overflow-hidden flex items-center justify-center ${showProductCount ? "h-32 md:h-32 lg:h-36 xl:h-40 mb-2 md:mb-1.5" : "aspect-square"
                       } ${tile.bgColor || "bg-cyan-50"}`}>
                     {hasImages ? (
                       showProductCount ? (
@@ -182,7 +183,7 @@ export default function CategoryTileSection({
                         <img
                           src={images[0]}
                           alt={tile.name}
-                          className="w-full h-full object-contain rounded-lg md:scale-[1.15] lg:scale-125 md:origin-top"
+                          className="w-[90%] h-[90%] object-contain rounded-lg transition-transform md:scale-[1.1] lg:scale-[1.15]"
                           onError={(e) => {
                             // Hide broken image and show fallback
                             const target = e.target as HTMLImageElement;

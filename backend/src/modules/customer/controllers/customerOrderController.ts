@@ -259,10 +259,27 @@ export const createOrder = async (req: Request, res: Response) => {
             if (!product) {
                 const checkProd = await Product.findById(item.product.id);
                 console.error(`Order Placement Failure - Product: ${item.product.id}, Variation: ${variationValue}, Qty: ${qty}. Product Found in DB: ${!!checkProd}`);
-                if (checkProd) {
-                    console.error(`Product Details - Name: ${checkProd.productName}, Total Stock: ${checkProd.stock}, Variations Count: ${checkProd.variations?.length}`);
+                
+                if (!checkProd) {
+                    throw new Error(`Product not found: ${item.product.name || 'ID: ' + item.product.id}`);
                 }
-                throw new Error(`Insufficient stock or product not found: ${item.product.name || 'ID: ' + item.product.id}${variationValue ? ' (' + variationValue + ')' : ''}`);
+                
+                if (checkProd.status !== 'Active' || !checkProd.publish) {
+                    throw new Error(`Product is no longer available: ${checkProd.productName}`);
+                }
+
+                if (variationValue) {
+                    const matchingVar = checkProd.variations?.find((v: any) => 
+                        (v._id && v._id.toString() === variationValue) || 
+                        v.value === variationValue || 
+                        v.title === variationValue ||
+                        v.pack === variationValue
+                    );
+                    const varStock = matchingVar ? matchingVar.stock : 0;
+                    throw new Error(`Insufficient stock for ${checkProd.productName} (${variationValue}). Available: ${varStock}, Requested: ${qty}`);
+                } else {
+                    throw new Error(`Insufficient stock for ${checkProd.productName}. Available: ${checkProd.stock}, Requested: ${qty}`);
+                }
             }
 
             // Track seller IDs to validate location

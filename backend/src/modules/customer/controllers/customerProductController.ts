@@ -57,7 +57,7 @@ export const getProducts = async (req: Request, res: Response) => {
       });
     }
 
-    // Do not filter by seller here: show all matching products and mark isAvailable by radius
+    // Products are now filtered by seller in the query above
 
     // Helper to resolve category/subcategory ID from slug or ID
     const resolveId = async (

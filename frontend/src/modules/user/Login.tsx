@@ -20,6 +20,8 @@ export default function Login() {
   const [error, setError] = useState("");
   const [timer, setTimer] = useState(0);
   const [otpValue, setOtpValue] = useState("");
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -242,13 +244,212 @@ export default function Login() {
             )}
           </AnimatePresence>
 
-          <div className="mt-6 text-center">
-            <p className="text-[10px] font-medium text-teal-700/60">
+          <div className="mt-6 text-center space-y-3">
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => setShowTerms(true)}
+                className="text-[10px] font-bold text-teal-600 hover:text-teal-700 transition-colors underline underline-offset-2"
+              >
+                Terms & Conditions
+              </button>
+              <span className="w-1 h-1 rounded-full bg-teal-200"></span>
+              <button
+                onClick={() => setShowPrivacy(true)}
+                className="text-[10px] font-bold text-teal-600 hover:text-teal-700 transition-colors underline underline-offset-2"
+              >
+                Privacy Policy
+              </button>
+            </div>
+            <p className="text-[10px] font-medium text-teal-700/60 leading-relaxed px-2">
               New to KlydoCart? Proceed to log in, and we'll create an account for you!
             </p>
           </div>
         </div>
       </motion.div>
+ 
+      {/* Terms and Conditions Modal */}
+      <AnimatePresence>
+        {showTerms && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setShowTerms(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white w-full max-w-[400px] max-h-[80vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="px-6 py-5 bg-teal-50 border-b border-teal-100 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-teal-900">Terms & Conditions</h2>
+                <button
+                  onClick={() => setShowTerms(false)}
+                  className="w-8 h-8 rounded-full bg-white border border-teal-100 flex items-center justify-center text-teal-600 hover:bg-teal-50 transition-all shadow-sm"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+ 
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+                <div className="space-y-6">
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">1. Acceptance of Terms</h3>
+                    <p className="text-xs text-teal-700/70 leading-relaxed font-medium">
+                      By accessing and using KlydoCart, you agree to be bound by these terms. If you do not agree, please do not use our services.
+                    </p>
+                  </section>
+ 
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">2. User Accounts</h3>
+                    <ul className="text-xs text-teal-700/70 space-y-2 list-disc pl-4 font-medium">
+                      <li>You must provide accurate and complete information during registration.</li>
+                      <li>You are responsible for all activities that occur under your account.</li>
+                      <li>One user is allowed to have only one active account.</li>
+                    </ul>
+                  </section>
+ 
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">3. Privacy Policy</h3>
+                    <p className="text-xs text-teal-700/70 leading-relaxed font-medium">
+                      Your privacy is important to us. We collect and use your data as described in our Privacy Policy to provide and improve our services.
+                    </p>
+                  </section>
+ 
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">4. Ordering & Payments</h3>
+                    <ul className="text-xs text-teal-700/70 space-y-2 list-disc pl-4 font-medium">
+                      <li>Prices are inclusive of applicable taxes unless stated otherwise.</li>
+                      <li>Orders are subject to availability and acceptance by sellers.</li>
+                      <li>Payment must be made through the provided secure payment gateways.</li>
+                    </ul>
+                  </section>
+ 
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">5. Delivery Policy</h3>
+                    <p className="text-xs text-teal-700/70 leading-relaxed font-medium">
+                      Delivery times are estimates and may vary based on location, traffic, and weather conditions. Customers must be present to receive orders.
+                    </p>
+                  </section>
+ 
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">6. Cancellation & Refunds</h3>
+                    <p className="text-xs text-teal-700/70 leading-relaxed font-medium">
+                      Refunds are processed according to our internal policy and may take 5-7 business days to reflect in your account.
+                    </p>
+                  </section>
+                </div>
+              </div>
+ 
+              {/* Modal Footer */}
+              <div className="px-6 py-5 bg-teal-50 border-t border-teal-100">
+                <button
+                  onClick={() => setShowTerms(false)}
+                  className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold shadow-lg shadow-teal-600/20 hover:bg-teal-700 transition-all"
+                >
+                  Got it, Thanks!
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+ 
+      {/* Privacy Policy Modal */}
+      <AnimatePresence>
+        {showPrivacy && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setShowPrivacy(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white w-full max-w-[400px] max-h-[80vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="px-6 py-5 bg-teal-50 border-b border-teal-100 flex items-center justify-between">
+                <h2 className="text-lg font-bold text-teal-900">Privacy Policy</h2>
+                <button
+                  onClick={() => setShowPrivacy(false)}
+                  className="w-8 h-8 rounded-full bg-white border border-teal-100 flex items-center justify-center text-teal-600 hover:bg-teal-50 transition-all shadow-sm"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+ 
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+                <div className="space-y-6">
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">1. Information Collection</h3>
+                    <p className="text-xs text-teal-700/70 leading-relaxed font-medium">
+                      We collect information you provide directly to us, such as your phone number, name, and address, to facilitate your orders and improve our service.
+                    </p>
+                  </section>
+ 
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">2. How We Use Information</h3>
+                    <ul className="text-xs text-teal-700/70 space-y-2 list-disc pl-4 font-medium">
+                      <li>To process and deliver your orders.</li>
+                      <li>To send you transactional messages and updates.</li>
+                      <li>To personalize your shopping experience.</li>
+                      <li>To detect and prevent fraudulent activities.</li>
+                    </ul>
+                  </section>
+ 
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">3. Information Sharing</h3>
+                    <p className="text-xs text-teal-700/70 leading-relaxed font-medium">
+                      We share your information with sellers and delivery partners only to the extent necessary to complete your transactions. We do not sell your personal data to third parties.
+                    </p>
+                  </section>
+ 
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">4. Data Security</h3>
+                    <p className="text-xs text-teal-700/70 leading-relaxed font-medium">
+                      We implement industry-standard security measures to protect your information from unauthorized access, alteration, or disclosure.
+                    </p>
+                  </section>
+ 
+                  <section>
+                    <h3 className="text-sm font-bold text-teal-800 mb-2">5. Your Rights</h3>
+                    <p className="text-xs text-teal-700/70 leading-relaxed font-medium">
+                      You have the right to access, correct, or delete your personal information through your account settings or by contacting our support team.
+                    </p>
+                  </section>
+                </div>
+              </div>
+ 
+              {/* Modal Footer */}
+              <div className="px-6 py-5 bg-teal-50 border-t border-teal-100">
+                <button
+                  onClick={() => setShowPrivacy(false)}
+                  className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold shadow-lg shadow-teal-600/20 hover:bg-teal-700 transition-all"
+                >
+                  Understood
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Brand Logo at Bottom */}
       <motion.div
