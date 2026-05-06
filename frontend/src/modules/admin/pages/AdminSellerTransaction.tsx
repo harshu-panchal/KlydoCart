@@ -825,7 +825,7 @@ export default function AdminSellerTransaction() {
 
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
-        Copyright © 2025. Developed By{" "}
+        Copyright © 2026. Developed By{" "}
         <a href="#" className="text-teal-600 hover:text-teal-700">
           KlydoCart
         </a>

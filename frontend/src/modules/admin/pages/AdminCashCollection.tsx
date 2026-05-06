@@ -639,7 +639,7 @@ export default function AdminCashCollection() {
 
       {/* Footer */}
       <div className="bg-neutral-800 text-white text-center text-sm py-4">
-        Copyright © 2025. Developed By{" "}
+        Copyright © 2026. Developed By{" "}
         <a href="#" className="text-blue-400 hover:text-blue-300">
           KlydoCart
         </a>

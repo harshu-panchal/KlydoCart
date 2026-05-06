@@ -38,9 +38,10 @@ export default function CategoryTreeView({
   return (
     <div className="space-y-2">
       {categories.map((category) => {
-        const hasChildren =
+        const hasChildren = !!(
           (category.children && category.children.length > 0) ||
-          (category.childrenCount && category.childrenCount > 0);
+          (category.childrenCount && category.childrenCount > 0)
+        );
         const isExpanded = expandedIds.has(category._id);
         const indentLevel = level * 24; // 24px per level
         const isSubcategory =

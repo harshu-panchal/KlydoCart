@@ -897,7 +897,7 @@ export default function AdminAllOrders() {
 
       {/* Footer */}
       <div className="text-center py-4 text-xs sm:text-sm text-neutral-600">
-        Copyright © 2025. Developed By{" "}
+        Copyright © 2026. Developed By{" "}
         <Link to="/" className="text-blue-600 hover:text-blue-700">
           KlydoCart
         </Link>

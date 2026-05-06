@@ -41,14 +41,14 @@ export default function CategoryFormModal({
   const [formData, setFormData] = useState({
     name: "",
     image: "",
-    order: 0,
+    order: "" as any,
     parentId: null as string | null,
     headerCategoryId: null as string | null,
     status: "Active" as "Active" | "Inactive",
     isBestseller: false,
     hasWarning: false,
     groupCategory: "",
-    commissionRate: 0,
+    commissionRate: "" as any,
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -148,28 +148,28 @@ export default function CategoryFormModal({
         setFormData({
           name: "",
           image: "",
-          order: 0,
+          order: "",
           parentId: parentCategory._id,
           headerCategoryId: inheritedHeaderCategoryId,
           status: "Active",
           isBestseller: false,
           hasWarning: false,
           groupCategory: "",
-          commissionRate: 0,
+          commissionRate: "",
         });
       } else {
         // Reset form for new category
         setFormData({
           name: "",
           image: "",
-          order: 0,
+          order: "",
           parentId: null,
           headerCategoryId: null,
           status: "Active",
           isBestseller: false,
           hasWarning: false,
           groupCategory: "",
-          commissionRate: 0,
+          commissionRate: "",
         });
       }
       setImageFile(null);
@@ -193,7 +193,7 @@ export default function CategoryFormModal({
         type === "checkbox"
           ? checked
           : type === "number"
-            ? parseInt(value) || 0
+            ? value === "" ? "" : (name === "commissionRate" ? parseFloat(value) : parseInt(value))
             : value,
     }));
 
@@ -352,14 +352,14 @@ export default function CategoryFormModal({
       const submitData: CreateCategoryData | UpdateCategoryData = {
         name: formData.name.trim(),
         image: imageUrl,
-        order: formData.order,
+        order: formData.order === "" ? 0 : Number(formData.order),
         parentId: formData.parentId,
         headerCategoryId: formData.headerCategoryId,
         status: formData.status,
         isBestseller: formData.isBestseller,
         hasWarning: formData.hasWarning,
         groupCategory: formData.groupCategory || undefined,
-        commissionRate: formData.commissionRate,
+        commissionRate: formData.commissionRate === "" ? 0 : Number(formData.commissionRate),
       };
 
       await onSubmit(submitData);

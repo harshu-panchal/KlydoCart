@@ -464,7 +464,7 @@ export default function AdminUsers() {
 
             {/* Footer */}
             <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
-                Copyright © 2025. Developed By{' '}
+                Copyright © 2026. Developed By{' '}
                 <a href="#" className="text-blue-600 hover:underline">KlydoCart</a>
             </footer>
         </div>

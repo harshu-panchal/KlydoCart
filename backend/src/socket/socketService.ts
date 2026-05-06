@@ -227,7 +227,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
                         !state.rejectedDeliveryBoys.has(normalizedDeliveryBoyId)
                     ) {
                         // Fetch order details to send
-                        const order = await Order.findById(orderId).lean();
+                        const order: any = await Order.findById(orderId).lean();
                         if (order && !['Delivered', 'Cancelled', 'Rejected', 'Returned'].includes(order.status)) {
                             pendingOrders.push({
                                 orderId: order._id.toString(),

@@ -50,15 +50,23 @@ export const createHeaderCategory = async (req: Request, res: Response) => {
       order,
     } = req.body;
 
-    const categoryExists = await HeaderCategory.findOne({ slug });
+    // Check if category with same name or slug exists
+    const categoryExists = await HeaderCategory.findOne({ 
+      $or: [
+        { name: name.trim() },
+        { slug: slug }
+      ]
+    });
+
     if (categoryExists) {
+      const field = categoryExists.name === name.trim() ? "Name" : "Theme/Slug";
       return res
         .status(400)
-        .json({ message: "Header category already exists" });
+        .json({ message: `Header category with this ${field} already exists` });
     }
 
     const category = await HeaderCategory.create({
-      name,
+      name: name.trim(),
       iconLibrary,
       iconName,
       slug,
@@ -69,14 +77,12 @@ export const createHeaderCategory = async (req: Request, res: Response) => {
     });
 
     return res.status(201).json(category);
-  } catch (error) {
-    return res.status(500).json({ message: "Server Error", error });
+  } catch (error: any) {
+    console.error("Create Header Category Error:", error);
+    return res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
-// @desc    Update a header category
-// @route   PUT /api/v1/header-categories/:id
-// @access  Private/Admin
 // @desc    Update a header category
 // @route   PUT /api/v1/header-categories/:id
 // @access  Private/Admin
@@ -95,6 +101,16 @@ export const updateHeaderCategory = async (req: Request, res: Response) => {
     const category = await HeaderCategory.findById(req.params.id);
 
     if (category) {
+      // Check if name is being updated and if it's already taken
+      if (name && name.trim() !== category.name) {
+        const nameExists = await HeaderCategory.findOne({ name: name.trim() });
+        if (nameExists) {
+          return res
+            .status(400)
+            .json({ message: "Header category with this name already exists" });
+        }
+      }
+
       // Check if slug is being updated and if it's already taken
       if (slug && slug !== category.slug) {
         const slugExists = await HeaderCategory.findOne({ slug });
@@ -105,11 +121,11 @@ export const updateHeaderCategory = async (req: Request, res: Response) => {
         }
       }
 
-      category.name = name || category.name;
+      category.name = name ? name.trim() : category.name;
       category.iconLibrary = iconLibrary || category.iconLibrary;
       category.iconName = iconName || category.iconName;
       category.slug = slug || category.slug;
-      category.relatedCategory = relatedCategory; // Allow clearing it (undefined or null or empty string)
+      category.relatedCategory = relatedCategory; // Allow clearing it
       category.image = image; // Allow updating/clearing image
       category.status = status || category.status;
       category.order = order !== undefined ? order : category.order;
@@ -137,15 +153,15 @@ export const updateHeaderCategory = async (req: Request, res: Response) => {
 // @access  Private/Admin
 export const deleteHeaderCategory = async (req: Request, res: Response) => {
   try {
-    const category = await HeaderCategory.findById(req.params.id);
+    const deletedCategory = await HeaderCategory.findByIdAndDelete(req.params.id);
 
-    if (category) {
-      await category.deleteOne();
-      return res.json({ message: "Header category removed" });
+    if (deletedCategory) {
+      return res.json({ message: "Header category removed successfully" });
     } else {
       return res.status(404).json({ message: "Header category not found" });
     }
-  } catch (error) {
-    return res.status(500).json({ message: "Server Error", error });
+  } catch (error: any) {
+    console.error("Delete Header Category Error:", error);
+    return res.status(500).json({ message: "Server Error", error: error.message });
   }
 };

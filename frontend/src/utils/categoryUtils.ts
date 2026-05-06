@@ -201,7 +201,7 @@ export function searchCategories(
     return categories;
   }
 
-  const query = searchQuery.toLowerCase();
+  const query = searchQuery.trim().toLowerCase();
   return categories.filter((cat) => cat.name.toLowerCase().includes(query));
 }
 

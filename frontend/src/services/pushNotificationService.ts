@@ -185,8 +185,8 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
             const notificationTitle = title || 'KlydoCart Notification';
             const notificationOptions = {
                 body: body,
-                icon: '/favicon.ico',
-                badge: '/favicon.ico',
+                icon: '/favicon.png',
+                badge: '/favicon.png',
                 tag: payload.data?.type || 'klydocart-general',
                 data: payload.data
             };

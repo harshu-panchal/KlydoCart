@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import DashboardCard from "../components/DashboardCard";
 import OrderChart from "../components/OrderChart";
 import SalesLineChart from "../components/SalesLineChart";
@@ -22,6 +23,9 @@ import {
 } from "../../../services/api/admin/adminDashboardService";
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const searchQueryParam = searchParams.get("search")?.toLowerCase() || "";
   const { isAuthenticated, token } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [newOrders, setNewOrders] = useState<RecentOrder[]>([]);
@@ -358,18 +362,29 @@ export default function AdminDashboard() {
   const orderDataDec2025 = orderAnalyticsDaily?.thisPeriod || [];
   const orderData2025 = orderAnalytics?.thisPeriod || [];
 
-  const totalPagesNewOrders = Math.ceil(newOrders.length / entriesPerPage);
+  const filteredNewOrders = newOrders.filter(order => 
+    order.orderNumber.toLowerCase().includes(searchQueryParam) || 
+    order.customerName.toLowerCase().includes(searchQueryParam) ||
+    order.status.toLowerCase().includes(searchQueryParam)
+  );
+
+  const filteredTopSellers = topSellers.filter(seller => 
+    seller.sellerName.toLowerCase().includes(searchQueryParam) || 
+    seller.storeName.toLowerCase().includes(searchQueryParam)
+  );
+
+  const totalPagesNewOrders = Math.ceil(filteredNewOrders.length / entriesPerPage);
   const startIndexNewOrders = (currentPage - 1) * entriesPerPage;
   const endIndexNewOrders = startIndexNewOrders + entriesPerPage;
-  const displayedNewOrders = newOrders.slice(
+  const displayedNewOrders = filteredNewOrders.slice(
     startIndexNewOrders,
     endIndexNewOrders
   );
 
-  const totalPagesTopSellers = Math.ceil(topSellers.length / entriesPerPage);
+  const totalPagesTopSellers = Math.ceil(filteredTopSellers.length / entriesPerPage);
   const startIndexTopSellers = (currentPage - 1) * entriesPerPage;
   const endIndexTopSellers = startIndexTopSellers + entriesPerPage;
-  const displayedTopSellers = topSellers.slice(
+  const displayedTopSellers = filteredTopSellers.slice(
     startIndexTopSellers,
     endIndexTopSellers
   );
@@ -382,6 +397,10 @@ export default function AdminDashboard() {
     salesLastWeekSameDay > 0
       ? ((salesDifference / salesLastWeekSameDay) * 100).toFixed(0)
       : salesToday > 0 ? "100" : "0";
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const currentMonthName = monthNames[new Date().getMonth()];
+  const currentYear = new Date().getFullYear();
 
   // Loading state
   if (loading) {
@@ -449,60 +468,70 @@ export default function AdminDashboard() {
           title="Total User"
           value={stats.totalUser}
           accentColor="#3b82f6"
+          onClick={() => navigate("/admin/users")}
         />
         <DashboardCard
           icon={categoryIcon}
           title="Total Category"
           value={stats.totalCategory}
           accentColor="#eab308"
+          onClick={() => navigate("/admin/category")}
         />
         <DashboardCard
           icon={subcategoryIcon}
           title="Total Subcategory"
           value={stats.totalSubcategory ?? 0}
           accentColor="#ec4899"
+          onClick={() => navigate("/admin/subcategory")}
         />
         <DashboardCard
           icon={productIcon}
           title="Total Product"
           value={stats.totalProduct}
           accentColor="#ef4444"
+          onClick={() => navigate("/admin/product/list")}
         />
         <DashboardCard
           icon={ordersIcon}
           title="Total Orders"
           value={stats.totalOrders}
           accentColor="#3b82f6"
+          onClick={() => navigate("/admin/orders/all")}
         />
         <DashboardCard
           icon={completedOrdersIcon}
           title="Completed Orders"
           value={stats.completedOrders}
           accentColor="#16a34a"
+          onClick={() => navigate("/admin/orders/delivered")}
         />
         <DashboardCard
           icon={pendingOrdersIcon}
           title="Pending Orders"
           value={stats.pendingOrders}
           accentColor="#a855f7"
+          onClick={() => navigate("/admin/orders/pending")}
         />
         <DashboardCard
           icon={cancelledOrdersIcon}
           title="Cancelled Orders"
           value={stats.cancelledOrders}
           accentColor="#ef4444"
+          onClick={() => navigate("/admin/orders/cancelled")}
         />
         <DashboardCard
           icon={soldOutIcon}
           title="Product Sold Out"
           value={stats.soldOutProducts}
           accentColor="#ec4899"
+          onClick={() => navigate("/admin/product/list")}
         />
         <DashboardCard
           icon={lowStockIcon}
           title="Product low on Stock"
           value={stats.lowStockProducts}
           accentColor="#eab308"
+          onClick={() => navigate("/admin/product/list")}
         />
       </div>
 
@@ -583,17 +612,17 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <ErrorBoundary fallback={<div className="text-sm text-red-600 p-4">Chart failed to load</div>}>
           <OrderChart
-            title="Order - Dec 2025"
+            title={`Order - ${currentMonthName} ${currentYear}`}
             data={orderDataDec2025}
-            maxValue={3}
+            maxValue={Math.max(...orderDataDec2025.map(d => d.value), 5)}
             height={400}
           />
         </ErrorBoundary>
         <ErrorBoundary fallback={<div className="text-sm text-red-600 p-4">Chart failed to load</div>}>
           <OrderChart
-            title="Order - 2025"
+            title={`Order ${currentYear}`}
             data={orderData2025}
-            maxValue={80}
+            maxValue={Math.max(...orderData2025.map(d => d.value), 10)}
             height={400}
           />
         </ErrorBoundary>
@@ -747,6 +776,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <button
+                          onClick={() => navigate(`/admin/orders/${order.id}`)}
                           className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors"
                           aria-label="View order">
                           <svg
@@ -783,9 +813,10 @@ export default function AdminDashboard() {
 
           <div className="px-4 sm:px-6 py-3 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
             <div className="text-xs sm:text-sm text-neutral-700">
-              Showing {startIndexNewOrders + 1} to{" "}
-              {Math.min(endIndexNewOrders, newOrders.length)} of{" "}
-              {newOrders.length} entries
+              Showing {filteredNewOrders.length > 0 ? startIndexNewOrders + 1 : 0} to{" "}
+              {Math.min(endIndexNewOrders, filteredNewOrders.length)} of{" "}
+              {filteredNewOrders.length} entries
+              {searchQueryParam && <span className="ml-2 text-teal-600">(filtered by "{searchQueryParam}")</span>}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -1053,7 +1084,7 @@ export default function AdminDashboard() {
 
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
-        Copyright © 2025. Developed By{" "}
+        Copyright © 2026. Developed By{" "}
         <a href="#" className="text-teal-600 hover:text-teal-700">
           KlydoCart
         </a>

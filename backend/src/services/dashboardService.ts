@@ -53,7 +53,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       revenueData,
       avgOrderValue,
     ] = await Promise.all([
-      Customer.countDocuments({ status: "Active" }).catch(() => 0),
+      Customer.countDocuments().catch(() => 0),
       Category.countDocuments().catch(() => 0),
       SubCategory.countDocuments().catch((err) => {
         console.error("Error counting subcategories:", err);
