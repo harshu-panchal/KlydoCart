@@ -62,17 +62,18 @@ export default function SellerList() {
                     <table className="w-full text-left">
                         <thead className="bg-neutral-50 text-xs font-bold text-neutral-600 uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4">Seller Info</th>
-                                <th className="px-6 py-4">Store Name</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Joined On</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
-                            </tr>
+                                 <th className="px-6 py-4">Logo</th>
+                                 <th className="px-6 py-4">Seller Info</th>
+                                 <th className="px-6 py-4">Store Name</th>
+                                 <th className="px-6 py-4">Status</th>
+                                 <th className="px-6 py-4">Joined On</th>
+                                 <th className="px-6 py-4 text-right">Actions</th>
+                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-neutral-500">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-neutral-500">
                                         Loading sellers...
                                     </td>
                                 </tr>
@@ -80,14 +81,19 @@ export default function SellerList() {
                                 filteredSellers.map((seller) => (
                                     <tr key={seller._id} className="hover:bg-neutral-50 transition-colors">
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold">
-                                                    {seller.sellerName[0].toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <div className="text-sm font-semibold text-neutral-900">{seller.sellerName}</div>
-                                                    <div className="text-xs text-neutral-500">{seller.email}</div>
-                                                </div>
+                                            <img
+                                                src={seller.logo || `https://ui-avatars.com/api/?name=${encodeURIComponent(seller.sellerName)}&background=random`}
+                                                alt={seller.storeName}
+                                                className="w-10 h-10 rounded-full object-cover border border-neutral-200"
+                                                onError={(e) => {
+                                                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(seller.sellerName)}&background=random`;
+                                                }}
+                                            />
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <div className="text-sm font-semibold text-neutral-900">{seller.sellerName}</div>
+                                                <div className="text-xs text-neutral-500">{seller.email}</div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-neutral-700">

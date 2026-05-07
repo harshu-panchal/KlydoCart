@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { uploadImage, uploadImages } from "../../../services/api/uploadService";
 import {
   validateImageFile,
@@ -30,6 +30,7 @@ import {
 
 export default function SellerAddProduct() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const [formData, setFormData] = useState({
     productName: "",
@@ -551,7 +552,11 @@ export default function SellerAddProduct() {
           }
           setSuccessMessage("");
           // Navigate to product list
-          navigate("/seller/product/list");
+          if (location.pathname.includes("/admin/")) {
+            navigate("/admin/product/list");
+          } else {
+            navigate("/seller/product/list");
+          }
         }, 1500);
       } else {
         setUploadError(response.message || "Failed to create product");

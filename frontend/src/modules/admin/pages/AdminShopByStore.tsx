@@ -159,10 +159,10 @@ export default function AdminShopByStore() {
 
   const filteredStores = stores.filter(
     (store) =>
-      store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      store.name.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
       (store.storeId &&
-        store.storeId.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (store._id && store._id.toLowerCase().includes(searchTerm.toLowerCase()))
+        store.storeId.toLowerCase().includes(searchTerm.trim().toLowerCase())) ||
+      (store._id && store._id.toLowerCase().includes(searchTerm.trim().toLowerCase()))
   );
 
   // Sort stores
@@ -350,9 +350,9 @@ export default function AdminShopByStore() {
     let filtered = [...allProducts];
 
     // Apply search filter
-    if (productSearchTerm) {
+    if (productSearchTerm.trim()) {
       filtered = filtered.filter((p) =>
-        p.productName.toLowerCase().includes(productSearchTerm.toLowerCase())
+        p.productName.toLowerCase().includes(productSearchTerm.trim().toLowerCase())
       );
     }
 
@@ -809,24 +809,26 @@ export default function AdminShopByStore() {
               </div>
 
               {/* Export Button */}
-              <button
-                onClick={handleExport}
-                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                Export
-              </button>
+              {stores.length > 0 && (
+                <button
+                  onClick={handleExport}
+                  className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Export
+                </button>
+              )}
 
               {/* Search */}
               <div className="flex items-center gap-2">

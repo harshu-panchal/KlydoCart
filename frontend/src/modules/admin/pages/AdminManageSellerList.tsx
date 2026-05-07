@@ -166,11 +166,11 @@ export default function AdminManageSellerList() {
 
     // Filter sellers
     let filteredSellers = sellers.filter(seller =>
-        seller.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seller.storeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seller.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seller.phone.includes(searchTerm) ||
-        seller.mobile.includes(searchTerm)
+        seller.name.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
+        seller.storeName.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
+        seller.email.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
+        seller.phone.includes(searchTerm.trim()) ||
+        seller.mobile.includes(searchTerm.trim())
     );
 
     // Sort sellers
@@ -652,18 +652,15 @@ export default function AdminManageSellerList() {
                                                 </div>
                                             </td>
                                             <td className="p-4 align-middle">
-                                                <img
-                                                    src={(seller.logo && seller.logo.trim() !== '') ? seller.logo : FALLBACK_LOGO}
-                                                    alt={seller.storeName}
-                                                    className="w-10 h-10 object-cover rounded"
-                                                    loading="lazy"
-                                                    onError={(e) => {
-                                                        const img = e.currentTarget;
-                                                        if (img.dataset.fallbackApplied === 'true') return;
-                                                        img.dataset.fallbackApplied = 'true';
-                                                        img.src = FALLBACK_LOGO;
-                                                    }}
-                                                />
+                                                 <img
+                                                     src={(seller.logo && seller.logo.trim() !== '' && !seller.logo.includes('placeholder')) ? seller.logo : `https://ui-avatars.com/api/?name=${encodeURIComponent(seller.name)}&background=random`}
+                                                     alt={seller.storeName}
+                                                     className="w-10 h-10 object-cover rounded-full border border-neutral-200"
+                                                     loading="lazy"
+                                                     onError={(e) => {
+                                                         e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(seller.name)}&background=random`;
+                                                     }}
+                                                 />
                                             </td>
                                             <td className="p-4 align-middle">{seller.balance.toFixed(2)}</td>
                                             <td className="p-4 align-middle">{seller.commission.toFixed(2)}%</td>

@@ -30,6 +30,7 @@ export default function AdminHomeSection() {
     const [columns, setColumns] = useState(4);
     const [limit, setLimit] = useState(8);
     const [isActive, setIsActive] = useState(true);
+    const [order, setOrder] = useState<number>(1);
 
     // Data state
     const [sections, setSections] = useState<HomeSection[]>([]);
@@ -101,7 +102,7 @@ export default function AdminHomeSection() {
         }
     }, [selectedCategories, displayType]);
 
-    // Auto-generate slug from title
+    // Auto-generate slug and suggest order
     useEffect(() => {
         if (title && !editingId) {
             const generatedSlug = title
@@ -111,6 +112,16 @@ export default function AdminHomeSection() {
             setSlug(generatedSlug);
         }
     }, [title, editingId]);
+
+    // Suggest order for new sections
+    useEffect(() => {
+        if (!editingId && sections.length > 0) {
+            const maxOrder = Math.max(...sections.map(s => s.order || 0), 0);
+            setOrder(maxOrder + 1);
+        } else if (!editingId && sections.length === 0) {
+            setOrder(1);
+        }
+    }, [editingId, sections]);
 
     const fetchSections = async () => {
         try {
@@ -192,6 +203,13 @@ export default function AdminHomeSection() {
             }
         }
 
+        // Check for duplicate order
+        const isOrderTaken = sections.some(s => s.order === order && s._id !== editingId);
+        if (isOrderTaken) {
+            setError(`Display order ${order} is already taken by another section`);
+            return;
+        }
+
         const formData: HomeSectionFormData = {
             title: title.trim(),
             slug: slug.trim(),
@@ -203,6 +221,7 @@ export default function AdminHomeSection() {
             displayType,
             columns,
             limit,
+            order,
             isActive,
         };
 
@@ -250,6 +269,7 @@ export default function AdminHomeSection() {
         setSelectedSubCategories(section.subCategories?.map(s => s._id) || []);
         setColumns(section.columns);
         setLimit(section.limit);
+        setOrder(section.order || 0);
         setIsActive(section.isActive);
         setEditingId(section._id);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -286,6 +306,10 @@ export default function AdminHomeSection() {
         setLimit(8);
         setIsActive(true);
         setEditingId(null);
+
+        // Suggest next order for the reset form
+        const maxOrder = Math.max(...sections.map(s => s.order || 0), 0);
+        setOrder(maxOrder + 1);
     };
 
     // Pagination
@@ -599,6 +623,23 @@ export default function AdminHomeSection() {
                                     </span>
                                 </label>
                             </div>
+
+                            {/* Order */}
+                            <div>
+                                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                    Display Order <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    value={order}
+                                    onChange={(e) => setOrder(Number(e.target.value))}
+                                    min="1"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                                />
+                                <p className="text-xs text-neutral-500 mt-1">
+                                    Determines the priority of this section on the page
+                                </p>
+                            </div>
                         </div>
 
                         {/* Action Buttons */}
@@ -691,7 +732,7 @@ export default function AdminHomeSection() {
                                                 key={section._id}
                                                 className="hover:bg-neutral-50 transition-colors text-sm text-neutral-700 border-b border-neutral-200"
                                             >
-                                                <td className="p-4">{startIndex + index + 1}</td>
+                                                <td className="p-4">{section.order || index + 1}</td>
                                                 <td className="p-4 font-medium">{section.title}</td>
                                                 <td className="p-4">
                                                     {section.pageLocation === "header_category" ? (

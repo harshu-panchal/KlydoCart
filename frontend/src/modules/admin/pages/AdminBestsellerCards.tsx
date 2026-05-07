@@ -109,6 +109,15 @@ export default function AdminBestsellerCards() {
             isActive,
         };
 
+        // Check for duplicate order
+        if (order !== undefined) {
+            const isOrderTaken = cards.some(c => c.order === order && c._id !== editingId);
+            if (isOrderTaken) {
+                setError(`Display order ${order} is already taken by another card`);
+                return;
+            }
+        }
+
         try {
             setLoading(true);
 
@@ -171,11 +180,11 @@ export default function AdminBestsellerCards() {
     };
 
     const resetForm = () => {
-        setName("");
-        setSelectedCategory("");
-        setOrder(undefined);
-        setIsActive(true);
         setEditingId(null);
+
+        // Suggest next order
+        const maxOrder = Math.max(...cards.map(c => c.order || 0), 0);
+        setOrder(maxOrder + 1);
     };
 
     // Pagination
@@ -288,7 +297,7 @@ export default function AdminBestsellerCards() {
                                     className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
                                 />
                                 <p className="text-xs text-neutral-500 mt-1">
-                                    Leave empty to auto-assign at the end
+                                    Suggested next order: {Math.max(...cards.map(c => c.order || 0), 0) + 1}
                                 </p>
                             </div>
 

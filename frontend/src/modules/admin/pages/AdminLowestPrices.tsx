@@ -117,6 +117,16 @@ export default function AdminLowestPrices() {
                     setError(response.message || "Failed to update product");
                 }
             } else {
+                // Check for duplicate order
+                if (order !== undefined) {
+                    const isOrderTaken = lowestPricesProducts.some(lp => lp.order === order);
+                    if (isOrderTaken) {
+                        setError(`Display order ${order} is already taken by another product`);
+                        setLoading(false);
+                        return;
+                    }
+                }
+
                 const response = await createLowestPricesProduct(formData);
                 if (response.success) {
                     setSuccess("Product added successfully!");
@@ -168,11 +178,12 @@ export default function AdminLowestPrices() {
     };
 
     const resetForm = () => {
-        setSelectedProduct("");
-        setOrder(undefined);
-        setIsActive(true);
         setEditingId(null);
         setProductSearchTerm("");
+
+        // Suggest next order
+        const maxOrder = Math.max(...lowestPricesProducts.map(lp => lp.order || 0), 0);
+        setOrder(maxOrder + 1);
     };
 
     // Pagination
@@ -302,12 +313,12 @@ export default function AdminLowestPrices() {
                                     onChange={(e) =>
                                         setOrder(e.target.value ? Number(e.target.value) : undefined)
                                     }
-                                    placeholder="Auto-assign"
+                                    placeholder="Order priority"
                                     min="0"
                                     className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
                                 />
                                 <p className="text-xs text-neutral-500 mt-1">
-                                    Leave empty to auto-assign at the end
+                                    Suggested next order: {Math.max(...lowestPricesProducts.map(lp => lp.order || 0), 0) + 1}
                                 </p>
                             </div>
 

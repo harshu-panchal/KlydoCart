@@ -573,6 +573,10 @@ function AppContent() {
                                       element={<AdminStockManagement />}
                                     />
                                     <Route
+                                      path="product/edit/:id"
+                                      element={<SellerAddProduct />}
+                                    />
+                                    <Route
                                       path="manage-seller/list"
                                       element={<AdminManageSellerList />}
                                     />
