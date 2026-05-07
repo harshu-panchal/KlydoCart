@@ -198,8 +198,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
  * Get current delivery partner profile
  */
 export const getProfile = asyncHandler(async (req: Request, res: Response) => {
-  // @ts-ignore - req.user is added by middleware
-  const userId = (req.user as any).userId;
+  const userId = req.user?.userId;
 
   if (!userId) {
     return res.status(401).json({ success: false, message: "User not authenticated" });
