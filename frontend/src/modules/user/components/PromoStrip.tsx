@@ -729,12 +729,13 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
       <div className="px-4 mt-2 md:px-8 md:pb-4 md:max-w-screen-xl md:mx-auto">
         <div ref={containerRef} className="flex gap-2 md:gap-4">
           {/* Crazy Deals Section - Left */}
-          <div className="flex-shrink-0 w-[115px] md:w-[190px] promo-card">
+          <div className="flex-shrink-0 w-[115px] md:w-[190px] promo-card self-start">
             <div
-              className="h-full rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg"
+              className="rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg"
               style={{
                 background: `radial-gradient(circle at center, rgba(255, 255, 255, 0.15), transparent 60%), linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`,
-                minHeight: "110px",
+                height: "180px",
+                minHeight: "180px",
               }}>
               {/* CRAZY DEALS - Two lines, bigger */}
               <div className="text-center mb-1.5 md:mb-2" style={{ marginTop: "4px" }}>
@@ -849,7 +850,6 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
           {/* Category Cards Grid - Right */}
           <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             {categoryCards.map((card) => {
-              // Use subcategory images from the map if available, otherwise check card.subcategoryImages, then fallback to emoji icons
               const subcategoryImages = subcategoryImagesMap[card.id] || card.subcategoryImages || [];
               const hasSubcategoryImages = subcategoryImages.length > 0;
               const categoryIcons = getCategoryIcons(card.categoryId || "");
@@ -858,76 +858,65 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                 <div key={card.id} className="promo-card">
                   <Link
                     to={card.slug || card.categoryId ? `/category/${card.slug || card.categoryId}` : "#"}
-                    className="group rounded-lg md:rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] h-full flex flex-col overflow-hidden relative md:border md:border-orange-100 min-h-[180px] md:min-h-[220px]"
+                    className="group rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] flex flex-col overflow-hidden"
                     style={{
-                      background: "rgba(255, 247, 237, 0.9)", // Very light orange
+                      background: "rgba(255, 247, 237, 0.95)",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                     }}>
-                    {/* Green Discount Banner - Only around text, centered at top */}
-                    <div
-                      className="w-full flex justify-center pt-0 pb-0.5 md:pt-2 md:mb-1"
-                      >
-                      <div className="bg-green-600 text-white text-[9px] md:text-xs font-black px-1.5 py-0.5 md:px-3 md:py-0.5 rounded tracking-tight text-center inline-block md:shadow-sm">
+
+                    {/* Green Badge - pill style, centered */}
+                    <div className="w-full flex justify-center pt-2 pb-1">
+                      <div
+                        className="bg-green-600 text-white text-[9px] font-black px-3 py-[3px] rounded-full tracking-tight text-center shadow-sm"
+                        style={{ letterSpacing: "0.3px" }}>
                         {card.badge}
                       </div>
                     </div>
 
+                    {/* Category Title */}
                     <div
-                      className="px-1 md:px-3 pb-1 md:pb-3 flex flex-col flex-1 justify-between pt-[2px] md:pt-1"
-                      >
-                      {/* Category Title */}
-                      <div
-                        className="text-neutral-900 font-bold text-center text-[13px] md:text-base md:font-black mb-[6px] md:mb-3"
-                        style={{
-                          lineHeight: "1.2",
-                        }}>
-                        {card.title}
-                      </div>
+                      className="text-neutral-900 font-black text-center text-[11px] px-1 mb-1.5"
+                      style={{ lineHeight: "1.2" }}>
+                      {card.title}
+                    </div>
 
-                      {/* Subcategory Images or Emoji Icons - 2-Row Grid Layout */}
-                      <div
-                        className="grid grid-cols-2 gap-1.5 md:gap-2.5 mt-auto pb-2"
-                        >
-                        {hasSubcategoryImages
-                          ? // Display subcategory images as small icons
-                            subcategoryImages.slice(0, 6).map((imageUrl, idx) => (
-                                <div
-                                  key={idx}
-                                  className="bg-white rounded-md md:rounded-xl flex items-center justify-center overflow-hidden border border-neutral-200 md:shadow-md w-full aspect-square"
-                                  >
-                                  <img
-                                    src={imageUrl}
-                                    alt={`Subcategory ${idx + 1}`}
-                                    className="w-full h-full object-contain p-1"
-                                    loading="lazy"
-                                    decoding="async"
-                                    onError={(e) => {
-                                      // Fallback to emoji if image fails to load
-                                      const target =
-                                        e.target as HTMLImageElement;
-                                      target.style.display = "none";
-                                      const parent = target.parentElement;
-                                      if (parent) {
-                                        parent.innerHTML =
-                                          categoryIcons[idx] || "📦";
-                                        parent.style.fontSize = "20px";
-                                        parent.style.display = "flex";
-                                        parent.style.alignItems = "center";
-                                        parent.style.justifyContent = "center";
-                                      }
-                                     }}
-                                  />
-                                </div>
-                              ))
-                          : // Fallback to emoji icons if no subcategory images
-                            categoryIcons.slice(0, 6).map((icon, idx) => (
-                              <div
-                                key={idx}
-                                className="bg-transparent rounded flex items-center justify-center overflow-hidden w-full aspect-square text-[20px] md:text-[28px]"
-                                >
-                                {icon}
-                              </div>
-                            ))}
-                      </div>
+                    {/* 2×2 Image Grid - always 4 slots, empty if no image */}
+                    <div className="grid grid-cols-2 gap-1 px-1.5 pb-1.5">
+                      {Array.from({ length: 4 }).map((_, idx) => {
+                        const imageUrl = hasSubcategoryImages ? subcategoryImages[idx] : undefined;
+                        const icon = categoryIcons[idx];
+                        return (
+                          <div
+                            key={idx}
+                            className="bg-white rounded-lg overflow-hidden aspect-square flex items-center justify-center"
+                            style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+                          >
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={`Subcategory ${idx + 1}`}
+                                className="w-full h-full object-contain p-1"
+                                loading="lazy"
+                                decoding="async"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = "none";
+                                  const parent = target.parentElement;
+                                  if (parent) {
+                                    parent.innerHTML = icon || "📦";
+                                    parent.style.fontSize = "20px";
+                                    parent.style.display = "flex";
+                                    parent.style.alignItems = "center";
+                                    parent.style.justifyContent = "center";
+                                  }
+                                }}
+                              />
+                            ) : !hasSubcategoryImages && icon ? (
+                              <span className="text-[22px]">{icon}</span>
+                            ) : null}
+                          </div>
+                        );
+                      })}
                     </div>
                   </Link>
                 </div>
