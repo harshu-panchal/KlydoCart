@@ -28,8 +28,8 @@ const ALL_TAB: Tab = {
   label: "All",
   icon: (
     <svg
-      width="20"
-      height="20"
+      width="28"
+      height="28"
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg">
@@ -69,10 +69,12 @@ export default function HomeHero({
               <img 
                 src={c.image} 
                 alt={c.name} 
-                className="w-5 h-5 object-contain" 
+                className="w-10 h-10 object-cover rounded-lg shadow-sm transition-transform duration-300" 
               />
             ) : (
-              getIconByName(c.iconName)
+              <div className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-lg backdrop-blur-sm">
+                {getIconByName(c.iconName)}
+              </div>
             ),
           }));
           setTabs([ALL_TAB, ...mapped]);
@@ -539,18 +541,18 @@ export default function HomeHero({
             style={{ paddingBottom: "12px" }}
             data-padding-bottom="md:8px">
             {/* Sliding Indicator */}
-            {indicatorStyle.width > 0 && (
               <div
-                className="absolute bottom-0 h-1 bg-neutral-900 rounded-t-md transition-all duration-300 ease-out pointer-events-none"
+                className="absolute bottom-0 h-1.5 rounded-t-full transition-all duration-300 ease-out pointer-events-none"
                 style={{
                   left: `${indicatorStyle.left}px`,
                   width: `${indicatorStyle.width}px`,
+                  backgroundColor: theme.primary[0],
+                  boxShadow: `0 -2px 10px ${rgbToRgba(theme.primary[0], 0.5)}`,
                   transition:
-                    "left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    "left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease",
                   zIndex: 0,
                 }}
               />
-            )}
 
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -561,38 +563,40 @@ export default function HomeHero({
                   : "text-neutral-800";
 
               return (
-                <button
-                  key={tab.id}
-                  ref={(el) => {
-                    if (el) {
-                      tabRefs.current.set(tab.id, el);
-                    } else {
-                      tabRefs.current.delete(tab.id);
-                    }
-                  }}
-                  onClick={() => handleTabClick(tab.id)}
-                  className={`flex-shrink-0 flex flex-col md:flex-row items-center justify-center min-w-[50px] md:min-w-fit md:px-3 py-1 md:py-1.5 relative ${tabColor} z-10`}
-                  style={{
-                    transition: "color 0.3s ease-out",
-                  }}
-                  type="button">
-                  <div
-                    className={`mb-0.5 md:hidden w-5 h-5 flex items-center justify-center ${tabColor}`}
+                  <button
+                    key={tab.id}
+                    ref={(el) => {
+                      if (el) {
+                        tabRefs.current.set(tab.id, el);
+                      } else {
+                        tabRefs.current.delete(tab.id);
+                      }
+                    }}
+                    onClick={() => handleTabClick(tab.id)}
+                    className={`flex-shrink-0 flex flex-col md:flex-row items-center justify-center min-w-[64px] md:min-w-fit md:px-5 py-1.5 md:py-2 relative z-10 rounded-xl transition-all duration-300`}
                     style={{
-                      transition:
-                        "color 0.3s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      transform: isActive ? "scale(1.1)" : "scale(1)",
-                    }}>
-                    {tab.icon}
-                  </div>
-                  <span
-                    className={`text-[10px] md:text-xs md:whitespace-nowrap ${isActive ? "font-semibold" : "font-medium"}`}
-                    style={{
-                      transition: "font-weight 0.3s ease-out",
-                    }}>
-                    {tab.label}
-                  </span>
-                </button>
+                      backgroundColor: isActive ? rgbToRgba(theme.primary[0], 0.15) : 'transparent',
+                    }}
+                    type="button">
+                    <div
+                      className={`mb-2 md:hidden w-10 h-10 flex items-center justify-center`}
+                      style={{
+                        color: isActive ? theme.accentColor : tabColor,
+                        transition:
+                          "color 0.3s ease-out, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+                        transform: isActive ? "scale(1.25) translateY(-2px)" : "scale(1)",
+                        filter: isActive ? `drop-shadow(0 4px 6px ${rgbToRgba(theme.primary[0], 0.3)})` : 'none',
+                      }}>
+                      {tab.icon}
+                    </div>
+                    <span
+                      className={`text-[11px] md:text-sm md:whitespace-nowrap transition-all duration-300 ${isActive ? "font-bold tracking-tight" : "font-semibold"}`}
+                      style={{
+                        color: isActive ? theme.textColor : 'inherit',
+                      }}>
+                      {tab.label}
+                    </span>
+                  </button>
               );
             })}
           </div>

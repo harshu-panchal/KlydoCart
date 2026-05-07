@@ -729,7 +729,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
       <div className="px-4 mt-2 md:px-8 md:pb-4 md:max-w-screen-xl md:mx-auto">
         <div ref={containerRef} className="flex gap-2 md:gap-4">
           {/* Crazy Deals Section - Left */}
-          <div className="flex-shrink-0 w-[100px] md:w-[180px] promo-card">
+          <div className="flex-shrink-0 w-[115px] md:w-[190px] promo-card">
             <div
               className="h-full rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg"
               style={{
@@ -800,7 +800,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                 >
                 <div
                   onClick={handleProductClick}
-                  className="w-12 h-16 md:w-24 md:h-24 rounded md:rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  className="w-16 h-20 md:w-28 md:h-28 rounded md:rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                   style={{ background: "transparent" }}>
                   {displayProduct.imageUrl ? (
                     <img
@@ -858,7 +858,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                 <div key={card.id} className="promo-card">
                   <Link
                     to={card.slug || card.categoryId ? `/category/${card.slug || card.categoryId}` : "#"}
-                    className="group rounded-lg md:rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] h-full flex flex-col overflow-hidden relative md:border md:border-orange-100 min-h-[90px] md:min-h-[140px]"
+                    className="group rounded-lg md:rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] h-full flex flex-col overflow-hidden relative md:border md:border-orange-100 min-h-[180px] md:min-h-[220px]"
                     style={{
                       background: "rgba(255, 247, 237, 0.9)", // Very light orange
                     }}>
@@ -883,21 +883,21 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                         {card.title}
                       </div>
 
-                      {/* Subcategory Images or Emoji Icons - Horizontal Layout */}
+                      {/* Subcategory Images or Emoji Icons - 2-Row Grid Layout */}
                       <div
-                        className="flex items-center justify-center gap-1 md:gap-2 overflow-hidden mt-auto md:mb-1"
+                        className="grid grid-cols-2 gap-1.5 md:gap-2.5 mt-auto pb-2"
                         >
                         {hasSubcategoryImages
                           ? // Display subcategory images as small icons
-                            subcategoryImages.slice(0, 4).map((imageUrl, idx) => (
+                            subcategoryImages.slice(0, 6).map((imageUrl, idx) => (
                                 <div
                                   key={idx}
-                                  className="flex-shrink-0 bg-white rounded md:rounded-lg flex items-center justify-center overflow-hidden border border-neutral-200 md:shadow-sm w-[24px] h-[24px] md:w-[42px] md:h-[42px]"
+                                  className="bg-white rounded-md md:rounded-xl flex items-center justify-center overflow-hidden border border-neutral-200 md:shadow-md w-full aspect-square"
                                   >
                                   <img
                                     src={imageUrl}
                                     alt={`Subcategory ${idx + 1}`}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-contain p-1"
                                     loading="lazy"
                                     decoding="async"
                                     onError={(e) => {
@@ -909,7 +909,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                                       if (parent) {
                                         parent.innerHTML =
                                           categoryIcons[idx] || "📦";
-                                        parent.style.fontSize = "18px";
+                                        parent.style.fontSize = "20px";
                                         parent.style.display = "flex";
                                         parent.style.alignItems = "center";
                                         parent.style.justifyContent = "center";
@@ -919,10 +919,10 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                                 </div>
                               ))
                           : // Fallback to emoji icons if no subcategory images
-                            categoryIcons.slice(0, 4).map((icon, idx) => (
+                            categoryIcons.slice(0, 6).map((icon, idx) => (
                               <div
                                 key={idx}
-                                className="flex-shrink-0 bg-transparent rounded flex items-center justify-center overflow-hidden w-[24px] h-[24px] md:w-[42px] md:h-[42px] text-[18px] md:text-[24px]"
+                                className="bg-transparent rounded flex items-center justify-center overflow-hidden w-full aspect-square text-[20px] md:text-[28px]"
                                 >
                                 {icon}
                               </div>

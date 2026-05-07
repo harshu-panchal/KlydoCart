@@ -5,6 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getCategories, Category } from '../../../services/api/categoryService';
 import GoogleMapsAutocomplete from '../../../components/GoogleMapsAutocomplete';
 import LocationPickerMap from '../../../components/LocationPickerMap';
+import { useToast } from '../../../context/ToastContext';
 
 const SellerAccountSettings = () => {
   const { user, updateUser } = useAuth();
@@ -15,6 +16,7 @@ const SellerAccountSettings = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [saveLoading, setSaveLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const { showToast } = useToast();
 
   // Initial state with empty values
   const [sellerData, setSellerData] = useState({
@@ -107,13 +109,15 @@ const SellerAccountSettings = () => {
       if (value.length > 0 && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value.toUpperCase())) {
         error = "Invalid IFSC format (e.g. HDFC0001015)";
       }
-    } else if (name === 'panCard') {
-      if (value.length > 0 && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value.toUpperCase())) {
-        error = "Invalid PAN format (e.g. ABCDE1234F)";
-      }
     } else if (name === 'taxNumber') {
-      if (value.length > 0 && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(value.toUpperCase())) {
+      const trimmedValue = value.trim().toUpperCase();
+      if (trimmedValue.length > 0 && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$/.test(trimmedValue)) {
         error = "Invalid GST format";
+      }
+    } else if (name === 'panCard') {
+      const trimmedValue = value.trim().toUpperCase();
+      if (trimmedValue.length > 0 && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(trimmedValue)) {
+        error = "Invalid PAN format";
       }
     } else if (name === 'email') {
       if (value.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
@@ -181,10 +185,10 @@ const SellerAccountSettings = () => {
       if (sellerData.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(sellerData.ifsc.toUpperCase())) {
         errors.ifsc = "Invalid IFSC Code (e.g. HDFC0001015)";
       }
-      if (sellerData.panCard && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(sellerData.panCard.toUpperCase())) {
+      if (sellerData.panCard && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(sellerData.panCard.trim().toUpperCase())) {
         errors.panCard = "Invalid PAN Card format";
       }
-      if (sellerData.taxNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(sellerData.taxNumber.toUpperCase())) {
+      if (sellerData.taxNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$/.test(sellerData.taxNumber.trim().toUpperCase())) {
         errors.taxNumber = "Invalid GST format";
       }
 
@@ -196,10 +200,33 @@ const SellerAccountSettings = () => {
         }
       }
 
+      if (!sellerData.storeName.trim()) {
+        errors.storeName = "Store Name is required";
+      }
+
+      if (!sellerData.category) {
+        errors.category = "Please select a category";
+      }
+
+      if (!sellerData.address?.trim() && !sellerData.searchLocation?.trim()) {
+        errors.address = "Store Location is required";
+      }
+
       if (Object.keys(errors).length > 0) {
         setFormErrors(errors);
-        setError('Please fix the validation errors before saving');
+        showToast('Please fix the validation errors before saving', 'error');
+        console.error('Validation errors:', errors);
         setSaveLoading(false);
+
+        // Auto-switch to the first tab that has an error
+        if (errors.sellerName || errors.email || errors.mobile || errors.newPassword || errors.confirmPassword) {
+          setActiveTab('profile');
+        } else if (errors.storeName || errors.category || errors.address) {
+          setActiveTab('store');
+        } else if (errors.accountName || errors.bankName || errors.accountNumber || errors.ifsc || errors.panCard || errors.taxNumber) {
+          setActiveTab('bank');
+        }
+
         return;
       }
 
@@ -243,11 +270,16 @@ const SellerAccountSettings = () => {
           });
         }
         setError('');
+        showToast('Profile updated successfully!', 'success');
       } else {
-        setError(response.message || 'Failed to update profile');
+        const msg = response.message || 'Failed to update profile';
+        setError(msg);
+        showToast(msg, 'error');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error updating profile');
+      const msg = err.response?.data?.message || 'Error updating profile';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setSaveLoading(false);
     }
@@ -344,15 +376,23 @@ const SellerAccountSettings = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${activeTab === tab.id
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${activeTab === tab.id
                     ? 'bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-200'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                 >
-                  <span className={`${activeTab === tab.id ? 'text-teal-600' : 'text-gray-400'}`}>
-                    {tab.icon}
-                  </span>
-                  {tab.label}
+                  <div className="flex items-center gap-3">
+                    <span className={`${activeTab === tab.id ? 'text-teal-600' : 'text-gray-400'}`}>
+                      {tab.icon}
+                    </span>
+                    {tab.label}
+                  </div>
+                  {/* Error indicator dot */}
+                  {((tab.id === 'profile' && (formErrors.sellerName || formErrors.email || formErrors.mobile || formErrors.newPassword || formErrors.confirmPassword)) ||
+                    (tab.id === 'store' && (formErrors.storeName || formErrors.category || formErrors.address)) ||
+                    (tab.id === 'bank' && (formErrors.accountName || formErrors.bankName || formErrors.accountNumber || formErrors.ifsc || formErrors.panCard || formErrors.taxNumber))) && (
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  )}
                 </button>
               ))}
             </div>
@@ -378,19 +418,7 @@ const SellerAccountSettings = () => {
 
           {/* Main Content Area */}
           <div className="flex-1">
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl flex justify-between items-center shadow-sm"
-              >
-                <span className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  {error}
-                </span>
-                <button onClick={() => setError(null)} className="text-red-800 hover:bg-red-100 p-1 rounded transition-colors">&times;</button>
-              </motion.div>
-            )}
+            {/* Inline Error removed in favor of Toast as per user request */}
 
             <form onSubmit={handleSubmit}>
               <AnimatePresence mode="wait">
@@ -510,13 +538,18 @@ const SellerAccountSettings = () => {
                                 value={sellerData.category}
                                 onChange={handleInputChange}
                                 disabled={!isEditing}
-                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all appearance-none bg-white"
+                                className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all appearance-none bg-white ${
+                                  formErrors.category ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500' : 'border-gray-300 focus:ring-teal-500/20 focus:border-teal-500'
+                                }`}
                               >
                                 <option value="">Select Category</option>
                                 {categories.map(cat => (
                                   <option key={cat._id} value={cat.name}>{cat.name}</option>
                                 ))}
                               </select>
+                              {formErrors.category && (
+                                <p className="mt-1 text-[10px] text-red-500 font-bold ml-1">{formErrors.category}</p>
+                              )}
                               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                               </div>
@@ -540,11 +573,22 @@ const SellerAccountSettings = () => {
                                       address: address,
                                       city: components?.city || prev.city,
                                     }));
+                                    if (formErrors.address) {
+                                      setFormErrors(prev => {
+                                        const next = { ...prev };
+                                        delete next.address;
+                                        return next;
+                                      });
+                                    }
                                   }}
                                   placeholder="Search and select your store location..."
                                   disabled={!isEditing}
                                   required
+                                  className={formErrors.address ? 'border-red-400 focus:border-red-500' : ''}
                                 />
+                                {formErrors.address && (
+                                  <p className="mt-1 text-[10px] text-red-500 font-bold ml-1">{formErrors.address}</p>
+                                )}
                                   <div className="mt-4 animate-fadeIn">
                                     <p className="text-sm font-medium text-neutral-700 mb-2">
                                       Exact Location <span className="text-teal-600 text-xs font-normal">(Move the map to place the pin on your store's entrance)</span>
