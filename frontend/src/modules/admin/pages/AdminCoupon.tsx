@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { uploadImage } from "../../../services/api/uploadService";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 import {
   validateImageFile,
   createImagePreview,
@@ -40,6 +42,7 @@ export default function AdminCoupon() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
 
   // Fetch coupons from API
   const fetchCoupons = async () => {
@@ -262,6 +265,61 @@ export default function AdminCoupon() {
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const displayedCoupons = sortedCoupons.slice(startIndex, endIndex);
+ 
+  const handleExportExcel = () => {
+    const headers = ["Coupon Code", "Discount", "Type", "Min Purchase", "Expiry Date", "Status"];
+    const csvContent = [
+      headers.join(","),
+      ...sortedCoupons.map((coupon) =>
+        [
+          coupon.code,
+          coupon.discountValue,
+          coupon.discountType,
+          coupon.minimumPurchase || 0,
+          new Date(coupon.endDate).toLocaleDateString(),
+          coupon.isActive ? "Active" : "Inactive",
+        ].join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `coupons_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setShowExportDropdown(false);
+  };
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Coupon List", 14, 15);
+
+    const tableColumn = ["Sr No.", "Coupon Code", "Discount", "Type", "Min Purchase", "Expiry Date", "Status"];
+    const tableRows = sortedCoupons.map((coupon, index) => [
+      index + 1,
+      coupon.code,
+      coupon.discountType === "Percentage" ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`,
+      coupon.discountType,
+      coupon.minimumPurchase ? `₹${coupon.minimumPurchase}` : "N/A",
+      new Date(coupon.endDate).toLocaleDateString(),
+      coupon.isActive ? "Active" : "Inactive",
+    ]);
+
+    (doc as any).autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+      theme: "grid",
+      headStyles: { fillColor: [13, 148, 136] }, // teal-600
+    });
+
+    doc.save(`coupons_${new Date().toISOString().split("T")[0]}.pdf`);
+    setShowExportDropdown(false);
+  };
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -328,7 +386,7 @@ export default function AdminCoupon() {
 
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Coupon Image
+                  Coupon Image (Optional)
                 </label>
                 <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center cursor-pointer hover:border-teal-500 transition-colors">
                   {couponImagePreview ? (
@@ -394,6 +452,7 @@ export default function AdminCoupon() {
                     value={formData.couponExpiryDate}
                     onChange={handleInputChange}
                     required
+                    min={new Date().toISOString().split("T")[0]}
                     className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
                   />
                 </div>
@@ -573,6 +632,52 @@ export default function AdminCoupon() {
                 <option value={100}>100</option>
               </select>
               <span className="text-sm text-neutral-600">entries</span>
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowExportDropdown(!showExportDropdown)}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-1.5 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+                Export
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+
+              {showExportDropdown && (
+                <div className="absolute right-0 mt-2 w-40 bg-white border border-neutral-200 rounded-lg shadow-lg z-10 py-1 overflow-hidden">
+                  <button
+                    onClick={handleExportExcel}
+                    className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center gap-2 transition-colors">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    Excel (CSV)
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center gap-2 transition-colors">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <path d="M12 18V12"></path>
+                      <path d="M9 15l3 3 3-3"></path>
+                    </svg>
+                    PDF Document
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

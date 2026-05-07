@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAllSellers, updateSellerStatus, deleteSeller, Seller as SellerType, updateSeller } from '../../../services/api/sellerService';
 import SellerServiceMap from '../components/SellerServiceMap';
+import { useToast } from '../../../context/ToastContext';
 
 interface Seller {
     _id: string;
@@ -99,6 +100,8 @@ export default function AdminManageSellerList() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
     const [successMessage, setSuccessMessage] = useState<string>('');
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+    const { showToast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
@@ -280,14 +283,57 @@ export default function AdminManageSellerList() {
 
     const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+        let newValue = value;
+
+        if (name === 'city') {
+            // Remove numbers from city name
+            newValue = value.replace(/[0-9]/g, '');
+        } else if (name === 'panCard') {
+            // Auto-capitalize and limit to 10 characters
+            newValue = value.toUpperCase().slice(0, 10);
+        } else if (name === 'taxNumber') {
+            // Auto-capitalize and limit to 15 characters
+            newValue = value.toUpperCase().slice(0, 15);
+        } else if (name === 'taxName') {
+            // Auto-capitalize tax name and remove non-alphabetic characters (allowing spaces)
+            newValue = value.toUpperCase().replace(/[^A-Z\s]/g, '');
+        }
+
         setEditFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: newValue
         }));
+
+        // Clear field error when user starts typing
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
     };
 
     const handleUpdateProfile = async () => {
         if (!editingSeller) return;
+
+        const newFieldErrors: Record<string, string> = {};
+
+        // PAN Card Validation (5 Letters, 4 Digits, 1 Letter)
+        if (editFormData.panCard && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(editFormData.panCard)) {
+            newFieldErrors.panCard = 'Invalid PAN Card format (Expected: ABCDE1234F)';
+        }
+
+        // GST Number Validation (15 characters)
+        if (editFormData.taxNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(editFormData.taxNumber)) {
+            newFieldErrors.taxNumber = 'Invalid GST Number format (Expected: 22AAAAA0000A1Z5)';
+        }
+
+        if (Object.keys(newFieldErrors).length > 0) {
+            setFieldErrors(newFieldErrors);
+            showToast('Please correct the errors in the form', 'error');
+            return;
+        }
 
         try {
             setIsUpdatingProfile(true);
@@ -295,15 +341,13 @@ export default function AdminManageSellerList() {
             if (response.success) {
                 const updatedSeller = mapSellerToFrontend(response.data);
                 setEditingSeller(updatedSeller);
-                // Also update the seller in the main list
                 setSellers(sellers.map(s => s._id === editingSeller._id ? updatedSeller : s));
-                setSuccessMessage('Seller information updated successfully');
-                setTimeout(() => setSuccessMessage(''), 3000);
+                showToast('Seller information updated successfully', 'success');
             }
         } catch (error: any) {
             console.error('Error updating profile:', error);
-            setError(error.response?.data?.message || 'Failed to update seller information');
-            setTimeout(() => setError(''), 3000);
+            const msg = error.response?.data?.message || 'Failed to update seller information';
+            showToast(msg, 'error');
         } finally {
             setIsUpdatingProfile(false);
         }
@@ -319,13 +363,11 @@ export default function AdminManageSellerList() {
                 setEditingSeller({ ...editingSeller, serviceRadiusKm: newRadius });
                 // Also update the seller in the main list
                 setSellers(sellers.map(s => s._id === editingSeller._id ? { ...s, serviceRadiusKm: newRadius } : s));
-                setSuccessMessage('Service radius updated successfully');
-                setTimeout(() => setSuccessMessage(''), 3000);
+                showToast('Service radius updated successfully', 'success');
             }
         } catch (error) {
             console.error('Error updating radius:', error);
-            setError('Failed to update service radius');
-            setTimeout(() => setError(''), 3000);
+            showToast('Failed to update service radius', 'error');
         } finally {
             setIsUpdatingRadius(false);
         }
@@ -341,13 +383,11 @@ export default function AdminManageSellerList() {
                 setEditingSeller({ ...editingSeller, commission: newCommission });
                 // Also update the seller in the main list
                 setSellers(sellers.map(s => s._id === editingSeller._id ? { ...s, commission: newCommission } : s));
-                setSuccessMessage('Commission updated successfully');
-                setTimeout(() => setSuccessMessage(''), 3000);
+                showToast('Commission updated successfully', 'success');
             }
         } catch (error) {
             console.error('Error updating commission:', error);
-            setError('Failed to update commission');
-            setTimeout(() => setError(''), 3000);
+            showToast('Failed to update commission', 'error');
         } finally {
             setIsUpdatingCommission(false);
         }
@@ -374,13 +414,11 @@ export default function AdminManageSellerList() {
                     requireProductApproval, 
                     viewCustomerDetails 
                 } : s));
-                setSuccessMessage('Seller settings updated successfully');
-                setTimeout(() => setSuccessMessage(''), 3000);
+                showToast('Seller settings updated successfully', 'success');
             }
         } catch (error) {
             console.error('Error updating settings:', error);
-            setError('Failed to update seller settings');
-            setTimeout(() => setError(''), 3000);
+            showToast('Failed to update seller settings', 'error');
         } finally {
             setIsUpdatingSettings(false);
         }
@@ -401,16 +439,15 @@ export default function AdminManageSellerList() {
                             : seller
                     )
                 );
-                setSuccessMessage('Seller has been approved.');
+                showToast('Seller has been approved.', 'success');
                 setIsEditModalOpen(false);
                 setEditingSeller(null);
-                setTimeout(() => setSuccessMessage(''), 3000);
             } else {
-                setError('Failed to approve seller. Please try again.');
+                showToast('Failed to approve seller. Please try again.', 'error');
             }
         } catch (err: any) {
             console.error('Error approving seller:', err);
-            setError(err.response?.data?.message || 'Failed to approve seller. Please try again.');
+            showToast(err.response?.data?.message || 'Failed to approve seller. Please try again.', 'error');
         }
     };
 
@@ -429,16 +466,15 @@ export default function AdminManageSellerList() {
                             : seller
                     )
                 );
-                setSuccessMessage('Seller has been rejected.');
+                showToast('Seller has been rejected.', 'success');
                 setIsEditModalOpen(false);
                 setEditingSeller(null);
-                setTimeout(() => setSuccessMessage(''), 3000);
             } else {
-                setError('Failed to reject seller. Please try again.');
+                showToast('Failed to reject seller. Please try again.', 'error');
             }
         } catch (err: any) {
             console.error('Error rejecting seller:', err);
-            setError(err.response?.data?.message || 'Failed to reject seller. Please try again.');
+            showToast(err.response?.data?.message || 'Failed to reject seller. Please try again.', 'error');
         }
     };
 
@@ -457,14 +493,13 @@ export default function AdminManageSellerList() {
                 if (response.success) {
                     // Remove from local state
                     setSellers(prevSellers => prevSellers.filter(seller => seller._id !== sellerId));
-                    setSuccessMessage('Seller deleted successfully.');
-                    setTimeout(() => setSuccessMessage(''), 3000);
+                    showToast('Seller deleted successfully.', 'success');
                 } else {
-                    setError('Failed to delete seller. Please try again.');
+                    showToast('Failed to delete seller. Please try again.', 'error');
                 }
             } catch (err: any) {
                 console.error('Error deleting seller:', err);
-                setError(err.response?.data?.message || 'Failed to delete seller. Please try again.');
+                showToast(err.response?.data?.message || 'Failed to delete seller. Please try again.', 'error');
             }
         }
     };
@@ -556,10 +591,12 @@ export default function AdminManageSellerList() {
                                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">Search:</span>
                                 <input
                                     type="text"
-                                    className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-48"
+                                    className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-72"
                                     value={searchTerm}
                                     onChange={(e) => {
-                                        setSearchTerm(e.target.value);
+                                        // Ignore leading spaces as characters
+                                        const val = e.target.value;
+                                        setSearchTerm(val.startsWith(' ') ? val.trimStart() : val);
                                         setCurrentPage(1);
                                     }}
                                     placeholder=""
@@ -812,7 +849,7 @@ export default function AdminManageSellerList() {
             {/* Categories Modal */}
             {isModalOpen && selectedSeller && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={handleCloseModal}>
-                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                         {/* Modal Header */}
                         <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
                             <div>
@@ -868,7 +905,7 @@ export default function AdminManageSellerList() {
             {/* Edit Seller Modal */}
             {isEditModalOpen && editingSeller && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={handleCloseEditModal}>
-                    <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                         {/* Modal Header */}
                         <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
                             <div>
@@ -937,13 +974,7 @@ export default function AdminManageSellerList() {
                                 <div className="bg-neutral-50 rounded-lg p-4">
                                     <div className="flex items-center justify-between mb-3">
                                         <h4 className="text-sm font-semibold text-neutral-700">Basic Information</h4>
-                                        <button
-                                            onClick={handleUpdateProfile}
-                                            disabled={isUpdatingProfile}
-                                            className="px-3 py-1 bg-teal-600 text-white rounded text-xs font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
-                                        >
-                                            {isUpdatingProfile ? 'Saving...' : 'Update Info'}
-                                        </button>
+
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
@@ -953,7 +984,8 @@ export default function AdminManageSellerList() {
                                                 name="sellerName"
                                                 value={editFormData.sellerName || ''}
                                                 onChange={handleEditInputChange}
-                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed"
+                                                readOnly
                                             />
                                         </div>
                                         <div>
@@ -963,7 +995,8 @@ export default function AdminManageSellerList() {
                                                 name="storeName"
                                                 value={editFormData.storeName || ''}
                                                 onChange={handleEditInputChange}
-                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed"
+                                                readOnly
                                             />
                                         </div>
                                         <div>
@@ -973,7 +1006,8 @@ export default function AdminManageSellerList() {
                                                 name="email"
                                                 value={editFormData.email || ''}
                                                 onChange={handleEditInputChange}
-                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed"
+                                                readOnly
                                             />
                                         </div>
                                         <div>
@@ -983,7 +1017,8 @@ export default function AdminManageSellerList() {
                                                 name="mobile"
                                                 value={editFormData.mobile || ''}
                                                 onChange={handleEditInputChange}
-                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed"
+                                                readOnly
                                             />
                                         </div>
                                         <div>
@@ -993,7 +1028,8 @@ export default function AdminManageSellerList() {
                                                 name="category"
                                                 value={editFormData.category || ''}
                                                 onChange={handleEditInputChange}
-                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed"
+                                                readOnly
                                             />
                                         </div>
                                         <div>
@@ -1052,6 +1088,7 @@ export default function AdminManageSellerList() {
                                                 onChange={handleEditInputChange}
                                                 className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
                                             />
+                                            {fieldErrors.city && <p className="text-[10px] text-red-500 mt-0.5">{fieldErrors.city}</p>}
                                         </div>
                                         <div>
                                             <label className="text-xs text-neutral-500 mb-1 block">Serviceable Area</label>
@@ -1158,6 +1195,7 @@ export default function AdminManageSellerList() {
                                                 onChange={handleEditInputChange}
                                                 className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
                                             />
+                                            {fieldErrors.panCard && <p className="text-[10px] text-red-500 mt-0.5">{fieldErrors.panCard}</p>}
                                         </div>
                                         <div>
                                             <label className="text-xs text-neutral-500 mb-1 block">Tax Name (GST Name)</label>
@@ -1178,6 +1216,7 @@ export default function AdminManageSellerList() {
                                                 onChange={handleEditInputChange}
                                                 className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
                                             />
+                                            {fieldErrors.taxNumber && <p className="text-[10px] text-red-500 mt-0.5">{fieldErrors.taxNumber}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -1186,13 +1225,7 @@ export default function AdminManageSellerList() {
                                 <div className="bg-neutral-50 rounded-lg p-4">
                                     <div className="flex items-center justify-between mb-3">
                                         <h4 className="text-sm font-semibold text-neutral-700">Bank Information</h4>
-                                        <button
-                                            onClick={handleUpdateProfile}
-                                            disabled={isUpdatingProfile}
-                                            className="px-3 py-1 bg-teal-600 text-white rounded text-xs font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
-                                        >
-                                            {isUpdatingProfile ? 'Saving...' : 'Update Bank Info'}
-                                        </button>
+
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
@@ -1202,7 +1235,8 @@ export default function AdminManageSellerList() {
                                                 name="accountName"
                                                 value={editFormData.accountName || ''}
                                                 onChange={handleEditInputChange}
-                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed"
+                                                readOnly
                                             />
                                         </div>
                                         <div>
@@ -1212,7 +1246,8 @@ export default function AdminManageSellerList() {
                                                 name="bankName"
                                                 value={editFormData.bankName || ''}
                                                 onChange={handleEditInputChange}
-                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed"
+                                                readOnly
                                             />
                                         </div>
                                         <div>
@@ -1222,7 +1257,8 @@ export default function AdminManageSellerList() {
                                                 name="branch"
                                                 value={editFormData.branch || ''}
                                                 onChange={handleEditInputChange}
-                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed"
+                                                readOnly
                                             />
                                         </div>
                                         <div>
@@ -1232,7 +1268,8 @@ export default function AdminManageSellerList() {
                                                 name="accountNumber"
                                                 value={editFormData.accountNumber || ''}
                                                 onChange={handleEditInputChange}
-                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed"
+                                                readOnly
                                             />
                                         </div>
                                         <div>
@@ -1242,7 +1279,8 @@ export default function AdminManageSellerList() {
                                                 name="ifsc"
                                                 value={editFormData.ifsc || ''}
                                                 onChange={handleEditInputChange}
-                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500"
+                                                className="w-full px-3 py-1.5 border border-neutral-300 rounded text-sm focus:ring-teal-500 focus:border-teal-500 bg-neutral-100 cursor-not-allowed"
+                                                readOnly
                                             />
                                         </div>
                                     </div>

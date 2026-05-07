@@ -61,6 +61,7 @@ export interface GetContentParams {
   limit?: number;
   search?: string;
   isActive?: boolean;
+  category?: string;
   type?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";

@@ -26,6 +26,7 @@ export interface DeliveryBoy {
   maxAmount?: number;
   balance: number;
   cashCollected: number;
+  pendingAdminPayout: number;
   status: "Active" | "Inactive";
   available: "Available" | "Not Available";
   currentLocation?: {

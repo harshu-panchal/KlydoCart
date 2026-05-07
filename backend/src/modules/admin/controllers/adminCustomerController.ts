@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Request, Response } from "express";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Customer from "../../../models/Customer";
@@ -35,10 +36,46 @@ export const getAllCustomers = asyncHandler(
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const [customers, total] = await Promise.all([
-      Customer.find(query)
-        .sort(sort)
-        .skip(skip)
-        .limit(parseInt(limit as string)),
+      Customer.aggregate([
+        { $match: query },
+        {
+          $lookup: {
+            from: "orders",
+            let: { customerId: "$_id" },
+            pipeline: [
+              { $match: { $expr: { $eq: ["$customer", "$$customerId"] } } },
+              {
+                $group: {
+                  _id: null,
+                  count: { $sum: 1 },
+                  spent: { $sum: "$total" }
+                }
+              }
+            ],
+            as: "orderStats"
+          }
+        },
+        {
+          $addFields: {
+            stats: { $arrayElemAt: ["$orderStats", 0] }
+          }
+        },
+        {
+          $addFields: {
+            totalOrders: { $ifNull: ["$stats.count", 0] },
+            totalSpent: { $ifNull: ["$stats.spent", 0] }
+          }
+        },
+        {
+          $project: {
+            orderStats: 0,
+            stats: 0
+          }
+        },
+        { $sort: sort },
+        { $skip: skip },
+        { $limit: parseInt(limit as string) }
+      ]),
       Customer.countDocuments(query),
     ]);
 
@@ -63,9 +100,45 @@ export const getCustomerById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    const customer = await Customer.findById(id);
+    const customer = await Customer.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(id) } },
+      {
+        $lookup: {
+          from: "orders",
+          let: { customerId: "$_id" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$customer", "$$customerId"] } } },
+            {
+              $group: {
+                _id: null,
+                count: { $sum: 1 },
+                spent: { $sum: "$total" }
+              }
+            }
+          ],
+          as: "orderStats"
+        }
+      },
+      {
+        $addFields: {
+          stats: { $arrayElemAt: ["$orderStats", 0] }
+        }
+      },
+      {
+        $addFields: {
+          totalOrders: { $ifNull: ["$stats.count", 0] },
+          totalSpent: { $ifNull: ["$stats.spent", 0] }
+        }
+      },
+      {
+        $project: {
+          orderStats: 0,
+          stats: 0
+        }
+      }
+    ]);
 
-    if (!customer) {
+    if (!customer || customer.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Customer not found",
@@ -75,7 +148,7 @@ export const getCustomerById = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Customer fetched successfully",
-      data: customer,
+      data: customer[0],
     });
   }
 );
