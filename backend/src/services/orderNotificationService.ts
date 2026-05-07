@@ -5,6 +5,7 @@ import Seller from '../models/Seller';
 import DeliveryTracking from '../models/DeliveryTracking';
 import mongoose from 'mongoose';
 import { notifySellersOfOrderUpdate } from './sellerNotificationService';
+import { sendPushNotification } from './firebaseAdmin';
 
 // Track order notification state
 export interface OrderNotificationState {
@@ -44,11 +45,14 @@ function calculateDistance(
  */
 export async function findAvailableDeliveryBoys(): Promise<mongoose.Types.ObjectId[]> {
     try {
+        // NOTE: We intentionally do NOT filter by status:'Active' here.
+        // Any delivery boy who has toggled isOnline=true should receive notifications.
+        // Admin approval (status) is a separate concern from notification eligibility.
         const deliveryBoys = await Delivery.find({
             isOnline: true,
-            status: 'Active',
         }).select('_id');
 
+        console.log(`📋 Found ${deliveryBoys.length} online delivery boys (all statuses)`);
         return deliveryBoys.map(db => db._id);
     } catch (error) {
         console.error('Error finding available delivery boys:', error);
@@ -70,9 +74,9 @@ export async function findDeliveryBoysNearLocation(
         // 1. Try to find delivery boys using the new GeoJSON location field in Delivery model
         const nearbyDeliveryBoys: { deliveryBoyId: mongoose.Types.ObjectId; distance: number }[] = [];
 
+        // NOTE: Removed status:'Active' filter — any online delivery boy is eligible.
         const deliveryBoysWithLocation = await Delivery.find({
             isOnline: true,
-            status: 'Active',
             location: {
                 $near: {
                     $geometry: {
@@ -104,9 +108,9 @@ export async function findDeliveryBoysNearLocation(
 
         // 2. Fallback to the old method using DeliveryTracking if no delivery boys found with the new field
         // Get all active and online delivery boys
+        // Fallback: all online delivery boys regardless of status
         const allDeliveryBoys = await Delivery.find({
             isOnline: true,
-            status: 'Active',
         }).select('_id');
 
         if (allDeliveryBoys.length === 0) {
@@ -369,9 +373,48 @@ export async function notifyDeliveryBoysOfNewOrder(
         // Only notify individual active delivery boys, not the general room
         // This prevents offline delivery boys from receiving notifications
 
+        // --- FCM PUSH NOTIFICATIONS ---
+        try {
+            // Fetch FCM tokens for all eligible nearby delivery boys (including disconnected ones)
+            const deliveryBoysWithTokens = await Delivery.find({
+                _id: { $in: nearbyDeliveryBoyIds },
+                $or: [
+                    { fcmTokens: { $exists: true, $ne: [] } },
+                    { fcmTokenMobile: { $exists: true, $ne: [] } }
+                ]
+            }).select('fcmTokens fcmTokenMobile name');
+
+            if (deliveryBoysWithTokens.length > 0) {
+                const allTokens: string[] = [];
+                deliveryBoysWithTokens.forEach(db => {
+                    if (db.fcmTokens) allTokens.push(...db.fcmTokens);
+                    if (db.fcmTokenMobile) allTokens.push(...db.fcmTokenMobile);
+                });
+
+                if (allTokens.length > 0) {
+                    const uniqueTokens = [...new Set(allTokens)];
+                    await sendPushNotification(uniqueTokens, {
+                        title: '🎁 New Order Available!',
+                        body: `New order #${order.orderNumber} for ₹${order.total}. Tap to view details and accept.`,
+                        data: {
+                            type: 'NEW_ORDER',
+                            orderId: orderId,
+                            orderNumber: order.orderNumber?.toString() || '',
+                            total: order.total?.toString() || ''
+                        }
+                    });
+                    console.log(`📱 Sent FCM push notifications to ${uniqueTokens.length} unique tokens for ${deliveryBoysWithTokens.length} delivery boys`);
+                }
+            }
+        } catch (fcmError) {
+            console.error('⚠️ Error sending FCM notifications during order flow:', fcmError);
+            // Don't throw, we still want to continue since socket might have worked
+        }
+        // ---------------------------------
+
         console.log(`📢 Successfully notified ${notifiedIds.size} connected delivery boys about order ${order.orderNumber}`);
         if (disconnectedIds.length > 0) {
-            console.log(`⚠️ ${disconnectedIds.length} delivery boys were not notified (offline/disconnected)`);
+            console.log(`⚠️ ${disconnectedIds.length} delivery boys were not notified via Socket (offline), but were notified via FCM if tokens available.`);
         }
     } catch (error) {
         console.error('❌ Error notifying delivery boys:', error);

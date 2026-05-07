@@ -77,7 +77,7 @@ export default function DeliverySellersInRange() {
                 className="bg-white rounded-2xl p-4 shadow-sm border border-neutral-100 hover:border-teal-200 transition-all group"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="text-neutral-900 font-bold text-base">{seller.storeName}</h3>
                       <span className="px-2 py-0.5 bg-teal-50 text-teal-600 text-[10px] font-bold rounded-full border border-teal-100">
@@ -89,7 +89,7 @@ export default function DeliverySellersInRange() {
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                         <circle cx="12" cy="10" r="3" />
                       </svg>
-                      <span className="truncate">{seller.address || 'Address not available'}</span>
+                      <span className="block truncate flex-1">{seller.address || 'Address not available'}</span>
                     </div>
 
                     <div className="flex items-center gap-4 mt-3 pt-3 border-t border-neutral-50">

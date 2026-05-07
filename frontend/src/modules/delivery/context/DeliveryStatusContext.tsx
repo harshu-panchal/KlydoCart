@@ -63,6 +63,8 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
     }
 
     setLocationError(null);
+    // Reset throttle so first location update sends IMMEDIATELY to backend
+    lastUpdateTimeRef.current = 0;
     watchIdRef.current = navigator.geolocation.watchPosition(
       handleLocationUpdate,
       handleLocationError,
@@ -85,9 +87,10 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
     const { latitude, longitude } = position.coords;
     setCurrentLocation({ latitude, longitude });
 
-    // Battery optimization: only update backend every 30 seconds
+    // Always sync immediately on FIRST update (lastUpdateTimeRef starts at 0)
+    // Then throttle to every 30 seconds for battery optimization
     const now = Date.now();
-    if (now - lastUpdateTimeRef.current > 30000) {
+    if (now - lastUpdateTimeRef.current > 30000 || lastUpdateTimeRef.current === 0) {
       lastUpdateTimeRef.current = now;
       try {
         // Update general location in backend

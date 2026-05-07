@@ -126,3 +126,62 @@ export const updateSettings = asyncHandler(async (req: Request, res: Response) =
         data: delivery.settings
     });
 });
+
+/**
+ * Save FCM Push Token
+ * Allows delivery boy's device to register for push notifications
+ */
+export const saveFcmToken = asyncHandler(async (req: Request, res: Response) => {
+    const deliveryId = req.user?.userId;
+    const { token, platform } = req.body; // platform: 'web' | 'mobile'
+
+    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: "A valid FCM token is required"
+        });
+    }
+
+    const delivery = await Delivery.findById(deliveryId);
+    if (!delivery) {
+        return res.status(404).json({
+            success: false,
+            message: "Delivery partner not found"
+        });
+    }
+
+    // Use $addToSet to avoid duplicate tokens
+    const field = platform === 'mobile' ? 'fcmTokenMobile' : 'fcmTokens';
+    await Delivery.findByIdAndUpdate(deliveryId, {
+        $addToSet: { [field]: token.trim() }
+    });
+
+    console.log(`📱 FCM token saved for delivery boy ${deliveryId} (platform: ${platform || 'web'})`);
+
+    return res.status(200).json({
+        success: true,
+        message: "FCM token registered successfully"
+    });
+});
+
+/**
+ * Remove FCM Push Token (called on logout)
+ */
+export const removeFcmToken = asyncHandler(async (req: Request, res: Response) => {
+    const deliveryId = req.user?.userId;
+    const { token, platform } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ success: false, message: "Token is required" });
+    }
+
+    const field = platform === 'mobile' ? 'fcmTokenMobile' : 'fcmTokens';
+    await Delivery.findByIdAndUpdate(deliveryId, {
+        $pull: { [field]: token }
+    });
+
+    return res.status(200).json({
+        success: true,
+        message: "FCM token removed successfully"
+    });
+});

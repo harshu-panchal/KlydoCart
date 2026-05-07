@@ -15,6 +15,10 @@ router.put("/profile", deliveryProfileController.updateProfile);
 router.put("/status", deliveryProfileController.updateStatus);
 router.put("/settings", deliveryProfileController.updateSettings);
 
+// FCM Push Notification Tokens
+router.post("/fcm-token", deliveryProfileController.saveFcmToken);
+router.delete("/fcm-token", deliveryProfileController.removeFcmToken);
+
 // Notifications
 router.get("/notifications", deliveryNotificationController.getNotifications);
 router.put("/notifications/:id/read", deliveryNotificationController.markNotificationRead);

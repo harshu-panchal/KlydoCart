@@ -223,6 +223,32 @@ export const updateStatus = async (isOnline: boolean) => {
     }
 };
 
+/**
+ * Register device FCM token for push notifications
+ * Call this after delivery boy login and whenever the token refreshes
+ */
+export const saveFcmToken = async (token: string, platform: 'web' | 'mobile' = 'web') => {
+    try {
+        const response = await api.post(`${BASE_URL}/fcm-token`, { token, platform });
+        return response.data;
+    } catch (error) {
+        // Non-critical: don't throw, just log
+        console.warn('Failed to register FCM token:', error);
+    }
+};
+
+/**
+ * Remove FCM token on logout
+ */
+export const removeFcmToken = async (token: string, platform: 'web' | 'mobile' = 'web') => {
+    try {
+        const response = await api.delete(`${BASE_URL}/fcm-token`, { data: { token, platform } });
+        return response.data;
+    } catch (error) {
+        console.warn('Failed to remove FCM token:', error);
+    }
+};
+
 export const getNotifications = async () => {
     try {
         const response = await api.get(`${BASE_URL}/notifications`);
