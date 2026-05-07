@@ -99,6 +99,22 @@ export default function CategoryFormModal({
     }
   };
 
+  // Calculate next order for siblings
+  const getNextOrder = (parentId: string | null) => {
+    const siblings = parentId
+      ? flatCategories.filter((cat) => {
+        const catParentId = typeof cat.parentId === 'string'
+          ? cat.parentId
+          : (cat.parentId as any)?._id || cat.parentId;
+        return catParentId === parentId;
+      })
+      : allCategories.filter((cat) => !cat.parentId);
+
+    if (siblings.length === 0) return 1;
+    const maxOrder = Math.max(...siblings.map((cat) => cat.order || 0));
+    return maxOrder + 1;
+  };
+
   useEffect(() => {
     if (isOpen) {
       if (mode === "edit" && category) {
@@ -120,7 +136,6 @@ export default function CategoryFormModal({
         }
       } else if (mode === "create-subcategory" && parentCategory) {
         // Pre-fill parent for subcategory and inherit header category
-        // Handle both populated object and string ID
         let inheritedHeaderCategoryId: string | null = null;
         if (parentCategory.headerCategoryId) {
           if (typeof parentCategory.headerCategoryId === "string") {
@@ -129,12 +144,10 @@ export default function CategoryFormModal({
             typeof parentCategory.headerCategoryId === "object" &&
             parentCategory.headerCategoryId !== null
           ) {
-            // It's populated, extract the _id
             inheritedHeaderCategoryId =
               (parentCategory.headerCategoryId as { _id?: string })._id || null;
           }
         }
-        // Also check headerCategory field (if it exists as separate field)
         if (!inheritedHeaderCategoryId && parentCategory.headerCategory) {
           if (typeof parentCategory.headerCategory === "string") {
             inheritedHeaderCategoryId = parentCategory.headerCategory;
@@ -148,7 +161,7 @@ export default function CategoryFormModal({
         setFormData({
           name: "",
           image: "",
-          order: "",
+          order: getNextOrder(parentCategory._id),
           parentId: parentCategory._id,
           headerCategoryId: inheritedHeaderCategoryId,
           status: "Active",
@@ -158,11 +171,11 @@ export default function CategoryFormModal({
           commissionRate: "",
         });
       } else {
-        // Reset form for new category
+        // Reset form for new root category
         setFormData({
           name: "",
           image: "",
-          order: "",
+          order: getNextOrder(null),
           parentId: null,
           headerCategoryId: null,
           status: "Active",
@@ -177,7 +190,7 @@ export default function CategoryFormModal({
       setErrors({});
       setShowAdvanced(false);
     }
-  }, [isOpen, mode, category, parentCategory]);
+  }, [isOpen, mode, category, parentCategory, allCategories]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -187,15 +200,24 @@ export default function CategoryFormModal({
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox"
-          ? checked
-          : type === "number"
-            ? value === "" ? "" : (name === "commissionRate" ? parseFloat(value) : parseInt(value))
-            : value,
-    }));
+    setFormData((prev) => {
+      const newData = {
+        ...prev,
+        [name]:
+          type === "checkbox"
+            ? checked
+            : type === "number"
+              ? value === "" ? "" : (name === "commissionRate" ? parseFloat(value) : parseInt(value))
+              : value,
+      };
+
+      // If parentId changes, auto-suggest next order
+      if (name === "parentId") {
+        newData.order = getNextOrder(value || null);
+      }
+
+      return newData;
+    });
 
     // Clear error for this field
     if (errors[name]) {
@@ -279,6 +301,21 @@ export default function CategoryFormModal({
 
     if (formData.order < 0) {
       newErrors.order = "Display order must be a positive number";
+    }
+
+    // Check for duplicate order among siblings
+    const siblings = formData.parentId
+      ? flatCategories.filter((cat) => {
+        const catParentId = typeof cat.parentId === 'string'
+          ? cat.parentId
+          : (cat.parentId as any)?._id || cat.parentId;
+        return catParentId === formData.parentId && cat._id !== category?._id;
+      })
+      : allCategories.filter((cat) => !cat.parentId && cat._id !== category?._id);
+
+    const isOrderTaken = siblings.some((cat) => cat.order === Number(formData.order));
+    if (isOrderTaken) {
+      newErrors.order = `Display order ${formData.order} is already taken by another category in this section`;
     }
 
     // Validate header category (required for root categories, inherited for subcategories)

@@ -191,6 +191,7 @@ export default function AdminBanners() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         banner={editingBanner}
+        banners={banners}
         mode={modalMode}
       />
     </div>

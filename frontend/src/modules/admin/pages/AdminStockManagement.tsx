@@ -61,8 +61,8 @@ export default function AdminStockManagement() {
         limit: 1000, // Fetch all products (increase if you have more than 1000)
       };
 
-      if (searchTerm) {
-        params.search = searchTerm;
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim();
       }
 
       if (filterCategory !== "All Category") {
@@ -244,8 +244,8 @@ export default function AdminStockManagement() {
           typeof product.stock === "number" &&
           product.stock === 0);
       const matchesSearch =
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.seller.toLowerCase().includes(searchTerm.toLowerCase());
+        product.name.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
+        product.seller.toLowerCase().includes(searchTerm.trim().toLowerCase());
 
       return (
         matchesCategory &&
@@ -456,22 +456,24 @@ export default function AdminStockManagement() {
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleExport}
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors">
-                  Export
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
+                {sortedProducts.length > 0 && (
+                  <button
+                    onClick={handleExport}
+                    className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors">
+                    Export
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                )}
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">
                     Search:

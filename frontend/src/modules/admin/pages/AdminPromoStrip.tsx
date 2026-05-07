@@ -130,6 +130,13 @@ export default function AdminPromoStrip() {
       return;
     }
 
+    // Check for duplicate order
+    const isOrderTaken = promoStrips.some((ps) => ps.order === order && ps._id !== editingId);
+    if (isOrderTaken) {
+      setError(`Display order ${order} is already taken by another PromoStrip`);
+      return;
+    }
+
     // Validate at least 4 featured products for carousel
     if (featuredProducts.length < 4) {
       setError("Please select at least 4 products for the CRAZY DEALS carousel section");
@@ -238,9 +245,12 @@ export default function AdminPromoStrip() {
     setCategoryCards([]);
     setFeaturedProducts([]);
     setCrazyDealsTitle("CRAZY DEALS");
-    setIsActive(true);
     setOrder(0);
     setEditingId(null);
+
+    // Suggest next order
+    const maxOrder = Math.max(...promoStrips.map((ps) => ps.order || 0), 0);
+    setOrder(maxOrder + 1);
   };
 
   const addCategoryCard = () => {
@@ -583,11 +593,14 @@ export default function AdminPromoStrip() {
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-2">Order</label>
                 <input
-                  type="number"
                   value={order}
                   onChange={(e) => setOrder(parseInt(e.target.value) || 0)}
+                  min="1"
                   className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
                 />
+                <p className="text-xs text-neutral-500 mt-1">
+                  Suggested next order: {Math.max(...promoStrips.map((ps) => ps.order || 0), 0) + 1}
+                </p>
               </div>
 
               {/* Submit Button */}

@@ -14,6 +14,7 @@ interface BannerFormModalProps {
   onClose: () => void;
   onSubmit: (data: BannerFormData) => Promise<void>;
   banner?: Banner | null;
+  banners?: Banner[];
   mode: "create" | "edit";
 }
 
@@ -22,6 +23,7 @@ export default function BannerFormModal({
   onClose,
   onSubmit,
   banner,
+  banners = [],
   mode,
 }: BannerFormModalProps) {
   const [formData, setFormData] = useState<BannerFormData>({
@@ -51,11 +53,12 @@ export default function BannerFormModal({
         });
         setImagePreview(banner.image);
       } else {
+        const maxOrder = Math.max(...banners.map(b => b.order || 0), 0);
         setFormData({
           title: "",
           image: "",
           link: "",
-          order: 0,
+          order: maxOrder + 1,
           isActive: true,
         });
         setImagePreview("");
@@ -63,7 +66,7 @@ export default function BannerFormModal({
       }
       setErrors({});
     }
-  }, [isOpen, mode, banner]);
+  }, [isOpen, mode, banner, banners]);
 
   const handleImageChange = async (file: File) => {
     const validation = validateImageFile(file);
@@ -105,6 +108,13 @@ export default function BannerFormModal({
     const newErrors: Record<string, string> = {};
     if (!formData.title.trim()) newErrors.title = "Title is required";
     if (!formData.image && !imageFile) newErrors.image = "Image is required";
+
+    // Check for duplicate order
+    const isOrderTaken = banners.some(b => b.order === formData.order && b._id !== banner?._id);
+    if (isOrderTaken) {
+      newErrors.order = `Display order ${formData.order} is already taken`;
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -287,9 +297,12 @@ export default function BannerFormModal({
                       order: parseInt(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 outline-none transition-all"
+                  className={`w-full px-4 py-2.5 bg-gray-50 border ${errors.order ? "border-red-300 ring-red-100" : "border-gray-200 ring-green-100"} rounded-xl focus:ring-4 focus:border-green-500 outline-none transition-all`}
                   placeholder="0"
                 />
+                {errors.order && (
+                  <p className="mt-1 text-sm text-red-500">{errors.order}</p>
+                )}
               </div>
             </div>
 

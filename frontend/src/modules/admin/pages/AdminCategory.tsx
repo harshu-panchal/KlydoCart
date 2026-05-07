@@ -75,6 +75,7 @@ export default function AdminCategory() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [parentCategory, setParentCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [listPage, setListPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -89,9 +90,13 @@ export default function AdminCategory() {
     fetchCategories();
   }, [isAuthenticated, token]);
 
-  const fetchCategories = async (preserveExpandedIds?: Set<string>) => {
+  const fetchCategories = async (preserveExpandedIds?: Set<string>, silent = false) => {
     try {
-      setLoading(true);
+      if (silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       const response = await getCategories({
         includeChildren: true,
@@ -101,8 +106,8 @@ export default function AdminCategory() {
         // Preserve existing expanded IDs if provided, otherwise auto-expand all
         if (preserveExpandedIds && preserveExpandedIds.size > 0) {
           setExpandedIds(preserveExpandedIds);
-        } else {
-          // Auto-expand all categories by default
+        } else if (!silent) {
+          // Auto-expand all categories by default ONLY on initial load
           const allIds = new Set<string>();
           const collectIds = (cats: Category[]) => {
             cats.forEach((cat) => {
@@ -126,6 +131,7 @@ export default function AdminCategory() {
       setError(errorMessage || "Failed to load categories. Please try again.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -203,7 +209,7 @@ export default function AdminCategory() {
       const response = await deleteCategory(category._id);
       if (response.success) {
         alert("Category deleted successfully!");
-        fetchCategories();
+        fetchCategories(expandedIds, true);
       }
     } catch (error: unknown) {
       const errorMessage =
@@ -244,7 +250,7 @@ export default function AdminCategory() {
           alert(`Successfully deleted ${deletedCount} category(ies).`);
         }
         setSelectedIds(new Set());
-        fetchCategories();
+        fetchCategories(expandedIds, true);
       }
     } catch (error: unknown) {
       const errorMessage =
@@ -276,7 +282,7 @@ export default function AdminCategory() {
       );
       if (response.success) {
         alert(`Category status updated to ${newStatus}`);
-        fetchCategories();
+        fetchCategories(expandedIds, true);
       }
     } catch (error: unknown) {
       const errorMessage =
@@ -298,7 +304,7 @@ export default function AdminCategory() {
       const response = await updateCategory(editingCategory._id, data);
       if (response.success) {
         alert("Category updated successfully!");
-        fetchCategories();
+        fetchCategories(expandedIds, true);
       }
     } else {
       const response = await createCategory(data as CreateCategoryData);
@@ -310,9 +316,9 @@ export default function AdminCategory() {
           // Preserve current expanded IDs and add parent ID
           const newExpandedIds = new Set(expandedIds);
           newExpandedIds.add(parentCategory._id);
-          fetchCategories(newExpandedIds);
+          fetchCategories(newExpandedIds, true);
         } else {
-          fetchCategories();
+          fetchCategories(expandedIds, true);
         }
       }
     }
@@ -422,13 +428,18 @@ export default function AdminCategory() {
           <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">
             Manage Categories
           </h1>
-          <div className="flex items-center gap-2 text-xs sm:text-sm">
-            <span className="text-neutral-500">Dashboard</span>
-            <span className="text-neutral-400">/</span>
-            <span className="text-neutral-700">Categories</span>
+            <div className="flex items-center gap-3">
+              {refreshing && (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-teal-600 border-t-transparent"></div>
+              )}
+              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                <span className="text-neutral-500">Dashboard</span>
+                <span className="text-neutral-400">/</span>
+                <span className="text-neutral-700">Categories</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Main Content */}
       <div className="px-3 sm:px-4 md:px-6">
