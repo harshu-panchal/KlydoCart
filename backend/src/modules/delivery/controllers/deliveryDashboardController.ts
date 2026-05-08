@@ -3,6 +3,7 @@ import { asyncHandler } from "../../../utils/asyncHandler";
 import Delivery from "../../../models/Delivery";
 import Order from "../../../models/Order";
 import mongoose from "mongoose";
+import FAQ from "../../../models/FAQ";
 
 /**
  * Get Dashboard Stats
@@ -198,32 +199,10 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
  * Get Help & Support Data
  */
 export const getHelpSupport = asyncHandler(async (_req: Request, res: Response) => {
-    const faqItems = [
-        {
-            question: 'How do I accept a new order?',
-            answer: 'When you receive a new order notification, tap on it to view order details. Click "Accept Order" to confirm.',
-        },
-        {
-            question: 'What should I do if I cannot deliver an order?',
-            answer: 'Contact the customer first. If unable to reach them, mark the order as "Unable to Deliver" and contact support.',
-        },
-        {
-            question: 'How are my earnings calculated?',
-            answer: 'You earn ₹25 per successful delivery. Additional bonuses may apply for special orders or peak hours.',
-        },
-        {
-            question: 'How do I update my profile information?',
-            answer: 'Go to Menu > Profile and tap "Edit Profile" to update your personal details, vehicle information, etc.',
-        },
-        {
-            question: 'What if I have a complaint or issue?',
-            answer: 'You can contact our support team through the Help & Support section or call our helpline at +91 7846940429.',
-        },
-        {
-            question: 'What are the delivery timings?',
-            answer: 'You can deliver orders between 8 AM and 10 PM. Peak hours are usually during lunch (12-3 PM) and dinner (7-10 PM).',
-        }
-    ];
+    const dynamicFaqs = await FAQ.find({
+        category: "Delivery",
+        status: "Active"
+    }).sort({ order: 1, createdAt: -1 });
 
     const contactOptions = [
         { label: 'Call Support', value: '+91 7846940429', icon: 'phone' },
@@ -234,7 +213,7 @@ export const getHelpSupport = asyncHandler(async (_req: Request, res: Response) 
     res.status(200).json({
         success: true,
         data: {
-            faqs: faqItems,
+            faqs: dynamicFaqs,
             contact: contactOptions
         }
     });

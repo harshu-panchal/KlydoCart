@@ -37,6 +37,7 @@ import deliveryTrackingRoutes from "../modules/delivery/routes/trackingRoutes";
 import customerBannerRoutes from "./customerBannerRoutes";
 import stockNotificationRoutes from "../modules/customer/routes/stockNotificationRoutes";
 import paymentRoutes from "./paymentRoutes";
+import publicRoutes from "./publicRoutes";
 import {
   createOrder,
   getMyOrders,
@@ -129,6 +130,9 @@ router.use("/sellers", sellerRoutes);
 
 // Public banner routes (no authentication required)
 router.use("/banners", customerBannerRoutes);
+
+// Public general routes (FAQ, etc)
+router.use("/public", publicRoutes);
 
 // Admin routes (protected, admin only)
 router.use("/admin", adminRoutes);

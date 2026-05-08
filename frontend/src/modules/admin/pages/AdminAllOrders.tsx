@@ -10,7 +10,6 @@ type SortField =
   | "orderId"
   | "customerDetails"
   | "address"
-  | "deliveryDate"
   | "orderDate"
   | "status"
   | "deliveryBoyStatus"
@@ -118,7 +117,6 @@ export default function AdminAllOrders() {
       "O. Id",
       "Customer Details",
       "Address",
-      "D. Date",
       "O. Date",
       "Status",
       "Delivery Boy Assign Status",
@@ -131,8 +129,7 @@ export default function AdminAllOrders() {
           order.orderNumber || "",
           order.customerName || "",
           order.deliveryAddress?.address || "",
-          order.estimatedDeliveryDate || "",
-          order.orderDate || "",
+          order.orderDate ? new Date(order.orderDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "",
           order.status || "",
           order.deliveryBoyStatus || "Not Assigned",
           `₹${order.total?.toFixed(2) || "0.00"}`,
@@ -175,10 +172,6 @@ export default function AdminAllOrders() {
           case "address":
             aValue = a.deliveryAddress?.address || "";
             bValue = b.deliveryAddress?.address || "";
-            break;
-          case "deliveryDate":
-            aValue = a.estimatedDeliveryDate || "";
-            bValue = b.estimatedDeliveryDate || "";
             break;
           case "orderDate":
             aValue = a.orderDate || "";
@@ -527,111 +520,78 @@ export default function AdminAllOrders() {
                               strokeLinejoin="round"
                             />
                           )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleSort("address")}
-                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                    <div className="flex items-center gap-1">
-                      Address
-                      {sortField === "address" && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg">
-                          {sortDirection === "asc" ? (
-                            <path
-                              d="M7 14L12 9L17 14"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          ) : (
-                            <path
-                              d="M17 10L12 15L7 10"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleSort("deliveryDate")}
-                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                    <div className="flex items-center gap-1">
-                      D. Date
-                      {sortField === "deliveryDate" && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg">
-                          {sortDirection === "asc" ? (
-                            <path
-                              d="M7 14L12 9L17 14"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          ) : (
-                            <path
-                              d="M17 10L12 15L7 10"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleSort("orderDate")}
-                    className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                    <div className="flex items-center gap-1">
-                      O. Date
-                      {sortField === "orderDate" && (
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg">
-                          {sortDirection === "asc" ? (
-                            <path
-                              d="M7 14L12 9L17 14"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          ) : (
-                            <path
-                              d="M17 10L12 15L7 10"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleSort("status")}
+                      </svg>
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort("address")}
+                      className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
+                      <div className="flex items-center gap-1">
+                        Address
+                        {sortField === "address" && (
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
+                            {sortDirection === "asc" ? (
+                              <path
+                                d="M7 14L12 9L17 14"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            ) : (
+                              <path
+                                d="M17 10L12 15L7 10"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            )}
+                          </svg>
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort("orderDate")}
+                      className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
+                      <div className="flex items-center gap-1">
+                        O. Date
+                        {sortField === "orderDate" && (
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
+                            {sortDirection === "asc" ? (
+                              <path
+                                d="M7 14L12 9L17 14"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            ) : (
+                              <path
+                                d="M17 10L12 15L7 10"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            )}
+                          </svg>
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort("status")}
                     className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
                     <div className="flex items-center gap-1">
                       Status
@@ -775,15 +735,12 @@ export default function AdminAllOrders() {
                         {order.deliveryAddress?.address || "-"}
                       </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                        {order.estimatedDeliveryDate
-                          ? new Date(
-                              order.estimatedDeliveryDate
-                            ).toLocaleDateString()
-                          : "-"}
-                      </td>
-                      <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
                         {order.orderDate
-                          ? new Date(order.orderDate).toLocaleDateString()
+                          ? new Date(order.orderDate).toLocaleDateString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })
                           : "-"}
                       </td>
                       <td className="px-4 sm:px-6 py-3">

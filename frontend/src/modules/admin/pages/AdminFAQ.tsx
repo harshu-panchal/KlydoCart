@@ -14,6 +14,8 @@ export default function AdminFAQ() {
   const { isAuthenticated, token } = useAuth();
   const [faqQuestion, setFaqQuestion] = useState("");
   const [faqAnswer, setFaqAnswer] = useState("");
+  const [faqCategory, setFaqCategory] = useState("General");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -38,6 +40,7 @@ export default function AdminFAQ() {
         setError(null);
         const response = await getFAQs({
           search: searchTerm,
+          category: categoryFilter !== "all" ? categoryFilter : undefined,
           page: currentPage,
           limit: rowsPerPage,
           sortBy: sortColumn || undefined,
@@ -69,6 +72,7 @@ export default function AdminFAQ() {
     rowsPerPage,
     sortColumn,
     sortDirection,
+    categoryFilter,
   ]);
 
   // Note: Filtering is done server-side, so we just use the faqs as is
@@ -108,6 +112,7 @@ export default function AdminFAQ() {
         const updateData: UpdateFAQData = {
           question: faqQuestion.trim(),
           answer: faqAnswer.trim(),
+          category: faqCategory,
         };
 
         const response = await updateFAQ(editingFAQ._id, updateData);
@@ -121,6 +126,7 @@ export default function AdminFAQ() {
                   ...faq,
                   question: faqQuestion.trim(),
                   answer: faqAnswer.trim(),
+                  category: faqCategory,
                 }
                 : faq
             )
@@ -137,6 +143,7 @@ export default function AdminFAQ() {
         const faqData: CreateFAQData = {
           question: faqQuestion.trim(),
           answer: faqAnswer.trim(),
+          category: faqCategory,
           isActive: true,
         };
 
@@ -154,6 +161,7 @@ export default function AdminFAQ() {
       // Reset form
       setFaqQuestion("");
       setFaqAnswer("");
+      setFaqCategory("General");
     } catch (err: any) {
       console.error("Error saving FAQ:", err);
       alert(
@@ -168,6 +176,7 @@ export default function AdminFAQ() {
   const handleEdit = (faq: FAQ) => {
     setFaqQuestion(faq.question);
     setFaqAnswer(faq.answer);
+    setFaqCategory(faq.category || "General");
     setEditingFAQ(faq);
   };
 
@@ -190,6 +199,7 @@ export default function AdminFAQ() {
           setEditingFAQ(null);
           setFaqQuestion("");
           setFaqAnswer("");
+          setFaqCategory("General");
         }
       } else {
         alert("Failed to delete FAQ: " + (response.message || "Unknown error"));
@@ -206,11 +216,11 @@ export default function AdminFAQ() {
   };
 
   const handleExport = () => {
-    const headers = ["ID", "FAQ Question", "FAQ Answer"];
+    const headers = ["ID", "Category", "FAQ Question", "FAQ Answer"];
     const csvContent = [
       headers.join(","),
       ...displayedFAQs.map((faq) =>
-        [faq._id, `"${faq.question}"`, `"${faq.answer}"`].join(",")
+        [faq._id, `"${faq.category || "General"}"`, `"${faq.question}"`, `"${faq.answer}"`].join(",")
       ),
     ].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -269,6 +279,21 @@ export default function AdminFAQ() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    FAQ Category (For User Type)
+                  </label>
+                  <select
+                    value={faqCategory}
+                    onChange={(e) => setFaqCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none bg-white"
+                  >
+                    <option value="General">General (Visible to all)</option>
+                    <option value="Customer">Customer</option>
+                    <option value="Delivery">Delivery Boy</option>
+                    <option value="Seller">Seller</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
                     FAQ Answer
                   </label>
                   <textarea
@@ -302,6 +327,7 @@ export default function AdminFAQ() {
                       setEditingFAQ(null);
                       setFaqQuestion("");
                       setFaqAnswer("");
+                      setFaqCategory("General");
                     }}
                     className="w-full mt-2 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded font-medium transition-colors">
                     Cancel
@@ -332,6 +358,23 @@ export default function AdminFAQ() {
                   <option value={20}>20</option>
                   <option value={50}>50</option>
                   <option value={100}>100</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-neutral-600">Filter:</span>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="General">General</option>
+                  <option value="Customer">Customer</option>
+                  <option value="Delivery">Delivery Boy</option>
+                  <option value="Seller">Seller</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">
@@ -384,6 +427,13 @@ export default function AdminFAQ() {
                     </th>
                     <th
                       className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+                      onClick={() => handleSort("category")}>
+                      <div className="flex items-center justify-between">
+                        Category <SortIcon column="category" />
+                      </div>
+                    </th>
+                    <th
+                      className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
                       onClick={() => handleSort("question")}>
                       <div className="flex items-center justify-between">
                         FAQ Question <SortIcon column="question" />
@@ -430,6 +480,16 @@ export default function AdminFAQ() {
                         className="hover:bg-neutral-50 transition-colors text-sm text-neutral-700">
                         <td className="p-4 align-middle border border-neutral-200">
                           {faq._id.slice(-6)}
+                        </td>
+                        <td className="p-4 align-middle border border-neutral-200">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                            faq.category === 'Customer' ? 'bg-blue-100 text-blue-700' :
+                            faq.category === 'Delivery' ? 'bg-orange-100 text-orange-700' :
+                            faq.category === 'Seller' ? 'bg-purple-100 text-purple-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {faq.category || 'General'}
+                          </span>
                         </td>
                         <td className="p-4 align-middle border border-neutral-200">
                           {faq.question}
