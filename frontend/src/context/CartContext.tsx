@@ -70,24 +70,47 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const mapApiItemsToState = (apiItems: any[]): ExtendedCartItem[] => {
     return apiItems
       .filter((item: any) => item.product) // Safety filter
-      .map((item: any) => ({
-        id: item._id, // Store CartItem ID
-        product: {
-          id: item.product._id, // Map _id to id
-          name: item.product.productName || item.product.name,
-          price: item.product.price,
-          mrp: item.product.mrp,
-          discPrice: item.product.discPrice,
-          variations: item.product.variations,
-          imageUrl: item.product.mainImage || item.product.imageUrl,
-          pack: item.product.pack || '1 unit',
-          categoryId: item.product.category || '',
-          description: item.product.description,
-          variantId: item.variation // Preserving variation ID/value
-        },
-        quantity: item.quantity,
-        variant: item.variation // Also preserve it here for order placement
-      }));
+      .map((item: any) => {
+        // Resolve variant title from variations array using the stored variation value
+        const variations = item.product.variations || [];
+        const matchedVariant = variations.find(
+          (v: any) =>
+            v._id === item.variation ||
+            v.title === item.variation ||
+            v.value === item.variation
+        );
+        // Resolve variant title — ignore purely numeric values (price/stock leaked in)
+        const rawPack = item.product.pack;
+        const packIsNumeric = rawPack && /^\d+$/.test(String(rawPack).trim());
+
+        const resolvedVariantTitle =
+          matchedVariant?.title ||
+          matchedVariant?.value ||
+          item.variation ||
+          (!packIsNumeric ? rawPack : null) ||
+          '1 unit';
+
+        return {
+          id: item._id, // Store CartItem ID
+          product: {
+            id: item.product._id, // Map _id to id
+            name: item.product.productName || item.product.name,
+            price: item.product.price,
+            mrp: item.product.mrp,
+            discPrice: item.product.discPrice,
+            variations: item.product.variations,
+            imageUrl: item.product.mainImage || item.product.imageUrl,
+            pack: resolvedVariantTitle,
+            categoryId: item.product.category || '',
+            description: item.product.description,
+            variantId: item.variation, // Preserving variation ID/value
+            variantTitle: resolvedVariantTitle, // Store resolved variant title
+            selectedVariant: matchedVariant || null,
+          },
+          quantity: item.quantity,
+          variant: item.variation // Also preserve it here for order placement
+        };
+      });
   };
 
   // Sync to localStorage whenever items change
@@ -133,7 +156,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Load cart on auth change
   useEffect(() => {
     if (isAuthenticated) {
-      fetchCart();
+      // Check if token is actually available before making API call
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        fetchCart();
+      } else {
+        setLoading(false);
+      }
     } else {
       // Guest cart is already in 'items' from localStorage if it existed
       setLoading(false);

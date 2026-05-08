@@ -21,7 +21,7 @@ export default function PharmaStore() {
         setLoading(true);
         // Fetch pharma products
         const response = await getProducts({ category: 'health-pharma' });
-        setProducts(response.data || []);
+        setProducts((response.data || []).filter((p: any) => p.isAvailable !== false));
 
         // Fetch category details for pharma to get subcategories
         try {

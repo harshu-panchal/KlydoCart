@@ -280,6 +280,38 @@ export const updateOrderStatus = asyncHandler(
     order.status = status;
     await order.save();
 
+    // Notify customer and other parties via Socket.io
+    try {
+        const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
+        if (io) {
+            // Emit to order-specific room
+            io.to(`order-${id}`).emit('status-update', {
+                orderId: id,
+                status: status,
+                message: `Your order status has been updated to ${status}`
+            });
+
+            // Also emit specifically for 'Delivered' or 'Rejected' to trigger immediate UI changes
+            if (status === 'Delivered' || status === 'Rejected' || status === 'Cancelled') {
+                io.to(`order-${id}`).emit('order-delivered', { // Reusing event name for consistency if needed
+                    orderId: id,
+                    status: status
+                });
+            }
+
+            // Emit to customer's personal room for list updates
+            if (order.customer) {
+                io.to(`customer-${order.customer}`).emit('order-delivered', {
+                    orderId: id,
+                    status: status,
+                    orderNumber: order.orderNumber
+                });
+            }
+        }
+    } catch (socketError) {
+        console.error('Error emitting socket update in updateOrderStatus:', socketError);
+    }
+
     // Trigger delivery notification if seller accepts the order
     if (status === 'Accepted' && previousStatus !== 'Accepted') {
         try {

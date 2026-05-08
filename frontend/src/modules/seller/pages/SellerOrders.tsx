@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getOrders, Order, GetOrdersParams } from '../../../services/api/orderService';
+import { useSellerSocket } from '../hooks/useSellerSocket';
 
 
 type SortField = 'orderId' | 'deliveryDate' | 'orderDate' | 'status' | 'amount';
@@ -66,6 +67,39 @@ export default function SellerOrders() {
 
     fetchOrders();
   }, [dateRange, status, entriesPerPage, searchQuery, currentPage, sortField, sortDirection]);
+
+  // Listen for real-time status updates from socket
+  useSellerSocket((notification) => {
+    if (notification.type === 'STATUS_UPDATE') {
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === notification.orderId 
+            ? { ...order, status: notification.status as any } 
+            : order
+        )
+      );
+    } else if (notification.type === 'NEW_ORDER') {
+      // For new orders, we could optionally re-fetch or add to top
+      // Re-fetching is safer for pagination consistency
+      const fetchOrders = async () => {
+        try {
+          const params: GetOrdersParams = {
+            page: currentPage,
+            limit: parseInt(entriesPerPage),
+            sortBy: sortField || 'orderDate',
+            sortOrder: sortDirection,
+          };
+          const response = await getOrders(params);
+          if (response.success && response.data) {
+            setOrders(response.data);
+          }
+        } catch (err) {
+          console.error("Error refreshing orders after new order notification:", err);
+        }
+      };
+      fetchOrders();
+    }
+  });
 
   const handleClearDate = () => {
     setDateRange('');

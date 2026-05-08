@@ -21,7 +21,7 @@ export default function FashionStore() {
       try {
         setLoading(true);
         const response = await getProducts({ category: 'fashion' });
-        setProducts(response.data as unknown as Product[]);
+        setProducts((response.data as unknown as Product[]).filter((p: any) => p.isAvailable !== false));
       } catch (error) {
         console.error('Failed to fetch fashion products:', error);
       } finally {

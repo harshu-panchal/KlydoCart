@@ -34,7 +34,7 @@ export default function Search() {
           params.longitude = location.longitude;
         }
         const response = await getProducts(params);
-        setSearchResults(response.data as unknown as Product[]);
+        setSearchResults((response.data as unknown as Product[]).filter((p: any) => p.isAvailable !== false));
       } catch (error) {
         console.error('Error searching products:', error);
         setSearchResults([]);

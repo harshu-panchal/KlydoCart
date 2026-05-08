@@ -102,7 +102,9 @@ export default function CategoryPage() {
         const response = await getProducts(params);
         if (response.success) {
           // Ensure products have default tags/name array for filtering logic if missing
-          const safeProducts = response.data.map((p: any) => ({
+          const safeProducts = response.data
+            .filter((p: any) => p.isAvailable !== false)
+            .map((p: any) => ({
             ...p,
             tags: Array.isArray(p.tags) ? p.tags : [],
             nameParts: p.name ? p.name.toLowerCase().split(" ") : [],

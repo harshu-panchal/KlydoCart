@@ -22,6 +22,7 @@ export default function Account() {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editDOB, setEditDOB] = useState("");
+  const [editErrors, setEditErrors] = useState<{ name?: string; email?: string }>({});
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -82,12 +83,30 @@ export default function Account() {
       setEditName(profile.name || "");
       setEditEmail(profile.email || "");
       setEditDOB(profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : "");
+      setEditErrors({});
       setShowEditModal(true);
     }
   };
 
   const onUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate
+    const newErrors: { name?: string; email?: string } = {};
+    if (!editName.trim()) {
+      newErrors.name = 'Full name is required';
+    } else if (!/^[a-zA-Z\s]+$/.test(editName.trim())) {
+      newErrors.name = 'Name must contain only alphabets';
+    }
+    if (editEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) {
+      newErrors.email = 'Enter a valid email  e.g. example@gmail.com';
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setEditErrors(newErrors);
+      return;
+    }
+    setEditErrors({});
+
     try {
       setLoading(true);
       const res = await updateProfile({
@@ -563,21 +582,43 @@ export default function Account() {
                     <input
                       type="text"
                       value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      placeholder="Name"
-                      className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium"
+                      onChange={(e) => {
+                        // Strip numbers and special characters live
+                        const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                        setEditName(val);
+                        if (editErrors.name) setEditErrors((prev) => ({ ...prev, name: undefined }));
+                      }}
+                      placeholder="Enter your full name"
+                      className={`w-full rounded-xl border px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium ${
+                        editErrors.name ? 'border-red-400 bg-red-50' : 'border-neutral-200'
+                      }`}
                       required
                     />
+                    {editErrors.name && (
+                      <p className="text-[11px] text-red-500 mt-0.5 ml-1 flex items-center gap-1">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                        {editErrors.name}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1 text-left">
                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Email Address</label>
                     <input
-                      type="email"
+                      type="text"
                       value={editEmail}
-                      onChange={(e) => setEditEmail(e.target.value)}
-                      placeholder="Email"
-                      className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium"
+                      onChange={(e) => {
+                        setEditEmail(e.target.value);
+                        if (editErrors.email) setEditErrors((prev) => ({ ...prev, email: undefined }));
+                      }}
+                      placeholder="e.g. example@gmail.com"
+                      className={`w-full rounded-xl border px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium ${
+                        editErrors.email ? 'border-red-400 bg-red-50' : 'border-neutral-200'
+                      }`}
                     />
+                    <p className={`text-[11px] mt-0.5 ml-1 flex items-center gap-1 ${editErrors.email ? 'text-red-500' : 'text-red-400'}`}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                      {editErrors.email || 'Correct format: example@gmail.com'}
+                    </p>
                   </div>
                   <div className="space-y-1 text-left">
                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Date of Birth</label>

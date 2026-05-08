@@ -598,20 +598,31 @@ export default function OrderDetail() {
     }
   }, [confirmed, order]);
 
-  // Countdown timer
+  // Synchronize estimatedTime with real-time data
   useEffect(() => {
-    if (orderStatus === "Accepted" || orderStatus === "On the way") {
+    if (routeInfo?.durationValue) {
+      // Priority 1: Google Maps Route Duration
+      setEstimatedTime(Math.ceil(routeInfo.durationValue / 60));
+    } else if (eta) {
+      // Priority 2: Socket ETA (calculated on backend)
+      setEstimatedTime(eta);
+    }
+  }, [routeInfo?.durationValue, eta]);
+
+  // Fallback Countdown timer - only runs if no real-time data is available
+  useEffect(() => {
+    if ((orderStatus === "Accepted" || orderStatus === "On the way") && !eta && !routeInfo) {
       const timer = setInterval(() => {
-        setEstimatedTime((prev) => Math.max(0, prev - 1));
+        setEstimatedTime((prev) => Math.max(1, prev - 1));
       }, 60000);
       return () => clearInterval(timer);
     }
-  }, [orderStatus]);
+  }, [orderStatus, eta, routeInfo]);
 
   // Fallback Polling for order status updates
   useEffect(() => {
     // Stop polling if the order is in a final state or if ID is missing
-    if (!id || !orderStatus || ["Delivered", "Cancelled", "Returned", "Returned"].includes(orderStatus)) {
+    if (!id || !orderStatus || ["Delivered", "Cancelled", "Rejected", "Returned"].includes(orderStatus)) {
       return;
     }
 
@@ -658,12 +669,16 @@ export default function OrderDetail() {
   };
 
   const handleShare = async () => {
+    // Use production URL from env, fallback to current origin
+    const appBaseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+    const orderId = order?.id || order?._id;
+    const orderUrl = `${appBaseUrl}/orders/${orderId}`;
+    const orderNumber = order?.id?.split("-").slice(-1)[0] || orderId;
+
     const shareData = {
-      title: `Order #${order?.id?.split("-").slice(-1)[0]}`,
-      text: `Track my KlydoCart order: Order #${
-        order?.id?.split("-").slice(-1)[0]
-      }`,
-      url: window.location.href,
+      title: `Order #${orderNumber} - KlydoCart`,
+      text: `Track my KlydoCart order #${orderNumber}`,
+      url: orderUrl,
     };
 
     try {
@@ -671,8 +686,8 @@ export default function OrderDetail() {
         await navigator.share(shareData);
       } else {
         // Fallback: copy link to clipboard
-        await navigator.clipboard.writeText(window.location.href);
-        alert("Link copied to clipboard!");
+        await navigator.clipboard.writeText(orderUrl);
+        alert("Order link copied to clipboard!");
       }
     } catch (error) {
       console.error("Error sharing:", error);
@@ -814,6 +829,11 @@ export default function OrderDetail() {
       subtitle: "This order has been cancelled",
       color: "bg-red-600",
     },
+    Rejected: {
+      title: "Order rejected",
+      subtitle: "The seller has rejected this order",
+      color: "bg-red-700",
+    },
     Returned: {
       title: "Order returned",
       subtitle: "This order has been returned",
@@ -916,7 +936,7 @@ export default function OrderDetail() {
                 </div>
 
                 {/* Tracking Map - Expanded on Desktop */}
-                {!["Delivered", "Cancelled", "Returned"].includes(order?.status) && (
+                {!["Delivered", "Cancelled", "Rejected", "Returned"].includes(orderStatus) && (
                   <div className="h-[300px] lg:h-[450px] relative">
                     <GoogleMapsTracking
                       sellerLocations={sellerLocations.map((s) => ({
@@ -1166,31 +1186,16 @@ export default function OrderDetail() {
 
               {/* Quick Actions Footer Box */}
               <div className="grid grid-cols-2 gap-3">
-                {order?.invoiceEnabled ? (
-                  <Link to={`/orders/${id}/invoice`} className="col-span-2">
-                    <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 h-10 rounded-none border border-gray-200 transition-all font-bold text-sm">
-                      <ReceiptIcon className="w-4 h-4 mr-2 text-gray-500" />
-                      View Invoice
-                    </Button>
-                  </Link>
-                ) : (
-                  <div className="col-span-2">
-                    <Button
-                      className="w-full bg-gray-50 cursor-not-allowed text-gray-400 h-10 rounded-none font-bold border border-gray-100 text-sm"
-                      disabled>
-                      Invoice Still Processing
-                    </Button>
-                  </div>
-                )}
-                <Link to="/orders" className="flex-1">
-                  <Button variant="outline" className="w-full h-10 rounded-none border-gray-200 text-gray-600 hover:bg-gray-50 font-bold text-xs">
-                    History
+                <Link to={`/invoice/${id}`} className="col-span-2">
+                  <Button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 h-10 rounded-none border border-gray-200 transition-all font-bold text-sm">
+                    <ReceiptIcon className="w-4 h-4 mr-2 text-gray-500" />
+                    View Invoice
                   </Button>
                 </Link>
                 <Button 
                   onClick={() => setShowCancelModal(true)}
                   variant="outline" 
-                  className="flex-1 h-10 rounded-none border-red-50 text-red-500 hover:bg-red-50 font-bold text-xs">
+                  className="col-span-2 flex-1 h-10 rounded-none border-red-50 text-red-500 hover:bg-red-50 font-bold text-xs">
                   Cancel
                 </Button>
               </div>
@@ -1359,6 +1364,123 @@ export default function OrderDetail() {
             }}
             onFailure={() => setShowRazorpayCheckout(false)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Contact Details Modal */}
+      <AnimatePresence>
+        {showContactModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowContactModal(false)}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+              <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mb-6">
+                <PhoneIcon className="w-8 h-8 text-purple-600" />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">
+                Customer Contact
+              </h2>
+              <p className="text-gray-500 mb-6 leading-relaxed">
+                Reach out to the customer for any delivery updates.
+              </p>
+              <div className="bg-gray-50 rounded-2xl p-4 mb-6">
+                <p className="text-sm font-bold text-gray-900 mb-1">{order?.address?.name || "Customer"}</p>
+                <p className="text-sm text-gray-600">{order?.address?.phone || "+91 9XXXX XXXXX"}</p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-12 rounded-xl border-gray-200 font-bold"
+                  onClick={() => setShowContactModal(false)}>
+                  Close
+                </Button>
+                <Button
+                  className="flex-1 h-12 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-lg shadow-purple-200"
+                  onClick={() => {
+                    window.location.href = `tel:${order?.address?.phone || ''}`;
+                  }}>
+                  Call Now
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Super Safety Measures Modal */}
+      <AnimatePresence>
+        {showSafetyModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowSafetyModal(false)}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6">
+                <ShieldIcon className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">
+                Super Safety Measures
+              </h2>
+              <p className="text-gray-500 mb-6 leading-relaxed">
+                Your safety is our priority. Here's what we're doing:
+              </p>
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">100% Contactless Delivery</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Your order will be left at your doorstep</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">Sanitized Packaging</p>
+                    <p className="text-xs text-gray-500 mt-0.5">All packages are sanitized before dispatch</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">Temperature Checks</p>
+                    <p className="text-xs text-gray-500 mt-0.5">All delivery partners undergo daily health checks</p>
+                  </div>
+                </div>
+              </div>
+              <Button
+                className="w-full h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold shadow-lg shadow-green-200"
+                onClick={() => setShowSafetyModal(false)}>
+                Got It
+              </Button>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

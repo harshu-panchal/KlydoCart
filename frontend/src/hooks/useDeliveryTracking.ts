@@ -162,10 +162,19 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
         })
 
         socket.on('order-delivered', (data: any) => {
-            console.log('✅ Order delivered:', data)
+            console.log('✅ Order status update (Delivered/Rejected):', data)
             setTrackingData(prev => ({
                 ...prev,
-                orderStatus: 'Delivered',
+                orderStatus: data.status || 'Delivered',
+                lastUpdate: new Date(),
+            }))
+        })
+
+        socket.on('status-update', (data: any) => {
+            console.log('🔄 General status update:', data)
+            setTrackingData(prev => ({
+                ...prev,
+                orderStatus: data.status,
                 lastUpdate: new Date(),
             }))
         })

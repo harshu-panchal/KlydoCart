@@ -92,6 +92,45 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       setOrders([]);
       setLoading(false);
     }
+
+    // Real-time socket listener for order updates
+    let socket: any;
+    if (isAuthenticated && user?.id) {
+      const initSocket = async () => {
+        const { io } = await import('socket.io-client');
+        const { getSocketBaseURL } = await import('../services/api/config');
+        const token = localStorage.getItem('authToken');
+        
+        socket = io(getSocketBaseURL(), {
+          auth: { token },
+          transports: ['websocket', 'polling']
+        });
+
+        socket.on('connect', () => {
+          // Join customer room for general updates
+          socket.emit('track-order', 'general'); // backend now joins customer room on track-order
+        });
+
+        socket.on('order-delivered', (data: any) => {
+          console.log('🚀 Real-time order update in Provider:', data);
+          setOrders(prev => prev.map(o => 
+            (o.id === data.orderId || o._id === data.orderId) ? { ...o, status: data.status || 'Delivered' } : o
+          ));
+        });
+
+        socket.on('order-taken', (data: any) => {
+          setOrders(prev => prev.map(o => 
+            (o.id === data.orderId || o._id === data.orderId) ? { ...o, status: 'Picked up' } : o
+          ));
+        });
+      };
+
+      initSocket();
+    }
+
+    return () => {
+      if (socket) socket.disconnect();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user?.userType, user?.id]);
 

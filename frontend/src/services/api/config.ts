@@ -2,19 +2,19 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 
 // Base API URL - adjust based on your backend URL
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+  import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
 
 // Socket.io base URL - extract from API_BASE_URL by removing /api/v1
 // Socket connections need the base server URL without the API path
 export const getSocketBaseURL = (): string => {
   // Use VITE_API_URL or VITE_API_BASE_URL
-  const apiBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+  const apiBaseUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
   // Remove /api/v1 or /api and any trailing slash from the end
   const socketUrl = apiBaseUrl.replace(/\/api\/v\d+\/?$|\/api\/?$|\/$/, '');
 
-  return socketUrl || "http://localhost:5000";
+  return socketUrl || window.location.origin;
 };
 
 // Log the API base URL for debugging (only in development or if there's an issue)

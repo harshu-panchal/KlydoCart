@@ -5,6 +5,7 @@ import {
   updateOrderStatus,
   OrderDetail,
 } from "../../../services/api/orderService";
+import { useSellerSocket } from "../hooks/useSellerSocket";
 import jsPDF from "jspdf";
 
 export default function SellerOrderDetail() {
@@ -43,6 +44,20 @@ export default function SellerOrderDetail() {
 
     fetchOrderDetail();
   }, [id]);
+
+  // Listen for real-time status updates from socket
+  useSellerSocket((notification) => {
+    if (notification.orderId === id && notification.type === 'STATUS_UPDATE') {
+      console.log("🔄 Real-time status update from socket:", notification.status);
+      setOrderStatus(notification.status);
+      if (orderDetail) {
+        setOrderDetail({
+          ...orderDetail,
+          status: notification.status as any
+        });
+      }
+    }
+  });
 
   // Handle status update
   const handleStatusUpdate = async (newStatus: string) => {

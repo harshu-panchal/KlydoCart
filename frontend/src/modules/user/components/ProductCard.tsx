@@ -7,6 +7,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useLocation } from '../../../hooks/useLocation';
 import { useToast } from '../../../context/ToastContext'; // Import useToast
 import { addToWishlist, removeFromWishlist, getWishlist } from '../../../services/api/customerWishlistService';
+import { subscribeToStockNotification, checkSubscription } from '../../../services/api/customerStockNotificationService';
 import Button from '../../../components/ui/button';
 import Badge from '../../../components/ui/badge';
 import StarRating from '../../../components/ui/StarRating';
@@ -49,11 +50,12 @@ export default function ProductCard({
   const imageRef = useRef<HTMLImageElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isNotifySubscribed, setIsNotifySubscribed] = useState(false);
   // Single ref to track any cart operation in progress for this product
   const isOperationPendingRef = useRef(false);
 
   useEffect(() => {
-    // Only check wishlist if user is authenticated
+    // Only check wishlist if user is authenticated AND token is available
     if (!isAuthenticated) {
       setIsWishlisted(false);
       return;
@@ -61,6 +63,13 @@ export default function ProductCard({
 
     const checkWishlist = async () => {
       try {
+        // Check if token is actually available before making API call
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          setIsWishlisted(false);
+          return;
+        }
+
         const res = await getWishlist({
           latitude: location?.latitude,
           longitude: location?.longitude
@@ -71,12 +80,40 @@ export default function ProductCard({
           setIsWishlisted(exists);
         }
       } catch (e) {
-        // Silently fail if not logged in
+        // Silently fail if not logged in or API error
         setIsWishlisted(false);
       }
     };
     checkWishlist();
   }, [product.id, product._id, isAuthenticated, location?.latitude, location?.longitude]);
+
+  useEffect(() => {
+    // Temporarily disable stock notification check to debug login issue
+    // Check if user is subscribed to stock notifications
+    // Only check if authenticated and product ID is available
+    if (!isAuthenticated || !product?.id && !product?._id) {
+      setIsNotifySubscribed(false);
+      return;
+    }
+
+    // Temporarily commented out to debug login issue
+    /*
+    const checkNotificationSubscription = async () => {
+      try {
+        const productId = String((product as any).id || product._id);
+        const variantId = (product as any)?.variations?.[0]?._id;
+        const res = await checkSubscription(productId, variantId);
+        if (res.success && res.data) {
+          setIsNotifySubscribed(res.data.isSubscribed);
+        }
+      } catch (e) {
+        // Silently fail - user might not be authenticated or API might be unavailable
+        setIsNotifySubscribed(false);
+      }
+    };
+    checkNotificationSubscription();
+    */
+  }, [product.id, product._id, isAuthenticated]);
 
   const toggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -119,7 +156,60 @@ export default function ProductCard({
     }
   };
 
-  // Consistent way to get product ID (handling both _id from MongoDB and id from frontend/mapping)
+  const handleNotifyMe = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+      showToast('Login to get notified', 'info');
+      navigate('/login');
+      return;
+    }
+
+    const productId = String((product as any).id || product._id);
+    const variantId = (product as any)?.variations?.[0]?._id;
+
+    try {
+      const res = await subscribeToStockNotification(productId, variantId);
+      if (res.success) {
+        setIsNotifySubscribed(true);
+        showToast('You will be notified when this product is back in stock!', 'success');
+      } else {
+        showToast(res.message || 'Failed to subscribe', 'error');
+      }
+    } catch (error: any) {
+      console.error('Failed to subscribe to stock notification:', error);
+      showToast('Failed to subscribe to notification', 'error');
+    }
+  };
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const shareData = {
+      title: product.name || product.productName || 'Product',
+      text: product.description || `Check out this ${product.name || 'product'} on KlydoCart!`,
+      url: `${window.location.origin}/product/${productId}`,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(shareData.url);
+        showToast('Link copied to clipboard');
+      }
+    } catch (err) {
+      // Don't show toast if user cancelled share
+      if ((err as Error).name !== 'AbortError') {
+        console.error('Error sharing:', err);
+        showToast('Failed to share product', 'error');
+      }
+    }
+  };
   const getProductId = (p: any): string | undefined => {
     if (!p) return undefined;
     return p._id || p.id;
@@ -152,6 +242,20 @@ export default function ProductCard({
     if (!isAuthenticated) {
       showToast('Login to continue', 'info');
       navigate('/login');
+      return;
+    }
+
+    // Check if product is out of stock
+    const variantStock = (product as any)?.variations?.[0]?.stock;
+    const productStock = (product as any)?.stock;
+    const availableStock = variantStock !== undefined ? variantStock : productStock;
+    const isOutOfStock = typeof availableStock === 'number' && availableStock === 0;
+    
+    if (isOutOfStock) {
+      showToast('This product is out of stock. Added to wishlist!', 'info');
+      if (!isWishlisted) {
+        await toggleWishlist(e);
+      }
       return;
     }
 
@@ -209,6 +313,17 @@ export default function ProductCard({
     if (!isAuthenticated) {
       showToast('Login to continue', 'info');
       navigate('/login');
+      return;
+    }
+
+    // Check if product is out of stock
+    const variantStock = (product as any)?.variations?.[0]?.stock;
+    const productStock = (product as any)?.stock;
+    const availableStock = variantStock !== undefined ? variantStock : productStock;
+    const isOutOfStock = typeof availableStock === 'number' && availableStock === 0;
+    
+    if (isOutOfStock) {
+      showToast('This product is out of stock', 'error');
       return;
     }
 
@@ -293,28 +408,39 @@ export default function ProductCard({
             </Badge>
           )}
 
-          {showPackBadge && (
-            <Badge
-              variant="outline"
-              className="absolute top-2 right-2 z-10 text-xs px-2 py-1 font-medium"
-            >
-              {product.variations?.[0]?.value || product.pack}
-            </Badge>
-          )}
+          {/* Out of Stock Overlay */}
+          {(() => {
+            const variantStock = (product as any)?.variations?.[0]?.stock;
+            const productStock = (product as any)?.stock;
+            const availableStock = variantStock !== undefined ? variantStock : productStock;
+            const isOutOfStock = typeof availableStock === 'number' && availableStock === 0;
+            
+            if (isOutOfStock) {
+              return (
+                <div className="absolute inset-0 z-20 bg-black/40 flex items-center justify-center backdrop-blur-sm">
+                  <div className="bg-white/95 px-3 py-1.5 rounded-lg shadow-lg">
+                    <p className="text-xs font-bold text-red-600 uppercase tracking-wide">Out of Stock</p>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
-          {showHeartIcon && (
+          <div className="absolute top-2 right-2 z-30 flex flex-col gap-2">
+            {/* Always show wishlist icon */}
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 toggleWishlist(e);
               }}
-              className="absolute top-2 right-2 z-30 w-9 h-9 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-all shadow-md group/heart"
+              className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-all shadow-md group/heart"
               aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
               <svg
-                width="20"
-                height="20"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill={isWishlisted ? "#ef4444" : "none"}
                 xmlns="http://www.w3.org/2000/svg"
@@ -329,7 +455,30 @@ export default function ProductCard({
                 />
               </svg>
             </button>
-          )}
+
+            <button
+              onClick={handleShare}
+              className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-all shadow-md group/share"
+              aria-label="Share product"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="text-neutral-400 group-hover/share:text-blue-500 transition-colors"
+              >
+                <path
+                  d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
 
           {(product.variations?.length || 0) >= 2 && (
             <div className="absolute bottom-2 left-2 z-10">
@@ -378,70 +527,96 @@ export default function ProductCard({
 
                 {/* ADD Button Section */}
                 <div className="flex flex-col items-center">
-                  {inCartQty === 0 ? (
-                    <div className="flex flex-col items-center">
-                      <Button
-                        ref={addButtonRef}
-                        variant="outline"
-                        size="sm"
-                        disabled={product.isAvailable === false && !showHeartIcon} // Heart icon handles wishlist if button is notify
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (product.isAvailable === false) {
-                            showToast('We will notify you when this product is available in your area!', 'info');
-                            if (!isWishlisted) toggleWishlist(e);
-                          } else {
-                            handleAdd(e);
-                          }
-                        }}
-                        className={`min-w-[70px] h-8 px-4 border rounded-lg font-bold text-[12px] uppercase tracking-wide transition-all shadow-sm ${
-                          product.isAvailable === false
-                          ? 'border-amber-600 text-amber-600 bg-amber-50 hover:bg-amber-100'
-                          : 'border-green-600 text-green-600 bg-white hover:bg-green-50 active:scale-95'
-                        }`}
-                      >
-                        {product.isAvailable === false ? 'NOTIFY' : 'ADD'}
-                      </Button>
-                      {product.isAvailable === false && (
+                  {(() => {
+                    const variantStock = (product as any)?.variations?.[0]?.stock;
+                    const productStock = (product as any)?.stock;
+                    const availableStock = variantStock !== undefined ? variantStock : productStock;
+                    const isOutOfStock = typeof availableStock === 'number' && availableStock === 0;
+
+                    if (isOutOfStock) {
+                      return (
                         <button
                           onClick={(e) => {
-                             e.stopPropagation();
-                             toggleWishlist(e);
+                            e.stopPropagation();
+                            handleNotifyMe(e);
                           }}
-                          className="mt-1 text-[9px] text-red-500 font-bold flex items-center gap-0.5 hover:underline"
+                          disabled={isNotifySubscribed}
+                          className={`min-w-[70px] h-8 px-3 border rounded-lg font-bold text-[11px] uppercase tracking-wide flex items-center justify-center cursor-pointer transition-colors ${
+                            isNotifySubscribed
+                              ? 'border-green-300 bg-green-50 text-green-600 cursor-not-allowed'
+                              : 'border-amber-500 bg-amber-50 text-amber-700 hover:bg-amber-100'
+                          }`}
                         >
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill={isWishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5">
-                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                          </svg>
-                          {isWishlisted ? 'Wishlisted' : 'Wishlist'}
+                          {isNotifySubscribed ? '🔔 Subscribed' : '🔔 Notify Me'}
                         </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between bg-green-600 text-white rounded-lg h-8 px-1 min-w-[70px] shadow-sm">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDecrease(e);
-                        }}
-                        className="w-6 h-full flex items-center justify-center text-lg font-bold hover:bg-green-700 rounded-l-lg transition-colors"
-                      >
-                        −
-                      </button>
-                      <span className="text-xs font-black px-1">
-                        {inCartQty}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleIncrease(e);
-                        }}
-                        className="w-6 h-full flex items-center justify-center text-lg font-bold hover:bg-green-700 rounded-r-lg transition-colors"
-                      >
-                        +
-                      </button>
-                    </div>
-                  )}
+                      );
+                    }
+
+                    return inCartQty === 0 ? (
+                      <div className="flex flex-col items-center">
+                        <Button
+                          ref={addButtonRef}
+                          variant="outline"
+                          size="sm"
+                          disabled={product.isAvailable === false && !showHeartIcon}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (product.isAvailable === false) {
+                              showToast('We will notify you when this product is available in your area!', 'info');
+                              if (!isWishlisted) toggleWishlist(e);
+                            } else {
+                              handleAdd(e);
+                            }
+                          }}
+                          className={`min-w-[70px] h-8 px-4 border rounded-lg font-bold text-[12px] uppercase tracking-wide transition-all shadow-sm ${
+                            product.isAvailable === false
+                            ? 'border-amber-600 text-amber-600 bg-amber-50 hover:bg-amber-100'
+                            : 'border-green-600 text-green-600 bg-white hover:bg-green-50 active:scale-95'
+                          }`}
+                        >
+                          {product.isAvailable === false ? 'NOTIFY' : 'ADD'}
+                        </Button>
+                        {product.isAvailable === false && (
+                          <button
+                            onClick={(e) => {
+                               e.stopPropagation();
+                               toggleWishlist(e);
+                            }}
+                            className="mt-1 text-[9px] text-red-500 font-bold flex items-center gap-0.5 hover:underline"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill={isWishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5">
+                               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                            </svg>
+                            {isWishlisted ? 'Wishlisted' : 'Wishlist'}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between bg-green-600 text-white rounded-lg h-8 px-1 min-w-[70px] shadow-sm">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDecrease(e);
+                          }}
+                          className="w-6 h-full flex items-center justify-center text-lg font-bold hover:bg-green-700 rounded-l-lg transition-colors"
+                        >
+                          −
+                        </button>
+                        <span className="text-xs font-black px-1">
+                          {inCartQty}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleIncrease(e);
+                          }}
+                          className="w-6 h-full flex items-center justify-center text-lg font-bold hover:bg-green-700 rounded-r-lg transition-colors"
+                        >
+                          +
+                        </button>
+                      </div>
+                    );
+                  })()}
                   
                   {/* Options Text below ADD button */}
                   {(product.variations?.length || 0) >= 2 && (
@@ -510,20 +685,35 @@ export default function ProductCard({
       {!categoryStyle && (
         <div className={`${compact ? 'px-3 pb-3' : 'px-4 pb-4'}`}>
           <div className="mt-auto">
-            {inCartQty === 0 ? (
-              <div>
-                <Button
-                  ref={addButtonRef}
-                  variant="outline"
-                  size="sm"
-                  disabled={product.isAvailable === false}
-                  onClick={handleAdd}
-                  className={`w-full border h-8 text-xs font-semibold uppercase tracking-wide ${
-                    product.isAvailable === false
-                    ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
-                    : 'border-green-600 text-green-600 hover:bg-green-50'
-                  }`}
-                >
+            {(() => {
+              const variantStock = (product as any)?.variations?.[0]?.stock;
+              const productStock = (product as any)?.stock;
+              const availableStock = variantStock !== undefined ? variantStock : productStock;
+              const isOutOfStock = typeof availableStock === 'number' && availableStock === 0;
+
+              if (isOutOfStock) {
+                return (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNotifyMe(e);
+                    }}
+                    disabled={isNotifySubscribed}
+                    className={`w-full h-8 text-xs font-bold uppercase ${
+                      isNotifySubscribed
+                        ? 'border-green-300 text-green-600 bg-green-50 cursor-not-allowed'
+                        : 'border-amber-500 text-amber-700 bg-amber-50 hover:bg-amber-100'
+                    }`}
+                  >
+                    {isNotifySubscribed ? '🔔 Subscribed' : '🔔 Notify Me'}
+                  </Button>
+                );
+              }
+
+              return inCartQty === 0 ? (
+                <div>
                   {product.isAvailable === false ? (
                     <Button
                       variant="outline"
@@ -537,39 +727,49 @@ export default function ProductCard({
                     >
                       Notify Me
                     </Button>
-                  ) : 'Add'}
-                </Button>
-                <div className="h-4 mt-1">
+                  ) : (
+                    <Button
+                      ref={addButtonRef}
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAdd}
+                      className="w-full border-green-600 text-green-600 hover:bg-green-50 h-8 text-xs font-semibold uppercase tracking-wide"
+                    >
+                      Add
+                    </Button>
+                  )}
+                  <div className="h-4 mt-1">
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2 bg-white border border-green-600 rounded-full px-2 py-0.5 h-8">
-                <Button
-                  variant="default"
-                  size="icon"
-                  onClick={handleDecrease}
-                  className="w-6 h-6 p-0 bg-transparent text-green-600 hover:bg-green-50 shadow-none"
-                  aria-label="Decrease quantity"
-                >
-                  −
-                </Button>
-                <span className="text-xs font-bold text-green-600 min-w-[1.5rem] text-center">
-                  {inCartQty}
-                </span>
-                <Button
-                  variant="default"
-                  size="icon"
-                  disabled={product.isAvailable === false}
-                  onClick={handleIncrease}
-                  className={`w-6 h-6 p-0 bg-transparent text-green-600 shadow-none ${
-                    product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-green-50'
-                  }`}
-                  aria-label="Increase quantity"
-                >
-                  +
-                </Button>
-              </div>
-            )}
+              ) : (
+                <div className="flex items-center justify-center gap-2 bg-white border border-green-600 rounded-full px-2 py-0.5 h-8">
+                  <Button
+                    variant="default"
+                    size="icon"
+                    onClick={handleDecrease}
+                    className="w-6 h-6 p-0 bg-transparent text-green-600 hover:bg-green-50 shadow-none"
+                    aria-label="Decrease quantity"
+                  >
+                    −
+                  </Button>
+                  <span className="text-xs font-bold text-green-600 min-w-[1.5rem] text-center">
+                    {inCartQty}
+                  </span>
+                  <Button
+                    variant="default"
+                    size="icon"
+                    disabled={product.isAvailable === false}
+                    onClick={handleIncrease}
+                    className={`w-6 h-6 p-0 bg-transparent text-green-600 shadow-none ${
+                      product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-green-50'
+                    }`}
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </Button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

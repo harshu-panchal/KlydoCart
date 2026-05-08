@@ -128,11 +128,17 @@ DeliveryTrackingSchema.methods.calculateDistance = function (
   return R * c; // Distance in meters
 };
 
-// Method to estimate ETA (assuming 30 km/h average speed)
+// Method to estimate ETA (assuming 25 km/h average speed with buffers)
 DeliveryTrackingSchema.methods.calculateETA = function (distance: number): number {
-  const averageSpeedKmh = 30;
+  if (distance <= 0) return 0;
+  
+  const averageSpeedKmh = 25;
   const averageSpeedMs = (averageSpeedKmh * 1000) / 60; // meters per minute
-  return Math.ceil(distance / averageSpeedMs);
+  
+  const baseMinutes = distance / averageSpeedMs;
+  const buffer = distance > 500 ? 2 : 1;
+  
+  return Math.ceil(baseMinutes + buffer);
 };
 
 const DeliveryTracking = mongoose.model<IDeliveryTracking>(

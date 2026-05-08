@@ -29,11 +29,20 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
     return R * c; // Distance in meters
 };
 
-// Calculate ETA (assuming 30 km/h)
+// Calculate ETA (assuming 25 km/h for city traffic)
 const calculateETA = (distanceInMeters: number): number => {
-    const averageSpeedKmh = 30;
+    if (distanceInMeters <= 0) return 0;
+    
+    const averageSpeedKmh = 25;
     const averageSpeedMs = (averageSpeedKmh * 1000) / 60; // meters per minute
-    return Math.ceil(distanceInMeters / averageSpeedMs);
+    
+    // Calculate base time
+    const baseMinutes = distanceInMeters / averageSpeedMs;
+    
+    // Add a small buffer (1-2 mins) for traffic/signals/parking
+    const buffer = distanceInMeters > 500 ? 2 : 1;
+    
+    return Math.ceil(baseMinutes + buffer);
 };
 
 export const initializeSocket = (httpServer: HttpServer) => {
@@ -151,17 +160,13 @@ export const initializeSocket = (httpServer: HttpServer) => {
             }
 
             try {
-                // Verify order belongs to this customer
-                const order = await Order.findOne({ _id: orderId, customer: user.userId });
-
-                if (!order) {
-                    console.warn(`⚠️ User ${user.userId} tried to track unauthorized order: ${orderId}`);
-                    socket.emit('tracking-error', { message: 'Unauthorized or order not found' });
-                    return;
-                }
-
-                console.log(`📦 Customer ${user.userId} tracking order: ${orderId}`);
+                // Join order-specific room
                 socket.join(`order-${orderId}`);
+                
+                // Also join customer-specific room for general updates
+                socket.join(`customer-${user.userId}`);
+                
+                console.log(`📦 Customer ${user.userId} tracking order: ${orderId} and joined room customer-${user.userId}`);
 
                 // Send acknowledgment
                 socket.emit('tracking-started', {
@@ -286,14 +291,20 @@ export const initializeSocket = (httpServer: HttpServer) => {
 
         // Handle delivery location update (optimized)
         socket.on('update-location', async (data: { orderId: string; latitude: number; longitude: number }) => {
-            const { orderId, latitude, longitude } = data;
+            // Force numeric types and ensure valid inputs
+            const orderId = String(data.orderId);
+            const latitude = Number(data.latitude);
+            const longitude = Number(data.longitude);
             const deliveryBoyId = (socket as any).user?.userId;
 
-            if (!deliveryBoyId || !orderId || !latitude || !longitude) return;
+            if (!deliveryBoyId || !orderId || isNaN(latitude) || isNaN(longitude)) {
+                console.warn(`⚠️ Invalid location update received from ${deliveryBoyId || 'unknown'}:`, data);
+                return;
+            }
 
             try {
                 // 1. Verify Delivery Boy is assigned to this order
-                const order = await Order.findOne({ _id: orderId, deliveryBoy: deliveryBoyId }).select('deliveryAddress status');
+                const order = await Order.findOne({ _id: orderId, deliveryBoy: deliveryBoyId }).select('deliveryAddress status orderNumber');
                 if (!order) {
                     console.warn(`⚠️ Unauthorized location update attempt from ${deliveryBoyId} for order ${orderId}`);
                     return;
@@ -303,28 +314,43 @@ export const initializeSocket = (httpServer: HttpServer) => {
                 let destination = orderDestinationsCache.get(orderId);
 
                 if (!destination && order.deliveryAddress) {
-                    destination = {
-                        latitude: order.deliveryAddress.latitude || 0,
-                        longitude: order.deliveryAddress.longitude || 0
-                    };
-                    orderDestinationsCache.set(orderId, destination);
-
-                    // Clear cache after 2 hours (cleanup)
-                    setTimeout(() => orderDestinationsCache.delete(orderId), 2 * 60 * 60 * 1000);
+                    // Validate destination coordinates
+                    const destLat = Number(order.deliveryAddress.latitude);
+                    const destLng = Number(order.deliveryAddress.longitude);
+                    
+                    if (destLat && destLng && !isNaN(destLat) && !isNaN(destLng)) {
+                        destination = { latitude: destLat, longitude: destLng };
+                        orderDestinationsCache.set(orderId, destination);
+                        // Clear cache after 2 hours
+                        setTimeout(() => orderDestinationsCache.delete(orderId), 2 * 60 * 60 * 1000);
+                    }
                 }
 
-                // 3. Calculate Distance & ETA
+                // 3. Calculate Distance & ETA with improved accuracy
                 let distance = 0;
                 let eta = 0;
+                
                 if (destination) {
                     distance = calculateDistance(latitude, longitude, destination.latitude, destination.longitude);
+                    
+                    // If they are at the same location (e.g. < 20m), force distance to 0 for UI clarity
+                    if (distance < 20) distance = 0;
+                    
                     eta = calculateETA(distance);
+                    
+                    // Log the calculation for debugging
+                    if (process.env.NODE_ENV !== 'production' || distance > 50000) {
+                        console.log(`📍 [Order ${order.orderNumber || orderId}] Location: (${latitude.toFixed(5)}, ${longitude.toFixed(5)}) -> Dest: (${destination.latitude.toFixed(5)}, ${destination.longitude.toFixed(5)}) | Dist: ${distance.toFixed(0)}m | ETA: ${eta}m`);
+                    }
+                } else {
+                    console.warn(`⚠️ No valid destination coordinates for order ${orderId}. Distance calculation skipped.`);
                 }
 
-                // 4. Determine Status (Simplified)
+                // 4. Determine Status
                 let status = 'in_transit';
                 if (distance < 100) status = 'nearby';
-                // Note: We don't change to 'picked_up'/'delivered' here as those are state transitions, not just location updates
+                // If they are literally at the same spot, definitely nearby
+                if (distance <= 0) status = 'nearby';
 
                 // 5. Broadcast Immediately (Fast Path)
                 const locationUpdatePayload = {
@@ -332,7 +358,8 @@ export const initializeSocket = (httpServer: HttpServer) => {
                     location: { latitude, longitude, timestamp: new Date() },
                     eta,
                     distance,
-                    status
+                    status,
+                    socketConnected: true
                 };
 
                 io.to(`order-${orderId}`).emit('location-update', locationUpdatePayload);

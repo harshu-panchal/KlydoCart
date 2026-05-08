@@ -448,6 +448,15 @@ export const verifyDeliveryOtpController = asyncHandler(async (req: Request, res
                     message: 'Order has been delivered successfully',
                 });
 
+                // Emit to customer's personal room for dashboard/list updates
+                if (updatedOrder.customer) {
+                    io.to(`customer-${updatedOrder.customer}`).emit('order-delivered', {
+                        orderId: id,
+                        orderNumber: updatedOrder.orderNumber,
+                        status: 'Delivered'
+                    });
+                }
+
                 // Also emit to delivery boy room
                 io.to(`delivery-${deliveryId}`).emit('order-delivered', {
                     orderId: id,
@@ -559,7 +568,7 @@ export const confirmSellerPickup = asyncHandler(async (req: Request, res: Respon
         parseFloat(seller.longitude)
     );
 
-    if (distance > 0.5) { // 500m = 0.5km
+    if (distance > 5.0) { // 5km limit
         return res.status(400).json({
             success: false,
             message: `You must be within 500 meters of the seller to confirm pickup. Current distance: ${Math.round(distance * 1000)}m`
@@ -698,7 +707,7 @@ export const checkCustomerProximity = asyncHandler(async (req: Request, res: Res
         customerLng
     );
 
-    const withinRange = distance <= 0.5; // 500m = 0.5km
+    const withinRange = distance <= 5.0; // 5km limit
 
     return res.status(200).json({
         success: true,

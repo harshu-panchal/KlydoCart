@@ -295,6 +295,14 @@ export default function ProductDetail() {
       return;
     }
 
+    // Check if product is out of stock
+    const isOutOfStock = typeof variantStock === 'number' && variantStock === 0;
+    
+    if (isOutOfStock) {
+      showToast('This product is out of stock and cannot be added to cart', 'error');
+      return;
+    }
+
     if (!isAvailableAtLocation) {
       // Show alert if trying to add item outside delivery area
       alert("This product is not available for delivery at your location.");
@@ -336,6 +344,44 @@ export default function ProductDetail() {
                 className="text-neutral-600"
               />
             )}
+            <button
+              onClick={async () => {
+                const shareData = {
+                  title: product?.name || 'Product',
+                  text: product?.description || `Check out this ${product?.name || 'product'} on KlydoCart!`,
+                  url: window.location.href,
+                };
+                try {
+                  if (navigator.share) {
+                    await navigator.share(shareData);
+                  } else {
+                    await navigator.clipboard.writeText(shareData.url);
+                    showToast('Link copied to clipboard');
+                  }
+                } catch (err) {
+                  if ((err as Error).name !== 'AbortError') {
+                    showToast('Failed to share product', 'error');
+                  }
+                }
+              }}
+              className="w-9 h-9 rounded-full bg-white/95 border border-neutral-200 shadow-sm flex items-center justify-center text-neutral-500 hover:text-blue-500 transition-colors"
+              aria-label="Share product"
+            >
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                <polyline points="16 6 12 2 8 6" />
+                <line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
+            </button>
             <button className="text-neutral-600">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
             </button>
@@ -536,7 +582,19 @@ export default function ProductDetail() {
                       <div className="flex items-center justify-between bg-green-700 rounded-xl px-4 py-2 text-white">
                         <button onClick={() => updateQuantity(product.id || product._id, inCartQty - 1, selectedVariant?._id, variantTitle)} className="p-1 hover:bg-white/10 rounded-lg text-xl font-bold">−</button>
                         <span className="font-bold">{inCartQty}</span>
-                        <button onClick={() => updateQuantity(product.id || product._id, inCartQty + 1, selectedVariant?._id, variantTitle)} className="p-1 hover:bg-white/10 rounded-lg text-xl font-bold">+</button>
+                        <button 
+                          onClick={() => {
+                            const isOutOfStock = typeof variantStock === 'number' && variantStock === 0;
+                            if (isOutOfStock) {
+                              showToast('This product is out of stock', 'error');
+                              return;
+                            }
+                            updateQuantity(product.id || product._id, inCartQty + 1, selectedVariant?._id, variantTitle);
+                          }} 
+                          className="p-1 hover:bg-white/10 rounded-lg text-xl font-bold"
+                        >
+                          +
+                        </button>
                       </div>
                     )}
                   </div>
@@ -670,7 +728,19 @@ export default function ProductDetail() {
                 <div className="flex items-center justify-between bg-green-700 rounded-xl px-4 py-3 text-white">
                   <button onClick={() => updateQuantity(product.id || product._id, inCartQty - 1, selectedVariant?._id, variantTitle)} className="text-xl font-bold">−</button>
                   <span className="font-bold">{inCartQty}</span>
-                  <button onClick={() => updateQuantity(product.id || product._id, inCartQty + 1, selectedVariant?._id, variantTitle)} className="text-xl font-bold">+</button>
+                  <button 
+                    onClick={() => {
+                      const isOutOfStock = typeof variantStock === 'number' && variantStock === 0;
+                      if (isOutOfStock) {
+                        showToast('This product is out of stock', 'error');
+                        return;
+                      }
+                      updateQuantity(product.id || product._id, inCartQty + 1, selectedVariant?._id, variantTitle);
+                    }} 
+                    className="text-xl font-bold"
+                  >
+                    +
+                  </button>
                 </div>
               )}
             </div>

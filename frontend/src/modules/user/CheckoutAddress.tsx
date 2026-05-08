@@ -140,9 +140,13 @@ export default function CheckoutAddress() {
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof OrderAddress, string>> = {};
 
+    // Name validation - alphabets and spaces only
     if (!address.name.trim()) {
       newErrors.name = 'Name is required';
+    } else if (!/^[a-zA-Z\s]+$/.test(address.name.trim())) {
+      newErrors.name = 'Name must contain only alphabets';
     }
+
     if (!address.phone.trim()) {
       newErrors.phone = 'Phone is required';
     } else if (address.phone.length < 10) {
@@ -154,12 +158,21 @@ export default function CheckoutAddress() {
     if (!address.street.trim()) {
       newErrors.street = 'Street/Area is required';
     }
+
+    // City validation - alphabets and spaces only
     if (!address.city.trim()) {
       newErrors.city = 'City is required';
+    } else if (!/^[a-zA-Z\s]+$/.test(address.city.trim())) {
+      newErrors.city = 'City must contain only alphabets';
     }
+
+    // State validation - alphabets and spaces only
     if (!address.state?.trim()) {
-        newErrors.state = 'State is required';
+      newErrors.state = 'State is required';
+    } else if (!/^[a-zA-Z\s]+$/.test(address.state.trim())) {
+      newErrors.state = 'State must contain only alphabets';
     }
+
     if (!address.pincode.trim()) {
       newErrors.pincode = 'Pincode is required';
     } else if (address.pincode.length < 6) {
@@ -171,6 +184,10 @@ export default function CheckoutAddress() {
   };
 
   const handleInputChange = (field: keyof OrderAddress, value: string) => {
+    // For name, city, state — strip numbers and special characters live
+    if (field === 'name' || field === 'city' || field === 'state') {
+      value = value.replace(/[^a-zA-Z\s]/g, '');
+    }
     setAddress((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -258,11 +275,14 @@ export default function CheckoutAddress() {
   };
 
   const isFormValid = address.name.trim() !== '' &&
+    /^[a-zA-Z\s]+$/.test(address.name.trim()) &&
     address.phone.trim().length >= 10 &&
     address.flat.trim() !== '' &&
     address.street.trim() !== '' &&
     address.city.trim() !== '' &&
+    /^[a-zA-Z\s]+$/.test(address.city.trim()) &&
     (address.state?.trim() || '') !== '' &&
+    /^[a-zA-Z\s]+$/.test((address.state || '').trim()) &&
     address.pincode.trim().length >= 6;
 
   return (
@@ -306,10 +326,13 @@ export default function CheckoutAddress() {
               setSelectedLatitude(lat);
               setSelectedLongitude(lng);
               if (addr) {
-                if (addr.street && !address.street) handleInputChange('street', addr.street);
-                if (addr.city && !address.city) handleInputChange('city', addr.city);
-                if (addr.state && !address.state) handleInputChange('state', addr.state);
-                if (addr.pincode && !address.pincode) handleInputChange('pincode', addr.pincode);
+                // Always auto-fill all address fields when user pins a location
+                if (addr.street) handleInputChange('street', addr.street);
+                if (addr.city) handleInputChange('city', addr.city);
+                if (addr.state) handleInputChange('state', addr.state);
+                if (addr.pincode) handleInputChange('pincode', addr.pincode);
+                // Also fill flat/house if available from geocode
+                if ((addr as any).flat) handleInputChange('flat', (addr as any).flat);
               }
             }}
             height="180px"
@@ -509,55 +532,6 @@ export default function CheckoutAddress() {
             maxLength={6}
           />
           {errors.pincode && <p className="text-[10px] text-red-500 mt-0.5">{errors.pincode}</p>}
-        </div>
-      </div>
-
-      {/* Order Summary */}
-      <div className="px-4 mb-4">
-        <h2 className="text-sm font-bold text-neutral-900 mb-2.5">Order Summary</h2>
-        <div className="bg-white rounded-lg border border-neutral-200 p-2.5">
-          {/* Cart Items */}
-          <div className="space-y-2 mb-3">
-            {cart.items.map((item) => {
-              const { displayPrice } = calculateProductPrice(item.product);
-              return (
-                <div key={item.product.id} className="flex items-center justify-between text-xs">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-neutral-900 truncate">{item.product.name}</div>
-                    <div className="text-[10px] text-neutral-500">
-                      {item.product.pack} × {item.quantity}
-                    </div>
-                  </div>
-                  <div className="font-semibold text-neutral-900 ml-2 flex-shrink-0">
-                    ₹{(displayPrice * item.quantity).toFixed(0)}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="border-t border-neutral-200 pt-2.5 space-y-1.5">
-            <div className="flex justify-between text-xs text-neutral-700">
-              <span>Subtotal</span>
-              <span className="font-medium">₹{cart.total.toFixed(0)}</span>
-            </div>
-            <div className="flex justify-between text-xs text-neutral-700">
-              <span>Platform Fee</span>
-              <span className="font-medium">₹{platformFee}</span>
-            </div>
-            <div className="flex justify-between text-xs text-neutral-700">
-              <span>Delivery Charges</span>
-              <span className={`font-medium ${deliveryFee === 0 ? 'text-green-600' : ''}`}>
-                {deliveryFee === 0 ? 'Free' : `₹${deliveryFee}`}
-              </span>
-            </div>
-            <div className="border-t border-neutral-200 pt-2 mt-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-bold text-neutral-900">Total</span>
-                <span className="text-base font-bold text-neutral-900">₹{totalAmount.toFixed(0)}</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

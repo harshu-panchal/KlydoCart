@@ -883,7 +883,7 @@ export default function DeliveryOrderDetail() {
                                         : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                                         }`}
                                 >
-                                    {otpSending ? 'Sending...' : getOtpEnabled ? 'Get OTP' : 'Move within 500m to get OTP'}
+                                    {otpSending ? 'Sending...' : getOtpEnabled ? 'Get OTP' : 'Move within 5km to get OTP'}
                                 </button>
                             ) : (
                                 <>

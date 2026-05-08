@@ -31,7 +31,7 @@ export default function SpiritualStore() {
         // Assuming 'spiritual' is the correct category ID in your database
         const response = await getProducts({ category: 'spiritual' });
         // Correctly casting or mapping the response data
-        setProducts(response.data as unknown as Product[]);
+        setProducts((response.data as unknown as Product[]).filter((p: any) => p.isAvailable !== false));
       } catch (error) {
         console.error('Failed to fetch spiritual products:', error);
       } finally {

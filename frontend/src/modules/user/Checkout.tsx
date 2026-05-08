@@ -983,8 +983,48 @@ export default function Checkout() {
                                   {item.product?.name}
                                 </h3>
                                 <p className="text-xs text-neutral-500 mb-2">
-                                  {item.quantity} × {item.product?.pack}
+                                  {item.quantity} ×{" "}
+                                  {(() => {
+                                    const raw =
+                                      (item.product as any)?.variantTitle ||
+                                      (item.product as any)?.selectedVariant?.title ||
+                                      (item.product as any)?.selectedVariant?.value ||
+                                      item.product?.pack;
+                                    // If the value is purely numeric (e.g. price/stock leaked in), ignore it
+                                    if (!raw || /^\d+$/.test(String(raw).trim())) return '1 unit';
+                                    return raw;
+                                  })()}
                                 </p>
+                                {(() => {
+                                  // Check stock - variant stock takes priority, then product stock
+                                  const variantStock = (item.product as any)?.selectedVariant?.stock;
+                                  const productStock = (item.product as any)?.stock;
+                                  const availableStock = variantStock !== undefined ? variantStock : productStock;
+                                  const isOutOfStock = typeof availableStock === 'number' && availableStock === 0;
+                                  const isLowStock = typeof availableStock === 'number' && availableStock > 0 && availableStock < item.quantity;
+
+                                  if (isOutOfStock) {
+                                    return (
+                                      <div className="inline-flex items-center gap-1 bg-red-50 text-red-600 text-[10px] font-bold px-2 py-1 rounded mb-2">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                                        </svg>
+                                        OUT OF STOCK
+                                      </div>
+                                    );
+                                  }
+                                  if (isLowStock) {
+                                    return (
+                                      <div className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-[10px] font-bold px-2 py-1 rounded mb-2">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                          <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                                        </svg>
+                                        ONLY {availableStock} LEFT
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1001,29 +1041,48 @@ export default function Checkout() {
                               </div>
 
                               <div className="flex flex-col items-end gap-2 flex-shrink-0 pt-0.5">
-                                <div className="flex items-center gap-2 bg-green-50/50 border border-green-200 rounded-full px-2 py-1 shadow-sm">
-                                  <button
-                                    onClick={() => {
-                                      const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
-                                      const variantTitle = (item.product as any).variantTitle || item.product.pack;
-                                      updateQuantity(item.product?.id, item.quantity - 1, variantId, variantTitle);
-                                    }}
-                                    className="w-6 h-6 flex items-center justify-center text-green-600 font-black hover:bg-green-100 rounded-full transition-colors leading-none">
-                                    <span className="relative top-[-1px]">−</span>
-                                  </button>
-                                  <span className="text-green-700 font-black min-w-[1rem] text-center text-xs">
-                                    {item.quantity}
-                                  </span>
-                                  <button
-                                    onClick={() => {
-                                      const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
-                                      const variantTitle = (item.product as any).variantTitle || item.product.pack;
-                                      updateQuantity(item.product?.id, item.quantity + 1, variantId, variantTitle);
-                                    }}
-                                    className="w-6 h-6 flex items-center justify-center text-green-600 font-black hover:bg-green-100 rounded-full transition-colors leading-none">
-                                    <span className="relative top-[-1px]">+</span>
-                                  </button>
-                                </div>
+                                {(() => {
+                                  // Check stock for disabling + button
+                                  const variantStock = (item.product as any)?.selectedVariant?.stock;
+                                  const productStock = (item.product as any)?.stock;
+                                  const availableStock = variantStock !== undefined ? variantStock : productStock;
+                                  const canIncrease = typeof availableStock !== 'number' || availableStock === 0 || item.quantity < availableStock;
+
+                                  return (
+                                    <div className="flex items-center gap-2 bg-green-50/50 border border-green-200 rounded-full px-2 py-1 shadow-sm">
+                                      <button
+                                        onClick={() => {
+                                          const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
+                                          const variantTitle = (item.product as any).variantTitle || item.product.pack;
+                                          updateQuantity(item.product?.id, item.quantity - 1, variantId, variantTitle);
+                                        }}
+                                        className="w-6 h-6 flex items-center justify-center text-green-600 font-black hover:bg-green-100 rounded-full transition-colors leading-none">
+                                        <span className="relative top-[-1px]">−</span>
+                                      </button>
+                                      <span className="text-green-700 font-black min-w-[1rem] text-center text-xs">
+                                        {item.quantity}
+                                      </span>
+                                      <button
+                                        onClick={() => {
+                                          if (!canIncrease) {
+                                            showGlobalToast(`Only ${availableStock} available in stock`, 'error');
+                                            return;
+                                          }
+                                          const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
+                                          const variantTitle = (item.product as any).variantTitle || item.product.pack;
+                                          updateQuantity(item.product?.id, item.quantity + 1, variantId, variantTitle);
+                                        }}
+                                        disabled={!canIncrease}
+                                        className={`w-6 h-6 flex items-center justify-center font-black rounded-full transition-colors leading-none ${
+                                          canIncrease
+                                            ? 'text-green-600 hover:bg-green-100'
+                                            : 'text-neutral-300 cursor-not-allowed'
+                                        }`}>
+                                        <span className="relative top-[-1px]">+</span>
+                                      </button>
+                                    </div>
+                                  );
+                                })()}
 
                                 {(() => {
                                   const { displayPrice, mrp, hasDiscount } = calculateProductPrice(item.product, item.variant);
@@ -1047,7 +1106,7 @@ export default function Checkout() {
                       ))}
                     
                     <button 
-                      onClick={() => navigate('/')}
+                      onClick={() => navigate('/categories')}
                       className="w-full flex items-center justify-center gap-2 py-3 mt-2 border-2 border-dashed border-green-200 rounded-2xl text-green-600 hover:bg-green-50 transition-all font-bold text-sm active:scale-[0.98]">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>

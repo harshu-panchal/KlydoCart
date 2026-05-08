@@ -21,7 +21,7 @@ export default function PetStore() {
       try {
         setLoading(true);
         const response = await getProducts({ category: 'pet' });
-        setProducts(response.data as unknown as Product[]);
+        setProducts((response.data as unknown as Product[]).filter((p: any) => p.isAvailable !== false));
       } catch (error) {
         console.error('Failed to fetch pet products:', error);
       } finally {

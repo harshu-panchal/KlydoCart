@@ -395,19 +395,21 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
   const getFilteredProducts = () => {
     // If admin has selected products, use them directly (already ordered)
     if (adminProducts && adminProducts.length > 0) {
-      return products.slice(0, 20); // Show up to 20 admin-selected products
+      return products
+        .filter((p) => (p as any).isAvailable !== false)
+        .slice(0, 20); // Show up to 20 admin-selected products
     }
 
     // Fallback: filter by activeTab and discount
-    let filtered = products;
+    let filtered = products.filter((p) => (p as any).isAvailable !== false);
 
     if (activeTab !== 'all') {
       if (activeTab === 'grocery') {
-        filtered = products.filter((p) =>
+        filtered = filtered.filter((p) =>
           ['snacks', 'atta-rice', 'dairy-breakfast', 'masala-oil', 'biscuits-bakery', 'cold-drinks', 'fruits-veg'].includes(p.categoryId)
         );
       } else {
-        filtered = products.filter((p) => p.categoryId === activeTab);
+        filtered = filtered.filter((p) => p.categoryId === activeTab);
       }
     }
 

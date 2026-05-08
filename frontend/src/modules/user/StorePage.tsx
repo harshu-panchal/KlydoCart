@@ -31,7 +31,7 @@ export default function StorePage() {
                 );
 
                 if (storeResponse.success) {
-                    setProducts(storeResponse.data || []);
+                    setProducts((storeResponse.data || []).filter((p: any) => p.isAvailable !== false));
                     setShopData(storeResponse.shop || null);
 
                     // Try to fetch category details to get subcategories

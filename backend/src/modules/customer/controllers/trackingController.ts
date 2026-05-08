@@ -68,7 +68,9 @@ export const getOrderTracking = asyncHandler(
  */
 export const updateDeliveryLocation = asyncHandler(
   async (req: Request, res: Response) => {
-    const { orderId, latitude, longitude } = req.body;
+    const { orderId } = req.body;
+    const latitude = Number(req.body.latitude);
+    const longitude = Number(req.body.longitude);
     const deliveryBoyId = req.user?.userId;
 
     // Validate inputs

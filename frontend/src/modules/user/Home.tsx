@@ -55,7 +55,7 @@ export default function Home() {
           setHomeData(response.data);
 
           if (response.data.bestsellers) {
-            setProducts(response.data.bestsellers);
+            setProducts(response.data.bestsellers.filter((p: any) => p.isAvailable !== false));
           }
         } else {
           setError("Failed to load content. Please try again.");

@@ -26,6 +26,7 @@ const allowedOrigins = [
   "https://klydocart-frontend.onrender.com",
   "https://klydocart.biz",
   "https://klydocart.biz/",
+  "https://klydo-cart.vercel.app",
   // Add more origins from environment variable if needed
   ...(process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(",").map((url) => url.trim())
