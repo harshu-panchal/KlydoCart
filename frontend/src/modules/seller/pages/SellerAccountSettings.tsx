@@ -102,22 +102,27 @@ const SellerAccountSettings = () => {
         error = `${name === 'accountName' ? 'Account Holder' : 'Bank'} Name should only contain alphabets`;
       }
     } else if (name === 'accountNumber') {
-      if (value.length > 0 && !/^\d+$/.test(value)) {
-        error = "Account Number should only contain digits";
+      if (value.length > 0) {
+        if (!/^\d*$/.test(value)) {
+          error = "Only digits allowed";
+        } else if (value.length < 9 || value.length > 18) {
+          error = "Must be 9-18 digits";
+        }
       }
     } else if (name === 'ifsc') {
-      if (value.length > 0 && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value.toUpperCase())) {
-        error = "Invalid IFSC format (e.g. HDFC0001015)";
+      const val = value.toUpperCase();
+      if (val.length > 0 && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(val)) {
+        error = "Format: ABCD0123456 (4 letters, 0, 6 alpha-numeric)";
       }
     } else if (name === 'taxNumber') {
       const trimmedValue = value.trim().toUpperCase();
       if (trimmedValue.length > 0 && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$/.test(trimmedValue)) {
-        error = "Invalid GST format";
+        error = "Format: 22AAAAA0000A1Z5";
       }
     } else if (name === 'panCard') {
       const trimmedValue = value.trim().toUpperCase();
       if (trimmedValue.length > 0 && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(trimmedValue)) {
-        error = "Invalid PAN format";
+        error = "Format: ABCDE1234F";
       }
     } else if (name === 'email') {
       if (value.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
@@ -179,17 +184,21 @@ const SellerAccountSettings = () => {
       if (sellerData.bankName && !/^[a-zA-Z\s]+$/.test(sellerData.bankName)) {
         errors.bankName = "Bank Name must only contain letters";
       }
-      if (sellerData.accountNumber && !/^\d+$/.test(sellerData.accountNumber)) {
-        errors.accountNumber = "Account Number must be digits only";
+      if (sellerData.accountNumber) {
+        if (!/^\d+$/.test(sellerData.accountNumber)) {
+          errors.accountNumber = "Account Number must be digits only";
+        } else if (sellerData.accountNumber.length < 9 || sellerData.accountNumber.length > 18) {
+          errors.accountNumber = "Account Number must be 9-18 digits";
+        }
       }
       if (sellerData.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(sellerData.ifsc.toUpperCase())) {
-        errors.ifsc = "Invalid IFSC Code (e.g. HDFC0001015)";
+        errors.ifsc = "Invalid IFSC. Format: ABCD0123456";
       }
       if (sellerData.panCard && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(sellerData.panCard.trim().toUpperCase())) {
-        errors.panCard = "Invalid PAN Card format";
+        errors.panCard = "Invalid PAN. Format: ABCDE1234F";
       }
       if (sellerData.taxNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$/.test(sellerData.taxNumber.trim().toUpperCase())) {
-        errors.taxNumber = "Invalid GST format";
+        errors.taxNumber = "Invalid GST. Format: 22AAAAA0000A1Z5";
       }
 
       if (sellerData.newPassword || sellerData.confirmPassword) {

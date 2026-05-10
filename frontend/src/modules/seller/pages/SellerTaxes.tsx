@@ -28,7 +28,7 @@ export default function SellerTaxes() {
     }, []);
 
     const filteredTaxes = taxes.filter(tax =>
-        tax.name.toLowerCase().includes(searchTerm.toLowerCase())
+        tax.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
     );
 
     const totalPages = Math.ceil(filteredTaxes.length / rowsPerPage);
@@ -133,7 +133,10 @@ export default function SellerTaxes() {
                                 type="text"
                                 className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-48"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 placeholder=""
                             />
                         </div>

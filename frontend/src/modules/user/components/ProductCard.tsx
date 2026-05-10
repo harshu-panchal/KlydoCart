@@ -160,8 +160,12 @@ export default function ProductCard({
     e.preventDefault();
     e.stopPropagation();
 
+    // Check both isAuthenticated and token to debug
+    const token = localStorage.getItem('authToken');
+    console.log('[ProductCard] Notify Me clicked - isAuthenticated:', isAuthenticated, 'token:', !!token);
+
     // Redirect to login if not authenticated
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !token) {
       showToast('Login to get notified', 'info');
       navigate('/login');
       return;

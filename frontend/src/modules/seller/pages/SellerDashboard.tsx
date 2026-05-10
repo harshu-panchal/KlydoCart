@@ -77,18 +77,33 @@ export default function SellerDashboard() {
   };
 
 
-  const getStatusBadgeClass = (status: NewOrder['status']) => {
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'Out For Delivery':
+      case 'On the way':
         return 'text-blue-800 bg-blue-100 border border-blue-400';
       case 'Received':
+      case 'Accepted':
         return 'text-blue-600 bg-blue-50';
       case 'Payment Pending':
         return 'text-orange-600 bg-orange-50';
+      case 'Delivered':
+        return 'text-green-800 bg-green-100 border border-green-400';
       case 'Cancelled':
+      case 'Rejected':
         return 'text-red-600 bg-pink-50';
       default:
         return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return 'N/A';
+    try {
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? dateStr : date.toLocaleDateString();
+    } catch {
+      return dateStr;
     }
   };
 
@@ -424,9 +439,9 @@ export default function SellerDashboard() {
             </thead>
             <tbody className="bg-white divide-y divide-neutral-200">
               {displayedOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-neutral-50">
-                  <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">{order.id}</td>
-                  <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">{order.orderDate}</td>
+                <tr key={order._id || order.id} className="hover:bg-neutral-50">
+                  <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">{order.orderId || order.id || order._id}</td>
+                  <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">{formatDate(order.orderDate)}</td>
                   <td className="px-4 sm:px-6 py-3">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeClass(order.status)}`}>
                       {order.status}
@@ -435,7 +450,7 @@ export default function SellerDashboard() {
                   <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">₹ {order.amount}</td>
                   <td className="px-4 sm:px-6 py-3">
                     <button
-                      onClick={() => navigate(`/seller/orders/${order.id}`)}
+                      onClick={() => navigate(`/seller/orders/${order._id || order.id}`)}
                       className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors"
                       aria-label="View order details"
                     >
@@ -444,24 +459,13 @@ export default function SellerDashboard() {
                         height="16"
                         viewBox="0 0 24 24"
                         fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                       >
-                        <circle
-                          cx="11"
-                          cy="11"
-                          r="8"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M21 21L16.65 16.65"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
                       </svg>
                     </button>
                   </td>

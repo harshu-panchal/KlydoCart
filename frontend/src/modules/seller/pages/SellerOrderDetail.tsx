@@ -10,6 +10,7 @@ import jsPDF from "jspdf";
 
 export default function SellerOrderDetail() {
   const { id } = useParams<{ id: string }>();
+  console.log('Order Detail Page - ID from params:', id);
   const navigate = useNavigate();
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +27,7 @@ export default function SellerOrderDetail() {
       try {
         const response = await getOrderById(id);
         if (response.success && response.data) {
+          console.log('Order Detail Fetched:', response.data);
           setOrderDetail(response.data);
           setOrderStatus(response.data.status);
         } else {
@@ -64,7 +66,7 @@ export default function SellerOrderDetail() {
     if (!orderDetail) return;
 
     try {
-      const response = await updateOrderStatus(orderDetail.id, {
+      const response = await updateOrderStatus(orderDetail._id || orderDetail.id, {
         status: newStatus as any,
       });
       if (response.success) {
@@ -210,7 +212,7 @@ export default function SellerOrderDetail() {
     });
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Order ID: ${orderDetail.id}`, rightX, yPos - 14, {
+    doc.text(`Order ID: ${orderDetail._id || orderDetail.id}`, rightX, yPos - 14, {
       align: "right",
     });
     doc.text(
@@ -371,7 +373,7 @@ export default function SellerOrderDetail() {
 
     doc.setFontSize(8);
     doc.text(
-      "Copyright © 2025. Developed By KlydoCart",
+      "Copyright © 2026. Developed By KlydoCart",
       pageWidth / 2,
       yPos,
       { align: "center" }
@@ -662,7 +664,7 @@ export default function SellerOrderDetail() {
       {/* Footer */}
       <footer className="mt-6 px-4 sm:px-6 text-center py-4 bg-neutral-100 rounded-lg">
         <p className="text-xs sm:text-sm text-neutral-600">
-          Copyright © 2025. Developed By{" "}
+          Copyright © 2026. Developed By{" "}
           <span className="font-semibold text-teal-600">
             KlydoCart
           </span>

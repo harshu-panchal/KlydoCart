@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getOrders, Order, GetOrdersParams } from '../../../services/api/orderService';
-import { useSellerSocket } from '../hooks/useSellerSocket';
+import { useSellerSocket, SellerNotification } from '../hooks/useSellerSocket';
 
 
 type SortField = 'orderId' | 'deliveryDate' | 'orderDate' | 'status' | 'amount';
@@ -12,12 +12,25 @@ export default function SellerOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [dateRange, setDateRange] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [status, setStatus] = useState('All Status');
   const [entriesPerPage, setEntriesPerPage] = useState('10');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [sortField, setSortField] = useState<SortField | null>(null);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset to first page on new search
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // Fetch orders from API
@@ -29,80 +42,77 @@ export default function SellerOrders() {
         const params: GetOrdersParams = {
           page: currentPage,
           limit: parseInt(entriesPerPage),
-          sortBy: sortField || 'orderDate',
+          status: status === 'All Status' ? undefined : status,
+          search: debouncedSearch.trim() || undefined,
+          sortBy: sortField || undefined,
           sortOrder: sortDirection,
         };
 
-        // Parse date range
-        if (dateRange) {
-          const [startDate, endDate] = dateRange.split(' - ');
-          if (startDate && endDate) {
+        if (startDate && endDate) {
             params.dateFrom = startDate;
             params.dateTo = endDate;
-          }
-        }
-
-        // Add status filter
-        if (status !== 'All Status') {
-          params.status = status;
-        }
-
-        // Add search
-        if (searchQuery) {
-          params.search = searchQuery;
+        } else if (startDate) {
+            params.dateFrom = startDate;
+        } else if (endDate) {
+            params.dateTo = endDate;
         }
 
         const response = await getOrders(params);
         if (response.success && response.data) {
           setOrders(response.data);
+          setTotalCount(response.pagination?.total || response.data.length);
         } else {
           setError(response.message || 'Failed to fetch orders');
         }
       } catch (err: any) {
-        setError(err.response?.data?.message || err.message || 'Failed to fetch orders');
+        setError(err.response?.data?.message || err.message || 'Error loading orders');
       } finally {
         setLoading(false);
       }
     };
 
     fetchOrders();
-  }, [dateRange, status, entriesPerPage, searchQuery, currentPage, sortField, sortDirection]);
+  }, [startDate, endDate, status, entriesPerPage, debouncedSearch, currentPage, sortField, sortDirection]);
 
   // Listen for real-time status updates from socket
-  useSellerSocket((notification) => {
+  const handleNotification = useCallback((notification: SellerNotification) => {
     if (notification.type === 'STATUS_UPDATE') {
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === notification.orderId 
-            ? { ...order, status: notification.status as any } 
+          (order._id === notification.orderId || order.id === notification.orderId)
+            ? { ...order, status: notification.status }
             : order
         )
       );
     } else if (notification.type === 'NEW_ORDER') {
-      // For new orders, we could optionally re-fetch or add to top
-      // Re-fetching is safer for pagination consistency
-      const fetchOrders = async () => {
+      const fetchLatestOrders = async () => {
         try {
           const params: GetOrdersParams = {
             page: currentPage,
             limit: parseInt(entriesPerPage),
+            status: status === 'All Status' ? undefined : status,
+            search: debouncedSearch,
             sortBy: sortField || 'orderDate',
             sortOrder: sortDirection,
           };
           const response = await getOrders(params);
           if (response.success && response.data) {
             setOrders(response.data);
+            setTotalCount(response.pagination?.total || response.data.length);
           }
         } catch (err) {
-          console.error("Error refreshing orders after new order notification:", err);
+          console.error('Error refreshing orders:', err);
         }
       };
-      fetchOrders();
+      fetchLatestOrders();
     }
-  });
+  }, [currentPage, entriesPerPage, status, searchQuery, sortField, sortDirection]);
+
+  useSellerSocket(handleNotification);
 
   const handleClearDate = () => {
-    setDateRange('');
+    setStartDate('');
+    setEndDate('');
     setCurrentPage(1);
   };
 
@@ -118,11 +128,29 @@ export default function SellerOrders() {
   const handleExport = () => {
     // Create CSV content
     const headers = ['Order ID', 'Delivery Date', 'Order Date', 'Status', 'Amount'];
+    
+    const formatDate = (dateStr: string) => {
+      try {
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? dateStr : date.toLocaleDateString();
+      } catch {
+        return dateStr;
+      }
+    };
+
     const csvContent = [
       headers.join(','),
-      ...orders.map(order =>
-        [order.orderId, order.deliveryDate, order.orderDate, order.status, order.amount].join(',')
-      )
+      ...orders.map(order => {
+        const row = [
+          order.orderId,
+          formatDate(order.deliveryDate),
+          formatDate(order.orderDate),
+          order.status,
+          order.amount
+        ];
+        // Wrap each field in quotes to handle commas and ensure better Excel compatibility
+        return row.map(val => `"${val}"`).join(',');
+      })
     ].join('\n');
 
     // Create blob and download
@@ -139,10 +167,14 @@ export default function SellerOrders() {
 
   // Pagination (client-side for now, can be moved to backend later)
   const entriesPerPageNum = parseInt(entriesPerPage);
-  const totalPages = Math.ceil(orders.length / entriesPerPageNum);
+  // When using API pagination, we don't slice the results if they are already paginated by the backend
+  // But the current implementation seems to fetch all then slice, or fetch paginated and then slice.
+  // Given the useEffect uses currentPage/entriesPerPage, the API response is already paginated.
+  // So we should NOT slice it again if it only contains the current page's data.
+  const paginatedOrders = orders; 
+  const totalPages = Math.ceil(totalCount / entriesPerPageNum);
   const startIndex = (currentPage - 1) * entriesPerPageNum;
-  const endIndex = startIndex + entriesPerPageNum;
-  const paginatedOrders = orders.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + orders.length, totalCount);
 
   const handlePreviousPage = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
@@ -173,15 +205,26 @@ export default function SellerOrders() {
       case 'Pending':
         return 'bg-yellow-100 text-yellow-800';
       case 'Accepted':
+      case 'Received':
         return 'bg-blue-100 text-blue-800';
       case 'On the way':
         return 'bg-purple-100 text-purple-800';
       case 'Delivered':
         return 'bg-green-100 text-green-800';
       case 'Cancelled':
+      case 'Rejected':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-neutral-100 text-neutral-800';
+    }
+  };
+
+  const formatDateDisplay = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return isNaN(date.getTime()) ? dateStr : date.toLocaleDateString();
+    } catch {
+      return dateStr;
     }
   };
 
@@ -199,7 +242,7 @@ export default function SellerOrders() {
               Home
             </Link>
             <span className="text-neutral-500">/</span>
-            <span className="text-neutral-700">Orders List</span>
+            <span className="text-neutral-700">Orders</span>
           </div>
         </div>
       </div>
@@ -221,39 +264,38 @@ export default function SellerOrders() {
                 <label className="text-xs sm:text-sm font-medium text-neutral-700 whitespace-nowrap">
                   From - To Order Date
                 </label>
-                <div className="flex items-center gap-2 bg-neutral-100 border border-neutral-300 rounded px-2 sm:px-3 py-1.5 sm:py-2 w-full sm:w-auto">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="text-neutral-500 flex-shrink-0"
-                  >
-                    <path
-                      d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                <div className="flex items-center gap-1 sm:gap-2 bg-neutral-100 border border-neutral-300 rounded px-2 py-1 sm:py-1.5 w-full sm:w-auto">
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="text-[10px] sm:text-xs text-neutral-700 bg-transparent focus:outline-none cursor-pointer p-0 w-[100px] sm:w-[110px]"
                     />
-                  </svg>
-                  <input
-                    type="text"
-                    value={dateRange}
-                    onChange={(e) => {
-                      setDateRange(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="flex-1 sm:w-48 text-xs sm:text-sm text-neutral-600 bg-transparent focus:outline-none placeholder:text-neutral-400"
-                    placeholder="MM/DD/YYYY - MM/DD/YYYY"
-                  />
-                  {dateRange && (
+                    <span className="text-neutral-400 text-xs">-</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="text-[10px] sm:text-xs text-neutral-700 bg-transparent focus:outline-none cursor-pointer p-0 w-[100px] sm:w-[110px]"
+                    />
+                  </div>
+                  {(startDate || endDate) && (
                     <button
                       onClick={handleClearDate}
-                      className="ml-2 px-2 py-1 text-xs font-medium text-neutral-700 bg-neutral-200 hover:bg-neutral-300 rounded transition-colors flex-shrink-0"
+                      className="ml-1 text-red-500 hover:text-red-700 p-1"
+                      title="Clear Dates"
                     >
-                      Clear
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
                     </button>
                   )}
                 </div>
@@ -306,10 +348,7 @@ export default function SellerOrders() {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                   placeholder="Search by Order ID, Status, or Amount"
                 />
@@ -536,15 +575,15 @@ export default function SellerOrders() {
                     </tr>
                   ) : (
                     paginatedOrders.map((order) => (
-                      <tr key={order.id} className="hover:bg-neutral-50 transition-colors">
+                      <tr key={order._id || order.id} className="hover:bg-neutral-50 transition-colors">
                         <td className="px-3 sm:px-4 md:px-6 py-3 text-xs sm:text-sm text-neutral-900">
                           {order.orderId}
                         </td>
                         <td className="px-3 sm:px-4 md:px-6 py-3 text-xs sm:text-sm text-neutral-700">
-                          {order.deliveryDate}
+                          {formatDateDisplay(order.deliveryDate)}
                         </td>
                         <td className="px-3 sm:px-4 md:px-6 py-3 text-xs sm:text-sm text-neutral-700">
-                          {order.orderDate}
+                          {formatDateDisplay(order.orderDate)}
                         </td>
                         <td className="px-3 sm:px-4 md:px-6 py-3">
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
@@ -556,8 +595,13 @@ export default function SellerOrders() {
                         </td>
                         <td className="px-3 sm:px-4 md:px-6 py-3">
                           <button
-                            onClick={() => navigate(`/seller/orders/${order.id}`)}
-                            className="text-green-600 hover:text-green-700 text-xs sm:text-sm font-medium transition-colors"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const targetId = order._id || order.id;
+                              console.log('Navigating to order:', targetId);
+                              navigate(`/seller/orders/${targetId}`);
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs sm:text-sm font-medium transition-colors"
                           >
                             View
                           </button>
@@ -573,7 +617,7 @@ export default function SellerOrders() {
           {/* Pagination */}
           <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-neutral-200 flex flex-wrap items-center justify-between gap-4">
             <div className="text-xs sm:text-sm text-neutral-700">
-              Showing {orders.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, orders.length)} of {orders.length} entries
+              Showing {orders.length === 0 ? 0 : startIndex + 1} to {endIndex} of {totalCount} entries
             </div>
             <div className="flex items-center gap-1 sm:gap-2 mr-2 sm:mr-4">
               <button
@@ -623,7 +667,7 @@ export default function SellerOrders() {
       {/* Footer */}
       <footer className="px-3 sm:px-4 md:px-6 text-center py-4 sm:py-6">
         <p className="text-xs sm:text-sm text-neutral-600">
-          Copyright © 2025. Developed By{' '}
+          Copyright © 2026. Developed By{' '}
           <Link to="/seller" className="text-blue-600 hover:text-blue-700">
             KlydoCart
           </Link>

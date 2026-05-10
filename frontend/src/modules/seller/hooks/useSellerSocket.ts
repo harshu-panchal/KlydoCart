@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../../context/AuthContext';
 import { getSocketBaseURL } from '../../../services/api/config';
@@ -36,6 +36,11 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
     const { user, token, isAuthenticated } = useAuth();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const callbackRef = useRef(onNotificationReceived);
+    
+    useEffect(() => {
+        callbackRef.current = onNotificationReceived;
+    }, [onNotificationReceived]);
 
     useEffect(() => {
         if (!isAuthenticated || !token || !user || user.userType !== 'Seller') {
@@ -66,8 +71,8 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
 
         newSocket.on('seller-notification', (notification: SellerNotification) => {
             console.log('🔔 New seller notification received:', notification);
-            if (onNotificationReceived) {
-                onNotificationReceived(notification);
+            if (callbackRef.current) {
+                callbackRef.current(notification);
             }
         });
 
@@ -81,7 +86,7 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
         return () => {
             newSocket.disconnect();
         };
-    }, [isAuthenticated, token, user?.id, user?.userType, onNotificationReceived]);
+    }, [isAuthenticated, token, user?.id, user?.userType]); // Removed onNotificationReceived from dependencies
 
     return { socket, isConnected };
 };

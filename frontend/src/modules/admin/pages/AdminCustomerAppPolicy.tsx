@@ -44,7 +44,7 @@ By using our customer app, you agree to the following terms and conditions:
 
 For any questions or concerns, please contact our customer support team.
 
-Last updated: December 2025`);
+Last updated: May 2026`);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

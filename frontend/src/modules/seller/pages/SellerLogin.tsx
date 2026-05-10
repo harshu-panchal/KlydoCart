@@ -17,6 +17,10 @@ export default function SellerLogin() {
   const [error, setError] = useState("");
   const [timer, setTimer] = useState(20);
   const [canResend, setCanResend] = useState(false);
+  const [showPolicy, setShowPolicyModal] = useState<{
+    show: boolean;
+    type: "terms" | "privacy" | null;
+  }>({ show: false, type: null });
 
   const handleMobileLogin = async () => {
     if (mobileNumber.length !== 10) return;
@@ -182,15 +186,28 @@ export default function SellerLogin() {
                   </button>
 
                   {/* Sign Up Link */}
-                  <div className="text-center pt-2">
+                  <div className="text-center pt-2 space-y-2">
                     <p className="text-[11px] text-slate-400 font-bold">
                       New merchant?{" "}
                       <button
                         onClick={() => navigate("/seller/signup")}
-                        className="text-teal-600 hover:underline ml-1">
+                        className="text-teal-600 hover:underline ml-1 uppercase">
                         Apply Today
                       </button>
                     </p>
+                    <div className="flex items-center justify-center gap-3 text-[9px] font-black text-teal-600 uppercase tracking-widest">
+                      <button 
+                        onClick={() => setShowPolicyModal({ show: true, type: "terms" })}
+                        className="hover:text-teal-700 transition-colors underline underline-offset-2">
+                        Terms
+                      </button>
+                      <span className="w-1 h-1 bg-teal-200 rounded-full" />
+                      <button 
+                        onClick={() => setShowPolicyModal({ show: true, type: "privacy" })}
+                        className="hover:text-teal-700 transition-colors underline underline-offset-2">
+                        Privacy
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               ) : (
@@ -262,6 +279,71 @@ export default function SellerLogin() {
           </p>
         </div>
       </motion.div>
+
+      {/* Policy Modal */}
+      <AnimatePresence>
+        {showPolicy.show && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPolicyModal({ show: false, type: null })}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+                  {showPolicy.type === "terms" ? "Terms & Conditions" : "Privacy Policy"}
+                </h3>
+                <button
+                  onClick={() => setShowPolicyModal({ show: false, type: null })}
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto text-sm text-slate-600 leading-relaxed space-y-4 font-medium custom-scrollbar">
+                {showPolicy.type === "terms" ? (
+                  <>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">1. Acceptance of Terms</p>
+                    <p>By registering as a merchant on KlydoCart, you agree to abide by all the rules and regulations set forth in this agreement. This portal is strictly for authorized business entities only.</p>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">2. Merchant Obligations</p>
+                    <p>Merchants are responsible for maintaining the accuracy of their product listings, pricing, and fulfillment. Any fraudulent activity will result in immediate suspension.</p>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">3. Commission & Payments</p>
+                    <p>Platform fees and commission structures are subject to the specific category agreements. Payments are processed according to the verified settlement cycle.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">Data Collection</p>
+                    <p>We collect essential merchant data including business identification, contact information, and financial details required for platform operations and legal compliance.</p>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">Security Protocol</p>
+                    <p>All merchant interactions are encrypted via industry-standard protocols. We do not share your private business metrics with third-party competitors.</p>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">Cookies & Tracking</p>
+                    <p>We use session cookies to ensure a secure and persistent merchant experience across our dashboard nodes.</p>
+                  </>
+                )}
+              </div>
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+                <button
+                  onClick={() => setShowPolicyModal({ show: false, type: null })}
+                  className="w-full py-3 bg-teal-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-teal-700 transition-all shadow-lg shadow-teal-600/20"
+                >
+                  I Understand
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

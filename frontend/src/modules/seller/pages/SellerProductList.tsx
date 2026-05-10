@@ -28,8 +28,8 @@ export default function SellerProductList() {
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(
     new Set()
   );
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortColumn, setSortColumn] = useState<string | null>("createdAt");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [totalPages, setTotalPages] = useState(1);
   const [paginationInfo, setPaginationInfo] = useState<{
     page: number;
@@ -67,8 +67,9 @@ export default function SellerProductList() {
         sortOrder: sortDirection,
       };
 
-      if (searchTerm) {
-        params.search = searchTerm;
+      const trimmedSearch = searchTerm.trim();
+      if (trimmedSearch) {
+        params.search = trimmedSearch;
       }
       if (categoryFilter !== "All Category") {
         params.category = categoryFilter;
@@ -164,6 +165,8 @@ export default function SellerProductList() {
         variation: "Default",
         isPopular: product.popular,
         productId: product._id,
+        publish: product.publish,
+        stock: (product as any).stock || 0,
       }];
     }
     // If product has variations, map them
@@ -184,6 +187,8 @@ export default function SellerProductList() {
         variation.title || variation.value || variation.name || "Default",
       isPopular: product.popular,
       productId: product._id,
+      publish: product.publish,
+      stock: variation.stock || 0,
     }));
   });
 
@@ -196,9 +201,8 @@ export default function SellerProductList() {
     const matchesCategory =
       categoryFilter === "All Category" ||
       variation.category === categoryFilter;
-    const matchesStatus = statusFilter === "All Products";
-    const matchesStock = stockFilter === "All Products";
-    return matchesSearch && matchesCategory && matchesStatus && matchesStock;
+    // Removed redundant client-side filters for Status and Stock as they are handled by the backend
+    return matchesSearch && matchesCategory;
   });
 
   // Sort variations
@@ -545,6 +549,13 @@ export default function SellerProductList() {
                 </th>
                 <th
                   className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+                  onClick={() => handleSort("stock")}>
+                  <div className="flex items-center justify-between">
+                    Stock <SortIcon column="stock" />
+                  </div>
+                </th>
+                <th
+                  className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
                   onClick={() => handleSort("variation")}>
                   <div className="flex items-center justify-between">
                     Variation <SortIcon column="variation" />
@@ -638,6 +649,11 @@ export default function SellerProductList() {
                       {variation.discPrice > 0
                         ? `₹${variation.discPrice.toFixed(2)}`
                         : "-"}
+                    </td>
+                    <td className="p-4 align-middle border border-neutral-200">
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(variation as any).stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {(variation as any).stock}
+                      </span>
                     </td>
                     <td className="p-4 align-middle border border-neutral-200">
                       {variation.variation}

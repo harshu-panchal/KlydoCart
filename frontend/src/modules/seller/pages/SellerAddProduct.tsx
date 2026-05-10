@@ -44,10 +44,6 @@ export default function SellerAddProduct() {
     brand: "",
     tags: "",
     smallDescription: "",
-    seoTitle: "",
-    seoKeywords: "",
-    seoImageAlt: "",
-    seoDescription: "",
     variationType: "",
     manufacturer: "",
     madeIn: "",
@@ -178,10 +174,6 @@ export default function SellerAddProduct() {
               brand: (product.brand as any)?._id || product.brandId || "",
               tags: product.tags.join(", "),
               smallDescription: product.smallDescription || "",
-              seoTitle: product.seoTitle || "",
-              seoKeywords: product.seoKeywords || "",
-              seoImageAlt: product.seoImageAlt || "",
-              seoDescription: product.seoDescription || "",
               variationType: product.variationType || "",
               manufacturer: product.manufacturer || "",
               madeIn: product.madeIn || "",
@@ -407,6 +399,12 @@ export default function SellerAddProduct() {
       return;
     }
 
+    // FSSAI Validation (if provided, must be 14 digits)
+    if (formData.fssaiLicNo && !/^\d{14}$/.test(formData.fssaiLicNo)) {
+      setUploadError("FSSAI License Number must be exactly 14 digits.");
+      return;
+    }
+
     // Only validate categories if NOT shop by store only
     if (formData.isShopByStoreOnly !== "Yes") {
       if (!formData.headerCategory) {
@@ -474,10 +472,6 @@ export default function SellerAddProduct() {
         publish: formData.publish === "Yes",
         popular: formData.popular === "Yes",
         dealOfDay: formData.dealOfDay === "Yes",
-        seoTitle: formData.seoTitle || undefined,
-        seoKeywords: formData.seoKeywords || undefined,
-        seoImageAlt: formData.seoImageAlt || undefined,
-        seoDescription: formData.seoDescription || undefined,
         smallDescription: formData.smallDescription || undefined,
         tags: tagsArray,
         manufacturer: formData.manufacturer || undefined,
@@ -527,10 +521,6 @@ export default function SellerAddProduct() {
               brand: "",
               tags: "",
               smallDescription: "",
-              seoTitle: "",
-              seoKeywords: "",
-              seoImageAlt: "",
-              seoDescription: "",
               variationType: "",
               manufacturer: "",
               madeIn: "",
@@ -804,66 +794,7 @@ export default function SellerAddProduct() {
             </div>
           </div>
 
-          {/* SEO Content Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-            <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
-              <h2 className="text-lg font-semibold">SEO Content</h2>
-            </div>
-            <div className="p-4 sm:p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  name="seoTitle"
-                  value={formData.seoTitle}
-                  onChange={handleChange}
-                  placeholder="Enter SEO Title"
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  SEO Keywords
-                </label>
-                <input
-                  type="text"
-                  name="seoKeywords"
-                  value={formData.seoKeywords}
-                  onChange={handleChange}
-                  placeholder="Enter SEO Keywords"
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  SEO Image Alt Text
-                </label>
-                <input
-                  type="text"
-                  name="seoImageAlt"
-                  value={formData.seoImageAlt}
-                  onChange={handleChange}
-                  placeholder="Enter SEO Image Alt Text"
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  SEO Description
-                </label>
-                <textarea
-                  name="seoDescription"
-                  value={formData.seoDescription}
-                  onChange={handleChange}
-                  placeholder="Enter SEO Description"
-                  rows={4}
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-none"
-                />
-              </div>
-            </div>
-          </div>
+
 
           {/* Add Variation Section */}
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
@@ -933,12 +864,14 @@ export default function SellerAddProduct() {
                   <input
                     type="number"
                     value={variationForm.price}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (val.length > 1 && val.startsWith("0")) val = val.substring(1);
                       setVariationForm({
                         ...variationForm,
-                        price: e.target.value,
-                      })
-                    }
+                        price: val,
+                      });
+                    }}
                     placeholder="100"
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
@@ -950,12 +883,14 @@ export default function SellerAddProduct() {
                   <input
                     type="number"
                     value={variationForm.discPrice}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (val.length > 1 && val.startsWith("0")) val = val.substring(1);
                       setVariationForm({
                         ...variationForm,
-                        discPrice: e.target.value,
-                      })
-                    }
+                        discPrice: val,
+                      });
+                    }}
                     placeholder="80"
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
@@ -967,12 +902,14 @@ export default function SellerAddProduct() {
                   <input
                     type="number"
                     value={variationForm.stock}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (val.length > 1 && val.startsWith("0")) val = val.substring(1);
                       setVariationForm({
                         ...variationForm,
-                        stock: e.target.value,
-                      })
-                    }
+                        stock: val,
+                      });
+                    }}
                     placeholder="0"
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
@@ -1056,8 +993,11 @@ export default function SellerAddProduct() {
                     type="text"
                     name="madeIn"
                     value={formData.madeIn}
-                    onChange={handleChange}
-                    placeholder="Enter Made In"
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+                      setFormData({ ...formData, madeIn: val });
+                    }}
+                    placeholder="Enter Made In (e.g., India)"
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
                 </div>
@@ -1112,10 +1052,16 @@ export default function SellerAddProduct() {
                     type="text"
                     name="fssaiLicNo"
                     value={formData.fssaiLicNo}
-                    onChange={handleChange}
-                    placeholder="Enter FSSAI Lic. No."
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 14);
+                      setFormData({ ...formData, fssaiLicNo: val });
+                    }}
+                    placeholder="Enter 14-digit FSSAI Lic. No."
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Must be a 14-digit number
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">

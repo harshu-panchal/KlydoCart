@@ -7,7 +7,8 @@ export interface ApiResponse<T> {
 }
 
 export interface Order {
-  id: string;
+  _id: string;
+  id?: string;
   orderId: string;
   deliveryDate: string;
   orderDate: string;
@@ -42,7 +43,8 @@ export interface DeliveryAddress {
 }
 
 export interface OrderDetail {
-  id: string;
+  _id: string;
+  id?: string;
   invoiceNumber: string;
   orderDate: string;
   deliveryDate: string;

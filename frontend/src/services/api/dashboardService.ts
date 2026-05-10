@@ -16,7 +16,8 @@ export interface DashboardStats {
 }
 
 export interface NewOrder {
-    id: string;
+    _id: string;
+    id?: string;
     orderDate: string;
     status: string;
     amount: number;

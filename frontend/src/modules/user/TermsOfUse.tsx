@@ -75,7 +75,7 @@ export default function TermsOfUse() {
           </section>
 
           <div className="pt-8 border-t border-neutral-100 text-sm text-neutral-500 text-center">
-            Last updated: December 2025
+            Last updated: May 2026
           </div>
         </div>
       </div>

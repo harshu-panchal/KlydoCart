@@ -75,7 +75,7 @@ By using our delivery app, you agree to the following terms and conditions:
 
 For any questions or concerns, please contact our delivery partner support team.
 
-Last updated: January 2025`);
+Last updated: May 2026`);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
