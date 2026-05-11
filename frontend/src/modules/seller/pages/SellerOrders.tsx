@@ -60,7 +60,7 @@ export default function SellerOrders() {
         const response = await getOrders(params);
         if (response.success && response.data) {
           setOrders(response.data);
-          setTotalCount(response.pagination?.total || response.data.length);
+          setTotalCount((response as any).pagination?.total || response.data.length);
         } else {
           setError(response.message || 'Failed to fetch orders');
         }
@@ -98,7 +98,7 @@ export default function SellerOrders() {
           const response = await getOrders(params);
           if (response.success && response.data) {
             setOrders(response.data);
-            setTotalCount(response.pagination?.total || response.data.length);
+            setTotalCount((response as any).pagination?.total || response.data.length);
           }
         } catch (err) {
           console.error('Error refreshing orders:', err);

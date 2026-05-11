@@ -1,13 +1,13 @@
 import { CartItem } from './cart';
 
-export type OrderStatus = 'Placed' | 'Accepted' | 'On the way' | 'Delivered';
+export type OrderStatus = 'Placed' | 'Accepted' | 'On the way' | 'Delivered' | 'Picked up' | 'Cancelled' | 'Rejected';
 
 export interface OrderAddress {
   name: string;
   phone: string;
   flat: string;
   street: string;
-  address?: string; // Add address field for backend compat
+  address?: string; 
   city: string;
   state?: string;
   pincode: string;
@@ -39,6 +39,7 @@ export interface Order {
   gstin?: string;
   couponCode?: string;
   giftPackaging?: boolean;
+  _id?: string;
 }
 
 

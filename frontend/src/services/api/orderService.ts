@@ -4,6 +4,21 @@ export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export interface NewOrder {
+  _id: string;
+  id?: string;
+  orderId?: string;
+  orderDate: string;
+  status: string;
+  amount: number;
 }
 
 export interface Order {

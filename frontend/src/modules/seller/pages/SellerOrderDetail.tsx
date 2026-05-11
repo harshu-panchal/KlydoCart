@@ -66,7 +66,7 @@ export default function SellerOrderDetail() {
     if (!orderDetail) return;
 
     try {
-      const response = await updateOrderStatus(orderDetail._id || orderDetail.id, {
+      const response = await updateOrderStatus((orderDetail._id || orderDetail.id) as string, {
         status: newStatus as any,
       });
       if (response.success) {

@@ -113,14 +113,14 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
 
         socket.on('order-delivered', (data: any) => {
           console.log('🚀 Real-time order update in Provider:', data);
-          setOrders(prev => prev.map(o => 
-            (o.id === data.orderId || o._id === data.orderId) ? { ...o, status: data.status || 'Delivered' } : o
+          setOrders(prev => prev.map(o =>
+            (o.id === data.orderId || (o as any)._id === data.orderId) ? { ...o, status: (data.status as OrderStatus) || 'Delivered' } : o
           ));
         });
 
         socket.on('order-taken', (data: any) => {
-          setOrders(prev => prev.map(o => 
-            (o.id === data.orderId || o._id === data.orderId) ? { ...o, status: 'Picked up' } : o
+          setOrders(prev => prev.map(o =>
+            (o.id === data.orderId || (o as any)._id === data.orderId) ? { ...o, status: 'Picked up' as OrderStatus } : o
           ));
         });
       };

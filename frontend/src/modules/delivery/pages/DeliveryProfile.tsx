@@ -193,30 +193,30 @@ export default function DeliveryProfile() {
         <div className="grid grid-cols-1 gap-6">
           <Section title="Personal Information" icon="👤">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-              <Field label="Full Name" value={profileData.name} editing={isEditing} onChange={(v) => handleInputChange('name', v)} />
-              <Field label="Mobile Number" value={profileData.mobile} editing={isEditing} onChange={(v) => handleInputChange('mobile', v)} />
-              <Field label="Alternate Mobile" value={profileData.alternateMobile} editing={isEditing} onChange={(v) => handleInputChange('alternateMobile', v)} />
-              <Field label="Email Address" value={profileData.email} editing={isEditing} onChange={(v) => handleInputChange('email', v)} type="email" />
-              <Field label="Date of Birth" value={profileData.dateOfBirth} editing={isEditing} onChange={(v) => handleInputChange('dateOfBirth', v)} type="date" />
-              <Field label="Age" value={profileData.age} editing={isEditing} onChange={(v) => handleInputChange('age', v)} />
-              <Field label="Father's Name" value={profileData.fatherName} editing={isEditing} onChange={(v) => handleInputChange('fatherName', v)} />
-              <Field label="Emergency Contact" value={profileData.emergencyContact} editing={isEditing} onChange={(v) => handleInputChange('emergencyContact', v)} />
+              <Field label="Full Name" value={profileData.name} editing={isEditing} onChange={(v: string) => handleInputChange('name', v)} />
+              <Field label="Mobile Number" value={profileData.mobile} editing={isEditing} onChange={(v: string) => handleInputChange('mobile', v)} />
+              <Field label="Alternate Mobile" value={profileData.alternateMobile} editing={isEditing} onChange={(v: string) => handleInputChange('alternateMobile', v)} />
+              <Field label="Email Address" value={profileData.email} editing={isEditing} onChange={(v: string) => handleInputChange('email', v)} type="email" />
+              <Field label="Date of Birth" value={profileData.dateOfBirth} editing={isEditing} onChange={(v: string) => handleInputChange('dateOfBirth', v)} type="date" />
+              <Field label="Age" value={profileData.age} editing={isEditing} onChange={(v: string) => handleInputChange('age', v)} />
+              <Field label="Father's Name" value={profileData.fatherName} editing={isEditing} onChange={(v: string) => handleInputChange('fatherName', v)} />
+              <Field label="Emergency Contact" value={profileData.emergencyContact} editing={isEditing} onChange={(v: string) => handleInputChange('emergencyContact', v)} />
             </div>
             <div className="mt-5 space-y-5 border-t border-neutral-50 pt-5">
-              <Field label="Current Address" value={profileData.address} editing={isEditing} onChange={(v) => handleInputChange('address', v)} />
-              <Field label="Permanent Address" value={profileData.permanentAddress} editing={isEditing} onChange={(v) => handleInputChange('permanentAddress', v)} />
+              <Field label="Current Address" value={profileData.address} editing={isEditing} onChange={(v: string) => handleInputChange('address', v)} />
+              <Field label="Permanent Address" value={profileData.permanentAddress} editing={isEditing} onChange={(v: string) => handleInputChange('permanentAddress', v)} />
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                <Field label="City" value={profileData.city} editing={isEditing} onChange={(v) => handleInputChange('city', v)} />
-                <Field label="State" value={profileData.state} editing={isEditing} onChange={(v) => handleInputChange('state', v)} />
-                <Field label="PIN Code" value={profileData.pincode} editing={isEditing} onChange={(v) => handleInputChange('pincode', v)} />
+                <Field label="City" value={profileData.city} editing={isEditing} onChange={(v: string) => handleInputChange('city', v)} />
+                <Field label="State" value={profileData.state} editing={isEditing} onChange={(v: string) => handleInputChange('state', v)} />
+                <Field label="PIN Code" value={profileData.pincode} editing={isEditing} onChange={(v: string) => handleInputChange('pincode', v)} />
               </div>
             </div>
           </Section>
 
           <Section title="Identity & Documents" icon="🪪">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 mb-8">
-              <Field label="Aadhaar Number" value={profileData.aadhaarNumber} editing={isEditing} onChange={(v) => handleInputChange('aadhaarNumber', v)} />
-              <Field label="PAN Number" value={profileData.panNumber} editing={isEditing} onChange={(v) => handleInputChange('panNumber', v)} />
+              <Field label="Aadhaar Number" value={profileData.aadhaarNumber} editing={isEditing} onChange={(v: string) => handleInputChange('aadhaarNumber', v)} />
+              <Field label="PAN Number" value={profileData.panNumber} editing={isEditing} onChange={(v: string) => handleInputChange('panNumber', v)} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <DocumentBox label="Aadhaar Card / ID" url={profileData.nationalIdentityCard} newFile={newFiles.nationalIdentityCard} editing={isEditing} name="nationalIdentityCard" onFileChange={handleFileChange} />
@@ -232,12 +232,12 @@ export default function DeliveryProfile() {
 
           <Section title="Vehicle Details" icon="🛵">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-              <Field label="Vehicle Type" value={profileData.vehicleType} editing={isEditing} onChange={(v) => handleInputChange('vehicleType', v)} />
-              <Field label="Vehicle Number" value={profileData.vehicleNumber} editing={isEditing} onChange={(v) => handleInputChange('vehicleNumber', v)} />
-              <Field label="DL Number" value={profileData.drivingLicenseNumber} editing={isEditing} onChange={(v) => handleInputChange('drivingLicenseNumber', v)} />
-              <Field label="RC Number" value={profileData.rcNumber} editing={isEditing} onChange={(v) => handleInputChange('rcNumber', v)} />
-              <Field label="Insurance Number" value={profileData.vehicleInsuranceNumber} editing={isEditing} onChange={(v) => handleInputChange('vehicleInsuranceNumber', v)} />
-              <Field label="Insurance Valid Till" value={profileData.insuranceValidTill} editing={isEditing} onChange={(v) => handleInputChange('insuranceValidTill', v)} type="date" />
+              <Field label="Vehicle Type" value={profileData.vehicleType} editing={isEditing} onChange={(v: string) => handleInputChange('vehicleType', v)} />
+              <Field label="Vehicle Number" value={profileData.vehicleNumber} editing={isEditing} onChange={(v: string) => handleInputChange('vehicleNumber', v)} />
+              <Field label="DL Number" value={profileData.drivingLicenseNumber} editing={isEditing} onChange={(v: string) => handleInputChange('drivingLicenseNumber', v)} />
+              <Field label="RC Number" value={profileData.rcNumber} editing={isEditing} onChange={(v: string) => handleInputChange('rcNumber', v)} />
+              <Field label="Insurance Number" value={profileData.vehicleInsuranceNumber} editing={isEditing} onChange={(v: string) => handleInputChange('vehicleInsuranceNumber', v)} />
+              <Field label="Insurance Valid Till" value={profileData.insuranceValidTill} editing={isEditing} onChange={(v: string) => handleInputChange('insuranceValidTill', v)} type="date" />
             </div>
             <div className="mt-8">
               <DocumentBox label="Driving License Copy" url={profileData.drivingLicense} newFile={newFiles.drivingLicense} editing={isEditing} name="drivingLicense" onFileChange={handleFileChange} />
@@ -246,12 +246,12 @@ export default function DeliveryProfile() {
 
           <Section title="Banking Information" icon="🏦">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-              <Field label="Bank Name" value={profileData.bankName} editing={isEditing} onChange={(v) => handleInputChange('bankName', v)} />
-              <Field label="Account Holder" value={profileData.accountName} editing={isEditing} onChange={(v) => handleInputChange('accountName', v)} />
-              <Field label="Account Number" value={profileData.accountNumber} editing={isEditing} onChange={(v) => handleInputChange('accountNumber', v)} />
-              <Field label="IFSC Code" value={profileData.ifscCode} editing={isEditing} onChange={(v) => handleInputChange('ifscCode', v)} />
-              <Field label="Branch Name" value={profileData.branchName} editing={isEditing} onChange={(v) => handleInputChange('branchName', v)} />
-              <Field label="UPI ID" value={profileData.upiId} editing={isEditing} onChange={(v) => handleInputChange('upiId', v)} />
+              <Field label="Bank Name" value={profileData.bankName} editing={isEditing} onChange={(v: string) => handleInputChange('bankName', v)} />
+              <Field label="Account Holder" value={profileData.accountName} editing={isEditing} onChange={(v: string) => handleInputChange('accountName', v)} />
+              <Field label="Account Number" value={profileData.accountNumber} editing={isEditing} onChange={(v: string) => handleInputChange('accountNumber', v)} />
+              <Field label="IFSC Code" value={profileData.ifscCode} editing={isEditing} onChange={(v: string) => handleInputChange('ifscCode', v)} />
+              <Field label="Branch Name" value={profileData.branchName} editing={isEditing} onChange={(v: string) => handleInputChange('branchName', v)} />
+              <Field label="UPI ID" value={profileData.upiId} editing={isEditing} onChange={(v: string) => handleInputChange('upiId', v)} />
             </div>
           </Section>
 
