@@ -171,7 +171,7 @@ export default function OrderNotificationCard({
                 setIsProcessing(false);
                 // Resume audio if accept failed
                 if (audioRef.current && hasUserInteracted) {
-                    audioRef.current.play().catch(console.error);
+                    (audioRef.current as any).play().catch(console.error);
                     vibrate(); // Resume vibration
                 }
             }
@@ -181,7 +181,7 @@ export default function OrderNotificationCard({
             setIsProcessing(false);
             // Resume audio if accept failed
             if (audioRef.current && hasUserInteracted) {
-                audioRef.current.play().catch(console.error);
+                (audioRef.current as any).play().catch(console.error);
                 vibrate(); // Resume vibration
             }
         }
@@ -211,7 +211,7 @@ export default function OrderNotificationCard({
                 }
                 // Resume audio if reject failed
                 if (audioRef.current && hasUserInteracted) {
-                    audioRef.current.play().catch(console.error);
+                    (audioRef.current as any).play().catch(console.error);
                     vibrate(); // Resume vibration
                 }
             }
@@ -220,7 +220,7 @@ export default function OrderNotificationCard({
             alert('Failed to reject order');
             // Resume audio if reject failed
             if (audioRef.current && hasUserInteracted) {
-                audioRef.current.play().catch(console.error);
+                (audioRef.current as any).play().catch(console.error);
                 vibrate(); // Resume vibration
             }
         } finally {

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { uploadImage } from "../../../services/api/uploadService";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+// @ts-ignore
+import autoTable from "jspdf-autotable";
 import {
   validateImageFile,
   createImagePreview,
@@ -309,7 +310,7 @@ export default function AdminCoupon() {
       coupon.isActive ? "Active" : "Inactive",
     ]);
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 20,

@@ -2,7 +2,6 @@ import { Server as SocketIOServer } from 'socket.io';
 import Delivery from '../models/Delivery';
 import Order from '../models/Order';
 import Seller from '../models/Seller';
-import DeliveryTracking from '../models/DeliveryTracking';
 import mongoose from 'mongoose';
 import { notifySellersOfOrderUpdate } from './sellerNotificationService';
 import { sendPushNotification } from './firebaseAdmin';

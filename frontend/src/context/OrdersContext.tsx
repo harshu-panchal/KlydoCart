@@ -4,7 +4,7 @@ import {
   useEffect,
 } from "react";
 import { useAuth } from "./AuthContext";
-import { Order } from "../types/order";
+import { Order, OrderStatus } from "../types/order";
 import { createOrder, getMyOrders } from "../services/api/customerOrderService";
 import { OrdersContext } from "./ordersContext.types";
 
