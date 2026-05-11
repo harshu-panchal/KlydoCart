@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DeliveryBottomNav from './DeliveryBottomNav';
 import { DeliveryStatusProvider, useDeliveryStatus } from '../context/DeliveryStatusContext';
 import { DeliveryUserProvider, useDeliveryUser } from '../context/DeliveryUserContext';
-import { getDeliveryProfile } from '../../../services/api/delivery/deliveryService';
+import { getProfile } from '../../../services/api/delivery/deliveryService';
 import { useDeliveryOrderNotifications } from '../../../hooks/useDeliveryOrderNotifications';
 import OrderNotificationCard from './OrderNotificationCard';
 import { AnimatePresence } from 'framer-motion';
@@ -25,7 +25,7 @@ function DeliveryLayoutContent({ children }: DeliveryLayoutContentProps) {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const profile = await getDeliveryProfile();
+        const profile = await getProfile();
         if (profile?.name) {
           setUserName(profile.name);
         }

@@ -19,7 +19,7 @@ export interface IOrderItem extends Document {
   variation?: string;
 
   // Status
-  status: "Pending" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
+  status: "Pending" | "Shipped" | "On the way" | "Delivered" | "Cancelled" | "Returned";
 
   createdAt: Date;
   updatedAt: Date;
@@ -84,7 +84,7 @@ const OrderItemSchema = new Schema<IOrderItem>(
     // Status
     status: {
       type: String,
-      enum: ["Pending", "Shipped", "Delivered", "Cancelled", "Returned"],
+      enum: ["Pending", "Shipped", "On the way", "Delivered", "Cancelled", "Returned"],
       default: "Pending",
     },
   },

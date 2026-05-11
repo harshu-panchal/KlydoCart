@@ -18,6 +18,8 @@ const ALLOWED_DOCUMENT_TYPES = [
   "image/jpg",
   "image/png",
   "image/webp",
+  "image/heic",
+  "image/heif",
   "application/pdf",
 ];
 

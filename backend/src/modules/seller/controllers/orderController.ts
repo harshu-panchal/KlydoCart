@@ -348,8 +348,8 @@ export const updateOrderStatus = asyncHandler(
         // Calculate net earning (sale amount - commission)
         // Commission is stored in seller model
         const commissionRate = (seller.commission || 0) / 100;
-        const commissionAmount = order.grandTotal * commissionRate;
-        const netEarning = order.grandTotal - commissionAmount;
+        const commissionAmount = order.total * commissionRate;
+        const netEarning = order.total - commissionAmount;
 
         seller.balance = (seller.balance || 0) + netEarning;
         await seller.save();
@@ -359,8 +359,8 @@ export const updateOrderStatus = asyncHandler(
           sellerId,
           amount: netEarning,
           type: 'Credit',
-          description: `Earnings from Order #${order.orderId}`,
-          reference: `ORD-${order.orderId}-${Date.now()}`,
+          description: `Earnings from Order #${order.orderNumber}`,
+          reference: `ORD-${order.orderNumber}-${Date.now()}`,
           status: 'Completed'
         });
       }

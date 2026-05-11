@@ -48,6 +48,17 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
   }, [notification]);
 
   useEffect(() => {
+    if (notification) {
+      document.documentElement.classList.add('no-scroll');
+    } else {
+      document.documentElement.classList.remove('no-scroll');
+    }
+    return () => {
+      document.documentElement.classList.remove('no-scroll');
+    };
+  }, [notification]);
+
+  useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
     }

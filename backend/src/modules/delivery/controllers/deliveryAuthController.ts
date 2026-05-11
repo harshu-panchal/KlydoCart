@@ -112,21 +112,12 @@ export const verifySmsOtp = asyncHandler(async (req: Request, res: Response) => 
  */
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const {
-    name,
-    mobile,
-    email,
-    dateOfBirth,
-    password,
-    address,
-    city,
-    pincode,
-    drivingLicense,
-    nationalIdentityCard,
-    accountName,
-    bankName,
-    accountNumber,
-    ifscCode,
-    bonusType,
+    name, mobile, alternateMobile, email, dateOfBirth, age, fatherName, password,
+    address, permanentAddress, city, state, pincode, emergencyContact, profilePic,
+    drivingLicense, nationalIdentityCard, aadhaarNumber, panNumber, marksheet, 
+    policeVerification, signature, accountName, bankName, accountNumber, ifscCode,
+    branchName, upiId, vehicleNumber, vehicleType, drivingLicenseNumber, rcNumber,
+    vehicleInsuranceNumber, insuranceValidTill, bonusType
   } = req.body;
 
   // Validation
@@ -164,22 +155,18 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   // Create new delivery partner
   await Delivery.create({
-    name,
-    mobile,
-    email,
+    name, mobile, alternateMobile, email, 
     dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-    password,
-    address,
-    city,
-    pincode,
-    drivingLicense,
-    nationalIdentityCard,
-    accountName,
-    bankName,
-    accountNumber,
-    ifscCode,
+    age: age ? Number(age) : undefined,
+    fatherName, password, address, permanentAddress, city, state, pincode, 
+    emergencyContact, profilePic, drivingLicense, nationalIdentityCard, 
+    aadhaarNumber, panNumber, marksheet, policeVerification, signature, 
+    accountName, bankName, accountNumber, ifscCode, branchName, upiId, 
+    vehicleNumber, vehicleType, drivingLicenseNumber, rcNumber, 
+    vehicleInsuranceNumber, 
+    insuranceValidTill: insuranceValidTill ? new Date(insuranceValidTill) : undefined,
     bonusType,
-    status: "Inactive", // New delivery partners start as Inactive
+    status: "Inactive",
     balance: 0,
     cashCollected: 0,
   } as any);

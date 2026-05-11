@@ -221,9 +221,9 @@ export default function SellerOrderDetail() {
       yPos - 8,
       { align: "right" }
     );
-    doc.text(`Time Slot: ${orderDetail.timeSlot}`, rightX, yPos - 2, {
-      align: "right",
-    });
+    // doc.text(`Time Slot: ${orderDetail.timeSlot}`, rightX, yPos - 2, {
+    //   align: "right",
+    // });
 
     // Status badge
     const statusWidth = doc.getTextWidth(orderStatus) + 8;
@@ -290,10 +290,10 @@ export default function SellerOrderDetail() {
       const rowData = [
         item.srNo.toString(),
         item.product,
-        `₹${item.price.toFixed(2)}`,
+        `Rs. ${item.price.toFixed(2)}`,
         `${item.tax.toFixed(2)} (${item.taxPercent.toFixed(2)}%)`,
         item.qty.toString(),
-        `₹${item.subtotal.toFixed(2)}`,
+        `Rs. ${item.subtotal.toFixed(2)}`,
       ];
 
       rowData.forEach((data, index) => {
@@ -337,13 +337,13 @@ export default function SellerOrderDetail() {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text("Subtotal:", pageWidth - margin - 60, yPos, { align: "right" });
-    doc.text(`₹${totalSubtotal.toFixed(2)}`, pageWidth - margin, yPos, {
+    doc.text(`Rs. ${totalSubtotal.toFixed(2)}`, pageWidth - margin, yPos, {
       align: "right",
     });
     yPos += 7;
 
     doc.text("Tax:", pageWidth - margin - 60, yPos, { align: "right" });
-    doc.text(`₹${totalTax.toFixed(2)}`, pageWidth - margin, yPos, {
+    doc.text(`Rs. ${totalTax.toFixed(2)}`, pageWidth - margin, yPos, {
       align: "right",
     });
     yPos += 7;
@@ -351,7 +351,7 @@ export default function SellerOrderDetail() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.text("Grand Total:", pageWidth - margin - 60, yPos, { align: "right" });
-    doc.text(`₹${grandTotal.toFixed(2)}`, pageWidth - margin, yPos, {
+    doc.text(`Rs. ${grandTotal.toFixed(2)}`, pageWidth - margin, yPos, {
       align: "right",
     });
     yPos += 15;
@@ -576,10 +576,10 @@ export default function SellerOrderDetail() {
                 <span className="font-medium">Delivery Date:</span>{" "}
                 {formatDate(orderDetail.deliveryDate)}
               </div>
-              <div className="text-sm text-neutral-600 mb-3">
+              {/* <div className="text-sm text-neutral-600 mb-3">
                 <span className="font-medium">Time Slot:</span>{" "}
                 {orderDetail.timeSlot}
-              </div>
+              </div> */}
               <div className="flex items-center gap-2 lg:justify-end">
                 <span className="text-sm font-medium text-neutral-700">
                   Order Status:

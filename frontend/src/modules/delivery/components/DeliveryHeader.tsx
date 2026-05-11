@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useDeliveryStatus } from '../context/DeliveryStatusContext';
 import { useDeliveryUser } from '../context/DeliveryUserContext';
 
@@ -30,7 +31,7 @@ export default function DeliveryHeader({ userName }: DeliveryHeaderProps) {
         
         {/* User Info Bar */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <Link to="/delivery/profile" className="flex items-center gap-3 active:opacity-70 transition-opacity">
             {/* Profile Icon */}
             <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
               isOnline ? 'bg-green-600' : 'bg-neutral-400'
@@ -44,7 +45,7 @@ export default function DeliveryHeader({ userName }: DeliveryHeaderProps) {
               <span className="text-neutral-700 text-sm">Hello</span>
               <span className="text-neutral-900 text-xs font-medium">{displayName}</span>
             </div>
-          </div>
+          </Link>
           
           {/* Toggle Switch */}
           <button

@@ -59,6 +59,8 @@ export function validateDocumentFile(file: File): {
     "image/jpg",
     "image/png",
     "image/webp",
+    "image/heic",
+    "image/heif",
     "application/pdf",
   ];
 

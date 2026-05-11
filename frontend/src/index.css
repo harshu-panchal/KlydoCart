@@ -45,6 +45,16 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  .no-scroll,
+  .no-scroll body {
+    overflow: hidden !important;
+    height: 100vh !important;
+    position: relative;
+  }
+  .no-scroll main {
+    overflow: hidden !important;
+    height: 100vh !important;
+  }
 }
 
 /* Remove default video styling */

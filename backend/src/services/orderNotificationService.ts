@@ -99,86 +99,33 @@ export async function findDeliveryBoysNearLocation(
                     });
                 }
             }
-
-            console.log(`📍 Found ${nearbyDeliveryBoys.length} delivery boys using live location within ${radiusKm}km of seller`);
-            return nearbyDeliveryBoys.sort((a, b) => a.distance - b.distance);
+            console.log(`📍 Found ${nearbyDeliveryBoys.length} delivery boys using live location within ${radiusKm}km`);
         }
 
-        console.log(`⚠️ No delivery boys found within ${radiusKm}km using live location. Checking fallback...`);
-
-        // 2. Fallback to the old method using DeliveryTracking if no delivery boys found with the new field
-        // Get all active and online delivery boys
-        // Fallback: all online delivery boys regardless of status
-        const allDeliveryBoys = await Delivery.find({
+        // 2. ALSO include online delivery boys who might NOT have the location field set yet (Fallback/Inclusive)
+        // This ensures new or untracked online delivery boys still get notifications
+        const trackedIds = new Set(nearbyDeliveryBoys.map(db => db.deliveryBoyId.toString()));
+        
+        const otherOnlineBoys = await Delivery.find({
             isOnline: true,
+            _id: { $nin: Array.from(trackedIds).map(id => new mongoose.Types.ObjectId(id)) }
         }).select('_id');
 
-        if (allDeliveryBoys.length === 0) {
-            return [];
-        }
-
-        // Get latest locations for these delivery boys from DeliveryTracking
-        const deliveryBoyIds = allDeliveryBoys.map(db => db._id);
-
-        // Get the most recent tracking record for each delivery boy
-        const trackingRecords = await DeliveryTracking.aggregate([
-            {
-                $match: {
-                    deliveryBoy: { $in: deliveryBoyIds },
-                    // Check both legacy fields and new currentLocation structure
-                    $or: [
-                        { 'currentLocation.latitude': { $exists: true }, 'currentLocation.longitude': { $exists: true } },
-                        { latitude: { $exists: true }, longitude: { $exists: true } }
-                    ]
-                }
-            },
-            {
-                $sort: { 'currentLocation.timestamp': -1, updatedAt: -1 }
-            },
-            {
-                $group: {
-                    _id: '$deliveryBoy',
-                    latestLocation: { $first: '$currentLocation' },
-                    legacyLat: { $first: '$latitude' },
-                    legacyLng: { $first: '$longitude' }
-                }
-            }
-        ]);
-
-        for (const record of trackingRecords) {
-            const deliveryLat = record.latestLocation?.latitude || record.legacyLat;
-            const deliveryLng = record.latestLocation?.longitude || record.legacyLng;
-
-            if (deliveryLat && deliveryLng) {
-                const distance = calculateDistance(latitude, longitude, deliveryLat, deliveryLng);
-
-                if (distance <= radiusKm) {
-                    nearbyDeliveryBoys.push({
-                        deliveryBoyId: record._id,
-                        distance,
-                    });
-                }
-            }
-        }
-
-        // Also include delivery boys who don't have tracking data yet (they might be new)
-        // but give them a default distance
-        const trackedIds = new Set(trackingRecords.map(r => r._id.toString()));
-        for (const db of allDeliveryBoys) {
-            if (!trackedIds.has(db._id.toString())) {
-                // Include untracked delivery boys with a default distance
+        if (otherOnlineBoys.length > 0) {
+            console.log(`ℹ️ Including ${otherOnlineBoys.length} additional online delivery boys without recent location data`);
+            for (const db of otherOnlineBoys) {
                 nearbyDeliveryBoys.push({
                     deliveryBoyId: db._id as mongoose.Types.ObjectId,
-                    distance: radiusKm / 2, // Default to half the radius
+                    distance: radiusKm / 2, // Default distance (middle of radius)
                 });
             }
         }
 
-        // Sort by distance (nearest first)
-        nearbyDeliveryBoys.sort((a, b) => a.distance - b.distance);
+        if (nearbyDeliveryBoys.length > 0) {
+            return nearbyDeliveryBoys.sort((a, b) => a.distance - b.distance);
+        }
 
-        console.log(`📍 Found ${nearbyDeliveryBoys.length} delivery boys (fallback) within ${radiusKm}km`);
-        return nearbyDeliveryBoys;
+        return [];
     } catch (error) {
         console.error('Error finding nearby delivery boys:', error);
         return [];

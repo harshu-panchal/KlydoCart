@@ -18,10 +18,28 @@ export default function DeliveryLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isNotRegistered, setIsNotRegistered] = useState(false);
+  const [showPolicy, setShowPolicyModal] = useState<{
+    show: boolean;
+    type: "terms" | "privacy" | null;
+  }>({ show: false, type: null });
+  const [timer, setTimer] = useState(50);
+  const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
     removeAuthToken();
   }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (showOTP && timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      setCanResend(true);
+    }
+    return () => clearInterval(interval);
+  }, [showOTP, timer]);
 
   const handleMobileLogin = async () => {
     if (mobileNumber.length !== 10) return;
@@ -33,6 +51,8 @@ export default function DeliveryLogin() {
       const response = await sendOTP(mobileNumber);
       if (response.success && response.sessionId) {
         setSessionId(response.sessionId);
+        setTimer(50);
+        setCanResend(false);
         setShowOTP(true);
       } else {
         setError(response.message || "Failed to initiate OTP");
@@ -156,10 +176,25 @@ export default function DeliveryLogin() {
                     {loading ? "Initializing..." : "Get Started"}
                   </button>
 
-                  <p className="text-center text-[10px] sm:text-[11px] font-bold text-slate-400">
-                    New to the fleet? 
-                    <button onClick={() => navigate("/delivery/signup")} className="text-teal-600 ml-1 hover:underline">Apply Today</button>
-                  </p>
+                  <div className="text-center pt-2 space-y-2">
+                    <p className="text-center text-[10px] sm:text-[11px] font-bold text-slate-400">
+                      New to the fleet? 
+                      <button onClick={() => navigate("/delivery/signup")} className="text-teal-600 ml-1 hover:underline uppercase">Apply Today</button>
+                    </p>
+                    <div className="flex items-center justify-center gap-3 text-[9px] font-black text-teal-600 uppercase tracking-widest">
+                      <button 
+                        onClick={() => setShowPolicyModal({ show: true, type: "terms" })}
+                        className="hover:text-teal-700 transition-colors underline underline-offset-2">
+                        Terms and Condition
+                      </button>
+                      <span className="w-1 h-1 bg-teal-200 rounded-full" />
+                      <button 
+                        onClick={() => setShowPolicyModal({ show: true, type: "privacy" })}
+                        className="hover:text-teal-700 transition-colors underline underline-offset-2">
+                        Privacy Policy
+                      </button>
+                    </div>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div
@@ -181,8 +216,18 @@ export default function DeliveryLogin() {
                   {error && <p className="text-[10px] font-bold text-rose-600 bg-rose-50 p-2 rounded-xl border border-rose-100 text-center">{error}</p>}
 
                   <div className="flex gap-2">
-                    <button onClick={() => setShowOTP(false)} className="flex-1 py-2.5 rounded-xl font-bold text-[10px] tracking-widest uppercase text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all">Back</button>
-                    <button onClick={handleMobileLogin} className="flex-1 py-2.5 rounded-xl font-bold text-[10px] tracking-widest uppercase text-white bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-600/20 transition-all">Resend</button>
+                    <button onClick={() => { setShowOTP(false); setError(""); }} className="flex-1 py-2.5 rounded-xl font-bold text-[10px] tracking-widest uppercase text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all">Back</button>
+                    <button 
+                      onClick={canResend ? handleMobileLogin : undefined} 
+                      disabled={loading || !canResend}
+                      className={`flex-1 py-2.5 rounded-xl font-bold text-[10px] tracking-widest uppercase transition-all shadow-md ${
+                        canResend && !loading 
+                          ? "bg-teal-600 text-white hover:bg-teal-700 shadow-teal-600/20" 
+                          : "bg-teal-400/50 text-white/70 cursor-not-allowed shadow-none"
+                      }`}
+                    >
+                      {canResend ? "Resend" : `${timer}s`}
+                    </button>
                   </div>
                 </motion.div>
               )}
@@ -201,6 +246,71 @@ export default function DeliveryLogin() {
           </p>
         </div>
       </motion.div>
+
+      {/* Policy Modal */}
+      <AnimatePresence>
+        {showPolicy.show && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPolicyModal({ show: false, type: null })}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+            >
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+                  {showPolicy.type === "terms" ? "Terms and Condition" : "Privacy Policy"}
+                </h3>
+                <button
+                  onClick={() => setShowPolicyModal({ show: false, type: null })}
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto text-sm text-slate-600 leading-relaxed space-y-4 font-medium custom-scrollbar">
+                {showPolicy.type === "terms" ? (
+                  <>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">1. Acceptance of Terms</p>
+                    <p>By joining the KlydoCart Delivery Fleet, you agree to follow our logistics protocols, safety standards, and service level agreements. This portal is for authorized delivery partners only.</p>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">2. Partner Obligations</p>
+                    <p>Delivery partners must ensure timely and safe delivery of orders. Maintenance of vehicle standards and professional behavior with customers is mandatory.</p>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">3. Earnings & Payouts</p>
+                    <p>Payouts are calculated based on successful deliveries and applicable bonuses. Settlement cycles are as per the partner agreement.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">Data Collection</p>
+                    <p>We collect location data to enable order assignment and tracking. Personal identity and banking details are collected for verification and payout purposes.</p>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">Security & Privacy</p>
+                    <p>Your data is encrypted and used only for operational purposes. We respect your privacy and do not sell your personal information to third parties.</p>
+                    <p className="font-bold text-slate-800 uppercase tracking-widest text-[10px]">Location Tracking</p>
+                    <p>Live location tracking is essential for the delivery system to function effectively. You can control your online status via the app.</p>
+                  </>
+                )}
+              </div>
+              <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+                <button
+                  onClick={() => setShowPolicyModal({ show: false, type: null })}
+                  className="w-full py-3 bg-teal-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-teal-700 transition-all shadow-lg shadow-teal-600/20"
+                >
+                  I Understand
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -186,7 +186,7 @@ export const getEarningsHistory = async () => {
 };
 
 // --- Profile ---
-export const getDeliveryProfile = async () => {
+export const getProfile = async () => {
     try {
         const response = await api.get(`${BASE_URL}/profile`);
         return response.data.data;

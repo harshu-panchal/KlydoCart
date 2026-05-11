@@ -149,16 +149,17 @@ export default function OrderNotificationCard({
     const handleAccept = async () => {
         if (isProcessing) return;
 
-        setIsProcessing(true);
-        // Stop audio and vibration
+        // Stop audio and vibration IMMEDIATELY
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
+            audioRef.current = null; // Prevent any further interaction
         }
-        // Stop any ongoing vibration
         if ('vibrate' in navigator) {
             navigator.vibrate(0);
         }
+
+        setIsProcessing(true);
 
         try {
             const result = await onAccept(notification.orderId);
@@ -189,16 +190,17 @@ export default function OrderNotificationCard({
     const handleReject = async () => {
         if (isProcessing) return;
 
-        setIsProcessing(true);
-        // Stop audio and vibration
+        // Stop audio and vibration IMMEDIATELY
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
+            audioRef.current = null; // Prevent any further interaction
         }
-        // Stop any ongoing vibration
         if ('vibrate' in navigator) {
             navigator.vibrate(0);
         }
+
+        setIsProcessing(true);
 
         try {
             const result = await onReject(notification.orderId);

@@ -43,10 +43,12 @@ export interface IOrder extends Document {
   // Order Status
   status:
   | "Received"
+  | "Accepted"
   | "Pending"
   | "Processed"
   | "Shipped"
   | "Out for Delivery"
+  | "On the way"
   | "Delivered"
   | "Cancelled"
   | "Rejected"
@@ -237,6 +239,7 @@ const OrderSchema = new Schema<IOrder>(
         "Processed",
         "Shipped",
         "Out for Delivery",
+        "On the way",
         "Delivered",
         "Cancelled",
         "Rejected",

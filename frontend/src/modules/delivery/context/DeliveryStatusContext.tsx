@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { updateStatus, getDeliveryProfile, updateGeneralLocation, getSellersInRadius } from '../../../services/api/delivery/deliveryService';
+import { updateStatus, getProfile, updateGeneralLocation, getSellersInRadius } from '../../../services/api/delivery/deliveryService';
 
 interface SellerInRange {
   _id: string;
@@ -36,7 +36,7 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const profile = await getDeliveryProfile();
+        const profile = await getProfile();
         setIsOnlineLocal(profile.isOnline || false);
       } catch (error) {
         console.error("Failed to fetch initial status", error);

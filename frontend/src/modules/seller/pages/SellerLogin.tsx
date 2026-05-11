@@ -199,13 +199,13 @@ export default function SellerLogin() {
                       <button 
                         onClick={() => setShowPolicyModal({ show: true, type: "terms" })}
                         className="hover:text-teal-700 transition-colors underline underline-offset-2">
-                        Terms
+                        Terms and Condition
                       </button>
                       <span className="w-1 h-1 bg-teal-200 rounded-full" />
                       <button 
                         onClick={() => setShowPolicyModal({ show: true, type: "privacy" })}
                         className="hover:text-teal-700 transition-colors underline underline-offset-2">
-                        Privacy
+                        Privacy Policy
                       </button>
                     </div>
                   </div>
@@ -299,7 +299,7 @@ export default function SellerLogin() {
             >
               <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                 <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">
-                  {showPolicy.type === "terms" ? "Terms & Conditions" : "Privacy Policy"}
+                  {showPolicy.type === "terms" ? "Terms and Condition" : "Privacy Policy"}
                 </h3>
                 <button
                   onClick={() => setShowPolicyModal({ show: false, type: null })}

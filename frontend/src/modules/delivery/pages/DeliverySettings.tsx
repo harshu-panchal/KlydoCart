@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import DeliveryHeader from '../components/DeliveryHeader';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
-import { updateSettings, getDeliveryProfile } from '../../../services/api/delivery/deliveryService';
+import { updateSettings, getProfile } from '../../../services/api/delivery/deliveryService';
 
 export default function DeliverySettings() {
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export default function DeliverySettings() {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const profile = await getDeliveryProfile();
+        const profile = await getProfile();
         if (profile.settings) {
           setNotificationsEnabled(profile.settings.notifications ?? true);
           setLocationEnabled(profile.settings.location ?? true);

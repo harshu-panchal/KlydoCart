@@ -8,17 +8,7 @@ import Delivery from "../../../models/Delivery";
  */
 export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
     const deliveryId = req.user?.userId;
-    const {
-        name,
-        email,
-        address,
-        city,
-        vehicleNumber,
-        vehicleType,
-        bankName,
-        accountNumber,
-        ifscCode
-    } = req.body;
+    const updateData = req.body;
 
     const delivery = await Delivery.findById(deliveryId);
 
@@ -29,18 +19,40 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
         });
     }
 
-    // Update fields if provided
-    if (name) delivery.name = name;
-    if (email) delivery.email = email;
-    if (address) delivery.address = address;
-    if (city) delivery.city = city;
-    if (vehicleNumber) delivery.vehicleNumber = vehicleNumber;
-    if (vehicleType) delivery.vehicleType = vehicleType;
+    // List of allowed fields to update directly
+    const allowedFields = [
+        'name', 'email', 'mobile', 'alternateMobile', 'dateOfBirth', 'age', 'fatherName',
+        'address', 'permanentAddress', 'city', 'state', 'pincode', 'emergencyContact',
+        'aadhaarNumber', 'panNumber', 'policeVerification', 'vehicleNumber', 'vehicleType',
+        'drivingLicenseNumber', 'rcNumber', 'vehicleInsuranceNumber', 'insuranceValidTill',
+        'bankName', 'accountName', 'accountNumber', 'ifscCode', 'branchName', 'upiId',
+        'profilePic', 'drivingLicense', 'nationalIdentityCard', 'marksheet', 'signature'
+    ];
 
-    // Bank details updates
-    if (bankName) delivery.bankName = bankName;
-    if (accountNumber) delivery.accountNumber = accountNumber;
-    if (ifscCode) delivery.ifscCode = ifscCode;
+    // Update fields if provided in request body
+    allowedFields.forEach(field => {
+        if (updateData[field] !== undefined) {
+            const value = updateData[field];
+            
+            // Handle Dates
+            if (field === 'dateOfBirth' || field === 'insuranceValidTill') {
+                if (value && value !== "" && value !== "null") {
+                    const date = new Date(value);
+                    if (!isNaN(date.getTime())) {
+                        (delivery as any)[field] = date;
+                    }
+                }
+            } 
+            // Handle Numeric fields
+            else if (field === 'age') {
+                if (value !== "") (delivery as any)[field] = Number(value);
+            }
+            // Handle everything else
+            else {
+                (delivery as any)[field] = value;
+            }
+        }
+    });
 
     await delivery.save();
 
