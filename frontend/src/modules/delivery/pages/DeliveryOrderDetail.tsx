@@ -829,9 +829,9 @@ export default function DeliveryOrderDetail() {
                 {/* Order Info */}
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100 mb-20">
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="p-3 bg-neutral-50 rounded-lg">
+                        <div className="p-3 bg-neutral-50 rounded-lg overflow-hidden">
                             <p className="text-xs text-neutral-500 mb-1">Order ID</p>
-                            <p className="text-sm font-bold text-neutral-900">{order.orderId}</p>
+                            <p className="text-sm font-bold text-neutral-900 break-all">{order.orderId}</p>
                         </div>
                         <div className="p-3 bg-neutral-50 rounded-lg">
                             <p className="text-xs text-neutral-500 mb-1">Order Date</p>
@@ -846,8 +846,8 @@ export default function DeliveryOrderDetail() {
 
             {/* Customer Delivery OTP Section (only when order is Out for Delivery) */}
             {order.status === 'Out for Delivery' && (
-                <div className="fixed bottom-24 left-6 right-6 z-30">
-                    <div className="bg-white rounded-2xl p-4 shadow-2xl border border-neutral-200">
+                <div className="sticky bottom-[72px] z-30 mx-4 mb-4">
+                    <div className="bg-white rounded-2xl p-4 shadow-xl border border-neutral-200">
                         <p className="text-sm font-semibold text-neutral-900 mb-3">Customer Delivery OTP</p>
 
                         {/* Distance indicator */}
@@ -913,7 +913,7 @@ export default function DeliveryOrderDetail() {
             {/* Floating Glassmorphic Action Button Dock - Order Taken button or status update */}
             {/* Hide this button when order is "Out for Delivery" because OTP section is shown instead */}
             {nextStatus && order.status !== 'Picked up' && order.status !== 'Out for Delivery' && !showOtpInput && (
-                <div className="fixed bottom-24 left-6 right-6 z-30">
+                <div className="sticky bottom-[72px] z-30 mx-4 mb-4">
                     <button
                         onClick={() => handleStatusChange(nextStatus)}
                         className="w-full py-4 rounded-2xl bg-black/75 backdrop-blur-md border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] text-white font-bold text-lg transition-transform active:scale-[0.98] flex items-center justify-center gap-3 overflow-hidden group"

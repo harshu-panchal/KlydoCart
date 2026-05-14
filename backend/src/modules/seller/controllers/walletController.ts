@@ -170,7 +170,8 @@ export const createWithdrawalRequest = asyncHandler(async (req: Request, res: Re
 
     // Log as a debit transaction
     await WalletTransaction.create({
-        sellerId,
+        userId: sellerId,
+        userType: 'SELLER',
         amount,
         type: 'Debit',
         description: `Withdrawal Request - ${withdrawRequest._id}`,

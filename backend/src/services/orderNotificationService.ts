@@ -142,9 +142,14 @@ export async function findDeliveryBoysNearSellerLocations(
         // Get unique seller IDs from order items
         const sellerIds = [...new Set(
             order.items
-                ?.map((item: any) => item.seller?.toString())
-                .filter((id: string) => id) || []
+                ?.map((item: any) => {
+                    const s = item.seller;
+                    if (!s) return null;
+                    return typeof s === 'object' ? s._id?.toString() : s.toString();
+                })
+                .filter((id: string | null) => id) || []
         )];
+        console.log(`🔍 [Notification] Unique seller IDs for order:`, sellerIds);
 
         if (sellerIds.length === 0) {
             console.log('No sellers found in order, falling back to all available delivery boys');
@@ -160,6 +165,7 @@ export async function findDeliveryBoysNearSellerLocations(
             console.log('No seller data found, falling back to all available delivery boys');
             return findAvailableDeliveryBoys();
         }
+        console.log(`🔍 [Notification] Found ${sellers.length} sellers with location data`);
 
         // Find delivery boys near each seller location
         const nearbyDeliveryBoyMap = new Map<string, { distance: number }>();
@@ -232,7 +238,7 @@ export async function notifyDeliveryBoysOfNewOrder(
             return;
         }
 
-        console.log(`✅ Found ${nearbyDeliveryBoyIds.length} available delivery boys`);
+        console.log(`✅ Found ${nearbyDeliveryBoyIds.length} available delivery boys:`, nearbyDeliveryBoyIds.map(id => id.toString()));
 
         // --- FILTER BUSY DELIVERY BOYS ---
         // Check if any of these delivery boys already have an active order
@@ -292,10 +298,10 @@ export async function notifyDeliveryBoysOfNewOrder(
             if (room && room.size > 0) {
                 notifiedIds.add(idString);
                 io.to(roomName).emit('new-order', orderData);
-                console.log(`📤 Emitted new-order to connected delivery boy room: ${roomName}`);
+                console.log(`📤 [SUCCESS] Emitted new-order to connected delivery boy room: ${roomName}. Room size: ${room.size}`);
             } else {
                 disconnectedIds.push(idString);
-                console.log(`⏩ Skipping disconnected delivery boy: ${idString}`);
+                console.log(`⏩ [SKIPPED] Skipping disconnected delivery boy: ${idString}. Room exists: ${!!room}, Size: ${room?.size || 0}`);
             }
         }
 
@@ -550,6 +556,64 @@ export async function handleOrderRejection(
  */
 export function getNotificationState(orderId: string): OrderNotificationState | undefined {
     return notificationStates.get(orderId);
+}
+
+/**
+ * Scan all pending orders and notify a delivery boy if they are now eligible (e.g. just went online)
+ */
+export async function scanOrdersForDeliveryBoy(io: SocketIOServer, deliveryBoyId: string): Promise<void> {
+    const normalizedId = String(deliveryBoyId).trim();
+    console.log(`🔍 Scanning pending orders for delivery boy ${normalizedId} who just went online/connected`);
+
+    for (const [orderId, state] of notificationStates.entries()) {
+        if (state.acceptedBy) continue;
+        if (state.rejectedDeliveryBoys.has(normalizedId)) continue;
+
+        // If they were already notified, they'll get it via the socket join logic in socketService.ts
+        // But if they WEREN'T notified because they were offline, we should check eligibility now
+        if (!state.notifiedDeliveryBoys.has(normalizedId)) {
+            try {
+                const order = await Order.findById(orderId).populate({
+                    path: 'items',
+                    populate: { path: 'seller' }
+                }).lean();
+
+                if (!order || ['Delivered', 'Cancelled', 'Rejected', 'Returned'].includes(order.status as string)) {
+                    continue;
+                }
+
+                // Check if they are near any seller for this order
+                const nearbyBoys = await findDeliveryBoysNearSellerLocations(order);
+                const isNearby = nearbyBoys.some(id => id.toString() === normalizedId);
+
+                if (isNearby) {
+                    console.log(`🎯 Delivery boy ${normalizedId} is eligible for order ${orderId}. Notifying now.`);
+                    state.notifiedDeliveryBoys.add(normalizedId);
+
+                    const orderData = {
+                        orderId: order._id.toString(),
+                        orderNumber: (order as any).orderNumber,
+                        customerName: (order as any).customerName,
+                        customerPhone: (order as any).customerPhone,
+                        deliveryAddress: {
+                            address: (order as any).deliveryAddress?.address,
+                            city: (order as any).deliveryAddress?.city,
+                            state: (order as any).deliveryAddress?.state,
+                            pincode: (order as any).deliveryAddress?.pincode,
+                        },
+                        total: (order as any).total,
+                        subtotal: (order as any).subtotal,
+                        shipping: (order as any).shipping,
+                        createdAt: (order as any).createdAt,
+                    };
+
+                    io.to(`delivery-${normalizedId}`).emit('new-order', orderData);
+                }
+            } catch (err) {
+                console.error(`Error scanning order ${orderId} for boy ${normalizedId}:`, err);
+            }
+        }
+    }
 }
 
 /**

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Delivery from "../../../models/Delivery";
+import { scanOrdersForDeliveryBoy } from "../../../services/orderNotificationService";
 
 /**
  * Update Delivery Profile
@@ -89,6 +90,16 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
             success: false,
             message: "Delivery partner not found"
         });
+    }
+
+    if (isOnline && delivery.isOnline) {
+        const io = (req.app as any).get("io");
+        if (io) {
+            // Background scan to not block response
+            scanOrdersForDeliveryBoy(io, deliveryId).catch(err => 
+                console.error('Error scanning orders after going online:', err)
+            );
+        }
     }
 
     return res.status(200).json({

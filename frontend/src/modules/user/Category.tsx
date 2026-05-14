@@ -468,7 +468,7 @@ export default function CategoryPage() {
         <div className="flex-1 overflow-y-auto scrollbar-hide bg-white">
           {/* Products Grid */}
           {categoryProducts.length > 0 ? (
-            <div className="px-3 md:px-6 lg:px-8 py-4 md:py-6">
+            <div className="px-2 md:px-6 lg:px-8 py-4 md:py-6">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
                 {categoryProducts.map((product) => (
                   <ProductCard

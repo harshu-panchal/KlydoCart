@@ -254,7 +254,7 @@ export default function DeliveryDashboard() {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <p className="text-neutral-900 font-semibold text-sm">{order.orderId}</p>
+                      <p className="text-neutral-900 font-semibold text-sm break-all">{order.orderId}</p>
                       <p className="text-neutral-600 text-xs mt-1">{order.customerName}</p>
                     </div>
                     <span

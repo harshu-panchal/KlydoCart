@@ -36,8 +36,16 @@ export default function DeliverySettings() {
       await updateSettings({ [key]: value });
     } catch (error) {
       console.error("Failed to update settings", error);
-      // Revert if needed (optional)
     }
+  };
+
+  const playTestSound = () => {
+    const audio = new Audio('/assets/sound/delivery-alert.mp3');
+    audio.volume = 1.0;
+    audio.play().catch(err => {
+      console.error("Failed to play test sound", err);
+      alert("Please tap anywhere on the screen first to enable sound.");
+    });
   };
 
   const settingsOptions = [
@@ -98,16 +106,31 @@ export default function DeliverySettings() {
                   <p className="text-neutral-900 text-sm font-medium mb-1">{option.title}</p>
                   <p className="text-neutral-500 text-xs">{option.description}</p>
                 </div>
-                <button
-                  onClick={() => option.onChange(!option.value)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${option.value ? 'bg-orange-500' : 'bg-neutral-300'
-                    }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${option.value ? 'translate-x-6' : 'translate-x-1'
+                <div className="flex items-center gap-3">
+                  {option.id === 'sound' && (
+                    <button
+                      onClick={playTestSound}
+                      className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                      title="Test Sound"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M15.54 8.46C16.4774 9.39764 17.004 10.6692 17.004 11.995C17.004 13.3208 16.4774 14.5924 15.54 15.53" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M19.07 4.93005C20.9447 6.80528 21.9979 9.34846 21.9979 12.0001C21.9979 14.6517 20.9447 17.1948 19.07 19.0701" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => option.onChange(!option.value)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${option.value ? 'bg-teal-600' : 'bg-neutral-300'
                       }`}
-                  />
-                </button>
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${option.value ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                    />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -92,7 +92,7 @@ export default function DeliveryPendingOrders() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <p className="text-neutral-900 font-semibold text-sm mb-1">{order.orderId}</p>
+                    <p className="text-neutral-900 font-semibold text-sm mb-1 break-all">{order.orderId}</p>
                     <p className="text-neutral-600 text-xs mb-1">{order.customerName}</p>
                     <p className="text-neutral-500 text-xs">{order.customerPhone}</p>
                   </div>

@@ -370,7 +370,7 @@ export default function ProductCard({
         onClick={handleCardClick}
         className="cursor-pointer flex-1 flex flex-col"
       >
-        <div className={`w-full ${compact ? 'h-32 md:h-40' : categoryStyle ? 'h-36 md:h-44' : 'h-40 md:h-48'} bg-white flex items-center justify-center overflow-hidden relative border-b border-neutral-100`}>
+        <div className={`w-full ${compact ? 'h-32 md:h-40' : categoryStyle ? 'h-32 md:h-40' : 'h-40 md:h-48'} bg-white flex items-center justify-center overflow-hidden relative border-b border-neutral-100`}>
           {product.imageUrl || product.mainImage ? (
             <img
               ref={imageRef}
@@ -493,7 +493,7 @@ export default function ProductCard({
           )}
         </div>
 
-        <div className={`${compact ? 'p-3 md:p-4' : categoryStyle ? 'px-2.5 md:px-3 pt-1.5 md:pt-2 pb-2 md:pb-3' : 'p-4 md:p-5'} flex-1 flex flex-col`}>
+        <div className={`${compact ? 'p-2 md:p-3' : categoryStyle ? 'px-2 md:px-2.5 pt-1.5 md:pt-2 pb-2 md:pb-2.5' : 'p-4 md:p-5'} flex-1 flex flex-col`}>
           {categoryStyle ? (
             // Category Style Layout: Time -> Name -> Quantity -> [Price | ADD]
             <>
@@ -506,31 +506,31 @@ export default function ProductCard({
               </p>
 
               {/* 2. Product Name */}
-              <h3 className="text-[13px] font-bold text-neutral-900 mb-1 line-clamp-2 leading-[1.3] min-h-[2.2rem] max-h-[2.2rem] overflow-hidden">
+              <h3 className="text-[13px] font-bold text-neutral-900 mb-0.5 line-clamp-2 leading-[1.3] min-h-[2.1rem] max-h-[2.1rem] overflow-hidden">
                 {product.name || product.productName || ''}
               </h3>
 
               {/* 3. Quantity / Weight */}
-              <p className="text-[11px] font-medium text-neutral-400 mb-2 leading-tight">
+              <p className="text-[11px] font-medium text-neutral-400 mb-1 leading-tight">
                 {product.variations?.[0]?.value || product.pack || '1 unit'}
               </p>
 
               {/* 4. Footer Row: Price and ADD Button */}
-              <div className="mt-auto flex items-end justify-between gap-2">
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-y-1 gap-x-1.5">
                 {/* Price Information */}
                 <div className="flex flex-col">
                   <span className="text-[13px] font-black text-neutral-900 leading-none">
                     ₹{displayPrice.toLocaleString('en-IN')}
                   </span>
                   {mrp && mrp > displayPrice && (
-                    <span className="text-[11px] text-neutral-400 line-through leading-none mt-1">
+                    <span className="text-[10px] text-neutral-400 line-through leading-none mt-1">
                       ₹{mrp.toLocaleString('en-IN')}
                     </span>
                   )}
                 </div>
 
                 {/* ADD Button Section */}
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center flex-shrink-0 ml-auto">
                   {(() => {
                     const variantStock = (product as any)?.variations?.[0]?.stock;
                     const productStock = (product as any)?.stock;
@@ -545,7 +545,7 @@ export default function ProductCard({
                             handleNotifyMe(e);
                           }}
                           disabled={isNotifySubscribed}
-                          className={`min-w-[70px] h-8 px-3 border rounded-lg font-bold text-[11px] uppercase tracking-wide flex items-center justify-center cursor-pointer transition-colors ${
+                          className={`min-w-[64px] h-7 px-2 border rounded-lg font-bold text-[10px] uppercase tracking-wide flex items-center justify-center cursor-pointer transition-colors ${
                             isNotifySubscribed
                               ? 'border-green-300 bg-green-50 text-green-600 cursor-not-allowed'
                               : 'border-amber-500 bg-amber-50 text-amber-700 hover:bg-amber-100'
@@ -572,7 +572,7 @@ export default function ProductCard({
                               handleAdd(e);
                             }
                           }}
-                          className={`min-w-[70px] h-8 px-4 border rounded-lg font-bold text-[12px] uppercase tracking-wide transition-all shadow-sm ${
+                          className={`min-w-[64px] h-7 px-2 border rounded-lg font-bold text-[11px] uppercase tracking-wide transition-all shadow-sm ${
                             product.isAvailable === false
                             ? 'border-amber-600 text-amber-600 bg-amber-50 hover:bg-amber-100'
                             : 'border-green-600 text-green-600 bg-white hover:bg-green-50 active:scale-95'
@@ -596,17 +596,17 @@ export default function ProductCard({
                         )}
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between bg-green-600 text-white rounded-lg h-8 px-1 min-w-[70px] shadow-sm">
+                      <div className="flex items-center justify-between bg-green-600 text-white rounded-lg h-7 px-1 min-w-[64px] shadow-sm">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDecrease(e);
                           }}
-                          className="w-6 h-full flex items-center justify-center text-lg font-bold hover:bg-green-700 rounded-l-lg transition-colors"
+                          className="w-5 h-full flex items-center justify-center text-base font-bold hover:bg-green-700 rounded-l-lg transition-colors"
                         >
                           −
                         </button>
-                        <span className="text-xs font-black px-1">
+                        <span className="text-[10px] font-black px-0.5">
                           {inCartQty}
                         </span>
                         <button
@@ -614,7 +614,7 @@ export default function ProductCard({
                             e.stopPropagation();
                             handleIncrease(e);
                           }}
-                          className="w-6 h-full flex items-center justify-center text-lg font-bold hover:bg-green-700 rounded-r-lg transition-colors"
+                          className="w-5 h-full flex items-center justify-center text-base font-bold hover:bg-green-700 rounded-r-lg transition-colors"
                         >
                           +
                         </button>

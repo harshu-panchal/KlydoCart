@@ -1,7 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
-import { handleOrderAcceptance, handleOrderRejection, notificationStates } from '../services/orderNotificationService';
+import { handleOrderAcceptance, handleOrderRejection, notificationStates, scanOrdersForDeliveryBoy } from '../services/orderNotificationService';
 import Order from '../models/Order';
 import DeliveryTracking from '../models/DeliveryTracking';
 
@@ -222,46 +222,11 @@ export const initializeSocket = (httpServer: HttpServer) => {
                 deliveryBoyId: normalizedDeliveryBoyId
             });
 
-            // Check for any pending orders this delivery boy was eligible for but missed (was offline)
+            // Check for any pending orders this delivery boy is eligible for (even if they were offline during creation)
             try {
-                const pendingOrders: any[] = [];
-                for (const [orderId, state] of notificationStates.entries()) {
-                    if (
-                        !state.acceptedBy &&
-                        state.notifiedDeliveryBoys.has(normalizedDeliveryBoyId) &&
-                        !state.rejectedDeliveryBoys.has(normalizedDeliveryBoyId)
-                    ) {
-                        // Fetch order details to send
-                        const order: any = await Order.findById(orderId).lean();
-                        if (order && !['Delivered', 'Cancelled', 'Rejected', 'Returned'].includes(order.status)) {
-                            pendingOrders.push({
-                                orderId: order._id.toString(),
-                                orderNumber: (order as any).orderNumber,
-                                customerName: (order as any).customerName,
-                                customerPhone: (order as any).customerPhone,
-                                deliveryAddress: {
-                                    address: (order as any).deliveryAddress?.address,
-                                    city: (order as any).deliveryAddress?.city,
-                                    state: (order as any).deliveryAddress?.state,
-                                    pincode: (order as any).deliveryAddress?.pincode,
-                                },
-                                total: (order as any).total,
-                                subtotal: (order as any).subtotal,
-                                shipping: (order as any).shipping,
-                                createdAt: (order as any).createdAt,
-                            });
-                        }
-                    }
-                }
-
-                if (pendingOrders.length > 0) {
-                    console.log(`📬 Sending ${pendingOrders.length} pending order(s) to delivery boy ${normalizedDeliveryBoyId} who just came online`);
-                    for (const orderData of pendingOrders) {
-                        socket.emit('new-order', orderData);
-                    }
-                }
+                await scanOrdersForDeliveryBoy(io, normalizedDeliveryBoyId);
             } catch (err) {
-                console.error('Error checking pending orders for delivery boy:', err);
+                console.error('Error scanning pending orders for delivery boy:', err);
             }
         });
 
