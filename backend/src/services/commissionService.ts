@@ -276,7 +276,11 @@ export const createPendingCommissions = async (orderId: string) => {
             );
 
             // Create commission record as PAID immediately for online orders, PENDING for COD
-            const isCOD = order.paymentMethod === "COD";
+            const isCOD = order.paymentMethod && (
+                order.paymentMethod.toUpperCase() === "COD" || 
+                order.paymentMethod.toUpperCase() === "CASH ON DELIVERY" ||
+                order.paymentMethod.toUpperCase() === "CASH"
+            );
 
             const commission = await Commission.create({
                 order: item.order,
@@ -331,7 +335,13 @@ export const distributeCommissions = async (orderId: string) => {
         }
 
         // For COD orders, delegate to the specialized COD processing logic
-        if (order.paymentMethod && order.paymentMethod.toUpperCase() === "COD") {
+        const isCOD = order.paymentMethod && (
+            order.paymentMethod.toUpperCase() === "COD" || 
+            order.paymentMethod.toUpperCase() === "CASH ON DELIVERY" ||
+            order.paymentMethod.toUpperCase() === "CASH"
+        );
+
+        if (isCOD) {
             console.log(`[Commission] Delegating COD order ${order.orderNumber} to processCODOrderDelivery`);
             // End the current session as processCODOrderDelivery might start its own
             await session.commitTransaction();
