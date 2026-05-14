@@ -100,10 +100,14 @@ export default function DeliveryAllOrders() {
                 <div className="border-t border-neutral-200 pt-3 mt-3">
                   <p className="text-neutral-600 text-xs mb-2 line-clamp-2">{order.address}</p>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-neutral-500 text-xs">
-                      {order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''}
-                    </p>
-                    <p className="text-neutral-900 font-bold">₹ {order.totalAmount}</p>
+                    <div>
+                      <p className="text-neutral-500 text-[10px] uppercase font-bold tracking-wider">Order Value</p>
+                      <p className="text-neutral-900 font-bold text-sm">₹ {order.totalAmount}</p>
+                    </div>
+                    <div className="text-right bg-orange-50 px-3 py-1 rounded-lg border border-orange-100">
+                      <p className="text-orange-500 text-[8px] uppercase font-bold tracking-wider">Your Earning</p>
+                      <p className="text-orange-600 font-black text-base leading-tight">₹ {order.deliveryFare || '0'}</p>
+                    </div>
                   </div>
                   {order.estimatedDeliveryTime && (
                     <p className="text-neutral-500 text-xs">

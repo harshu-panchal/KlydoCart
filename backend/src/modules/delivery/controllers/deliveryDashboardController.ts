@@ -94,20 +94,26 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
             { updatedAt: { $gte: todayStart, $lte: todayEnd } }
         ]
     })
-        .select("orderNumber customerName deliveryAddress status total estimatedDeliveryDate")
+        .select("orderNumber customerName deliveryAddress status total shipping estimatedDeliveryDate")
         .sort({ updatedAt: -1 })
         .limit(5);
 
     // Format pending list for Frontend
-    const formattedPendingList = pendingOrdersList.map(order => ({
-        id: order._id,
-        orderId: order.orderNumber,
-        customerName: order.customerName,
-        status: order.status,
-        address: order.deliveryAddress ? `${order.deliveryAddress.address}, ${order.deliveryAddress.city}` : 'N/A',
-        totalAmount: order.total,
-        estimatedDeliveryTime: order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'
-    }));
+    const formattedPendingList = pendingOrdersList.map(order => {
+        const ship = order.shipping || 0;
+        const deliveryFare = ship > 0 ? (ship * COMMISSION_RATE / 100) : 40;
+
+        return {
+            id: order._id,
+            orderId: order.orderNumber,
+            customerName: order.customerName,
+            status: order.status,
+            address: order.deliveryAddress ? `${order.deliveryAddress.address}, ${order.deliveryAddress.city}` : 'N/A',
+            totalAmount: order.total,
+            deliveryFare: Math.round(deliveryFare * 100) / 100,
+            estimatedDeliveryTime: order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'
+        };
+    });
 
     return res.status(200).json({
         success: true,
@@ -138,13 +144,19 @@ export const getHelpSupport = asyncHandler(async (_req: Request, res: Response) 
     const contactOptions = [
         { label: 'Call Support', value: '+91 7846940429', icon: 'phone' },
         { label: 'Email Support', value: 'support@klydocart.com', icon: 'email' },
-        { label: 'Live Chat', value: 'Available 24/7', icon: 'chat' },
+    ];
+
+    const defaultFaqs = [
+        { question: "How to check my daily earnings?", answer: "Go to the Wallet section from the bottom navigation to view your daily and total earnings." },
+        { question: "What to do if the customer is not reachable?", answer: "Try calling the customer via the order details page. If they are still unreachable, contact support immediately." },
+        { question: "How do I update my profile information?", answer: "You can update your profile details in the Profile section under the Menu tab." },
+        { question: "How to report a delivery issue?", answer: "Use the 'Direct Support Call' button or email us at support@klydocart.com with the order ID." }
     ];
 
     res.status(200).json({
         success: true,
         data: {
-            faqs: dynamicFaqs,
+            faqs: dynamicFaqs.length > 0 ? dynamicFaqs : defaultFaqs,
             contact: contactOptions
         }
     });

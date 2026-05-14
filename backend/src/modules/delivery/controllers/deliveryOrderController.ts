@@ -30,6 +30,9 @@ export const getAllOrdersHistory = asyncHandler(async (req: Request, res: Respon
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
 
+    const deliveryPartner = await Delivery.findById(deliveryId).select('commissionRate');
+    const COMMISSION_RATE = deliveryPartner?.commissionRate || 100;
+
     const orders = await Order.find({ deliveryBoy: deliveryId })
         .populate("items") // Populate OrderItems
         .sort({ createdAt: -1 })
@@ -49,6 +52,7 @@ export const getAllOrdersHistory = asyncHandler(async (req: Request, res: Respon
         address: `${order.deliveryAddress.address}, ${order.deliveryAddress.city}`,
         deliveryAddress: order.deliveryAddress,
         totalAmount: order.total,
+        deliveryFare: Math.round((order.shipping > 0 ? (order.shipping * COMMISSION_RATE / 100) : 40) * 100) / 100,
         items: mapOrderItems(order.items),
         createdAt: order.createdAt,
         estimatedDeliveryTime: order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'
@@ -77,6 +81,9 @@ export const getTodayOrders = asyncHandler(async (req: Request, res: Response) =
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
+    const deliveryPartner = await Delivery.findById(deliveryId).select('commissionRate');
+    const COMMISSION_RATE = deliveryPartner?.commissionRate || 100;
+
     const orders = await Order.find({
         deliveryBoy: deliveryId,
         $or: [
@@ -98,6 +105,7 @@ export const getTodayOrders = asyncHandler(async (req: Request, res: Response) =
         deliveryAddress: order.deliveryAddress,
         items: mapOrderItems(order.items), // Real items
         totalAmount: order.total,
+        deliveryFare: Math.round((order.shipping > 0 ? (order.shipping * COMMISSION_RATE / 100) : 40) * 100) / 100,
         estimatedDeliveryTime: order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
         createdAt: order.createdAt,
         // Distance calculation to be implemented. sending null/undefined for now to avoid fake data
@@ -122,6 +130,9 @@ export const getPendingOrders = asyncHandler(async (req: Request, res: Response)
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
+    const deliveryPartner = await Delivery.findById(deliveryId).select('commissionRate');
+    const COMMISSION_RATE = deliveryPartner?.commissionRate || 100;
+
     // Pending statuses: Ready for pickup, Out for delivery, Picked Up, Assigned, In Transit
     const orders = await Order.find({
         deliveryBoy: deliveryId,
@@ -143,6 +154,7 @@ export const getPendingOrders = asyncHandler(async (req: Request, res: Response)
         address: `${order.deliveryAddress?.address || ''}, ${order.deliveryAddress?.city || ''}`,
         items: mapOrderItems(order.items), // Real items
         totalAmount: order.total,
+        deliveryFare: Math.round((order.shipping > 0 ? (order.shipping * COMMISSION_RATE / 100) : 40) * 100) / 100,
         estimatedDeliveryTime: order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
         createdAt: order.createdAt,
         distance: null
@@ -158,7 +170,9 @@ export const getPendingOrders = asyncHandler(async (req: Request, res: Response)
  * Get Specific Order Details
  */
 export const getOrderDetails = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const deliveryId = req.user?.userId;
+    const deliveryPartner = await Delivery.findById(deliveryId).select('commissionRate');
+    const COMMISSION_RATE = deliveryPartner?.commissionRate || 100;
 
     const order = await Order.findById(id).populate("items");
 
@@ -176,6 +190,7 @@ export const getOrderDetails = asyncHandler(async (req: Request, res: Response) 
         status: order.status,
         items: mapOrderItems(order.items), // Real populated items
         totalAmount: order.total,
+        deliveryFare: Math.round((order.shipping > 0 ? (order.shipping * COMMISSION_RATE / 100) : 40) * 100) / 100,
         createdAt: order.createdAt,
         distance: null
     };
@@ -280,6 +295,9 @@ export const getReturnOrders = asyncHandler(async (req: Request, res: Response) 
         .populate("items")
         .sort({ updatedAt: -1 });
 
+    const deliveryPartner = await Delivery.findById(deliveryId).select('commissionRate');
+    const COMMISSION_RATE = deliveryPartner?.commissionRate || 100;
+
     const formattedOrders = orders.map(order => ({
         id: order._id,
         orderId: order.orderNumber,
@@ -289,6 +307,7 @@ export const getReturnOrders = asyncHandler(async (req: Request, res: Response) 
         address: `${order.deliveryAddress?.address || ''}, ${order.deliveryAddress?.city || ''}`,
         items: mapOrderItems(order.items),
         totalAmount: order.total,
+        deliveryFare: Math.round((order.shipping > 0 ? (order.shipping * COMMISSION_RATE / 100) : 40) * 100) / 100,
         createdAt: order.createdAt,
         distance: null
     }));

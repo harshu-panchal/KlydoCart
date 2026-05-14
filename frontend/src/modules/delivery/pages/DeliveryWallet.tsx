@@ -11,6 +11,7 @@ import {
     createAdminPayoutOrder,
     verifyAdminPayout,
 } from "../../../services/api/deliveryWalletService";
+import { getDashboardStats } from "../../../services/api/delivery/deliveryService";
 import { useAuth } from "../../../context/AuthContext";
 
 type Tab = "transactions" | "withdrawals" | "commissions";
@@ -31,6 +32,7 @@ export default function DeliveryWallet() {
         paid: 0,
         pending: 0,
     });
+    const [dashboardStats, setDashboardStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
     const [showPayoutModal, setShowPayoutModal] = useState(false);
@@ -48,12 +50,13 @@ export default function DeliveryWallet() {
     const fetchWalletData = async () => {
         try {
             setLoading(true);
-            const [balanceRes, transactionsRes, withdrawalsRes, commissionsRes] =
+            const [balanceRes, transactionsRes, withdrawalsRes, commissionsRes, statsRes] =
                 await Promise.all([
                     getDeliveryWalletBalance(),
                     getDeliveryWalletTransactions(),
                     getDeliveryWithdrawals(),
                     getDeliveryCommissions(),
+                    getDashboardStats(),
                 ]);
 
             if (balanceRes.success) {
@@ -65,6 +68,7 @@ export default function DeliveryWallet() {
                 setTransactions(transactionsRes.data.transactions || []);
             if (withdrawalsRes.success) setWithdrawals(withdrawalsRes.data || []);
             if (commissionsRes.success) setCommissions(commissionsRes.data);
+            if (statsRes) setDashboardStats(statsRes);
         } catch (error: any) {
             showToast(
                 error.response?.data?.message || "Failed to load wallet data",
@@ -290,7 +294,7 @@ export default function DeliveryWallet() {
                             </svg>
                         </div>
                         <p className="text-xs font-bold text-neutral-500 uppercase tracking-tight">Total COD Collected</p>
-                        <h3 className="text-xl font-black text-neutral-900 mt-1">₹{cashCollected.toLocaleString('en-IN')}</h3>
+                        <h3 className="text-xl font-black text-neutral-900 mt-1">₹{(dashboardStats?.cashBalance || cashCollected || 0).toLocaleString('en-IN')}</h3>
                     </div>
                 </motion.div>
 
@@ -331,7 +335,7 @@ export default function DeliveryWallet() {
                 <div className="bg-white rounded-xl p-4 shadow-sm">
                     <p className="text-xs text-gray-600 mb-1">Total Earned</p>
                     <p className="text-lg font-bold text-gray-900">
-                        ₹{commissions.total?.toFixed(2) || "0.00"}
+                        ₹{(dashboardStats?.totalEarning || commissions.total || 0).toFixed(2)}
                     </p>
                 </div>
                 <div className="bg-white rounded-xl p-4 shadow-sm">

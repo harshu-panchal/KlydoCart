@@ -192,16 +192,22 @@ export const getProfile = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const delivery = await Delivery.findById(userId).select("-password");
-
   if (!delivery) {
-    return res.status(404).json({
-      success: false,
-      message: "Delivery partner not found",
-    });
+    return res.status(404).json({ success: false, message: "Delivery partner not found" });
   }
+
+  // Fetch total delivered count from Order model
+  const Order = (await import("../../../models/Order")).default;
+  const totalDeliveredCount = await Order.countDocuments({
+    deliveryBoy: userId,
+    status: "Delivered"
+  });
 
   return res.status(200).json({
     success: true,
-    data: delivery,
+    data: {
+      ...delivery.toObject(),
+      totalDeliveredCount
+    },
   });
 });

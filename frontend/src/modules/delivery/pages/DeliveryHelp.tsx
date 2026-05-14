@@ -35,7 +35,7 @@ export default function DeliveryHelp() {
       try {
         const data = await getHelpSupport();
         setFaqs(data.faqs || []);
-        setContacts(data.contact || []);
+        setContacts((data.contact || []).filter((c: any) => c.icon !== 'chat'));
       } catch (error) {
         console.error("Failed to load help data", error);
       } finally {
@@ -47,7 +47,7 @@ export default function DeliveryHelp() {
 
   const handleContactAction = (option: any) => {
     if (option.icon === 'phone') {
-      window.location.href = `tel:${option.value}`;
+      window.location.href = `tel:${option.value.replace(/\s/g, '')}`;
     } else if (option.icon === 'email') {
       window.location.href = `mailto:${option.value}`;
     } else if (option.icon === 'chat') {
@@ -125,9 +125,11 @@ export default function DeliveryHelp() {
           </div>
         </div>
 
-        {/* Support Button */}
         <button 
-          onClick={() => window.location.href = `tel:+917846940429`}
+          onClick={() => {
+            const phone = contacts.find(c => c.icon === 'phone')?.value || '+917846940429';
+            window.location.href = `tel:${phone.replace(/\s/g, '')}`;
+          }}
           className="w-full bg-orange-600 text-white rounded-2xl py-4 font-black text-xs uppercase tracking-[0.2em] hover:bg-orange-700 transition-all shadow-lg shadow-orange-600/20 active:scale-[0.98] flex items-center justify-center gap-3"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>

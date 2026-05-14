@@ -13,6 +13,8 @@ export default function DeliveryProfile() {
   const { setUserName } = useDeliveryUser();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<any>({});
+  const [expandedSections, setExpandedSections] = useState<string[]>(['Personal Information']);
   
   const [profileData, setProfileData] = useState<any>({
     name: '', mobile: '', alternateMobile: '', email: '', dateOfBirth: '',
@@ -25,6 +27,12 @@ export default function DeliveryProfile() {
     bankName: '', accountName: '', accountNumber: '', ifscCode: '',
     branchName: '', upiId: '', createdAt: '', totalDeliveries: 0, rating: 4.8
   });
+
+  const toggleSection = (title: string) => {
+    setExpandedSections(prev => 
+      prev.includes(title) ? prev.filter(t => t !== title) : [...prev, title]
+    );
+  };
 
   const [newFiles, setNewFiles] = useState<any>({});
 
@@ -68,12 +76,22 @@ export default function DeliveryProfile() {
     else if (["name", "fatherName", "city", "state", "bankName", "accountName", "branchName"].includes(field)) {
       val = value.replace(/[^a-zA-Z\s]/g, "");
     }
-    // Alphanumeric Upper Filters
+    // Alphanumeric Upper Filters (Allow spaces in vehicleNumber)
     else if (["ifscCode", "panNumber", "rcNumber", "vehicleNumber", "drivingLicenseNumber", "vehicleInsuranceNumber"].includes(field)) {
-      val = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      val = value.toUpperCase().replace(/[^A-Z0-9\s]/g, "");
     }
 
     setProfileData((prev: any) => ({ ...prev, [field]: val }));
+
+    // Real-time Validation
+    if (field === 'email') {
+      const isValid = !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+      setErrors((prev: any) => ({ ...prev, email: isValid ? '' : 'Correct format: name@example.com' }));
+    }
+    if (field === 'vehicleNumber') {
+      const isValid = !val || /^[A-Z]{2}\s[0-9]{2}\s[A-Z]{1,2}\s[0-9]{4}$/.test(val);
+      setErrors((prev: any) => ({ ...prev, vehicleNumber: isValid ? '' : 'Correct format: KA 01 AB 1234' }));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,6 +102,18 @@ export default function DeliveryProfile() {
   };
 
   const handleSave = async () => {
+    // Check for existing validation errors
+    const errorList = Object.values(errors).filter(e => e !== '');
+    if (errorList.length > 0) {
+      alert("Please fix the errors before saving.");
+      return;
+    }
+
+    if (profileData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
+      setErrors((prev: any) => ({ ...prev, email: 'Correct format: name@example.com' }));
+      return;
+    }
+
     setSaving(true);
     try {
       const uploadedUrls: any = {};
@@ -108,8 +138,9 @@ export default function DeliveryProfile() {
         if (profileData.name) setUserName(profileData.name);
         alert('Profile updated successfully!');
       }
-    } catch (error) {
-      alert('Failed to update profile. Please try again.');
+    } catch (error: any) {
+      console.error('Update Profile Error:', error);
+      alert(error.message || 'Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -123,193 +154,217 @@ export default function DeliveryProfile() {
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-24 font-sans text-neutral-900">
-      {/* <DeliveryHeader /> Header hidden as per request */}
-      
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Top Navigation & Action */}
+      <div className="max-w-2xl mx-auto px-3 py-4 space-y-4">
+        {/* Top Navigation */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate(-1)} className="p-2.5 bg-white rounded-2xl shadow-sm border border-neutral-100 active:scale-95 transition-all">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate(-1)} className="p-2 bg-white rounded-xl shadow-sm border border-neutral-100 active:scale-95">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             </button>
-            <h1 className="text-2xl font-black tracking-tight">Profile Settings</h1>
+            <h1 className="text-xl font-black tracking-tight text-neutral-800">Profile</h1>
           </div>
           <button 
             onClick={() => isEditing ? handleSave() : setIsEditing(true)}
             disabled={saving}
-            className={`px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] ${
+            className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md ${
               isEditing 
-                ? 'bg-green-600 text-white shadow-green-600/20 hover:bg-green-700' 
-                : 'bg-orange-600 text-white shadow-orange-600/20 hover:bg-orange-700'
+                ? 'bg-green-600 text-white hover:bg-green-700' 
+                : 'bg-orange-600 text-white hover:bg-orange-700'
             }`}
           >
-            {saving ? 'Saving...' : isEditing ? 'Save Profile' : 'Edit Profile'}
+            {saving ? 'Saving...' : isEditing ? 'Save' : 'Edit'}
           </button>
         </div>
 
-        {/* Profile Identity Card */}
-        <div className="bg-white rounded-[2rem] p-8 shadow-xl shadow-neutral-200/50 border border-neutral-100 text-center relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full -mr-32 -mt-32 opacity-40 blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-50 rounded-full -ml-32 -mb-32 opacity-40 blur-3xl" />
-          
-          <div className="relative inline-block mb-6">
-            <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-orange-400 to-orange-600 p-1 shadow-2xl rotate-3">
-              <div className="w-full h-full bg-white rounded-[1.25rem] overflow-hidden rotate-[-3deg] transition-transform hover:rotate-0 duration-500">
+        {/* Compact Identity Card */}
+        <div className="bg-white rounded-3xl p-5 shadow-sm border border-neutral-100 text-center relative overflow-hidden">
+          <div className="relative inline-block mb-3">
+            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 p-0.5 shadow-lg">
+              <div className="w-full h-full bg-white rounded-[0.9rem] overflow-hidden">
                 {newFiles.profilePic ? (
                   <img src={URL.createObjectURL(newFiles.profilePic)} className="w-full h-full object-cover" />
                 ) : profileData.profilePic ? (
                   <img src={profileData.profilePic} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600 font-black text-4xl">
+                  <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600 font-black text-3xl">
                     {profileData.name?.charAt(0).toUpperCase()}
                   </div>
                 )}
               </div>
             </div>
             {isEditing && (
-              <label className="absolute -bottom-2 -right-2 bg-white p-3 rounded-2xl shadow-xl border border-neutral-100 cursor-pointer hover:bg-neutral-50 transition-all group active:scale-90">
+              <label className="absolute -bottom-1 -right-1 bg-white p-2 rounded-xl shadow-lg border border-neutral-100 cursor-pointer active:scale-90">
                 <input type="file" name="profilePic" accept="image/*" className="hidden" onChange={handleFileChange} />
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-orange-600"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-orange-600"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               </label>
             )}
           </div>
+          <h2 className="text-lg font-black text-neutral-900">{profileData.name || 'Partner Name'}</h2>
+          <p className="text-neutral-500 font-bold text-xs">{profileData.mobile}</p>
           
-          <h2 className="text-2xl font-black text-neutral-900 mb-1">{profileData.name || 'Set Name'}</h2>
-          <p className="text-neutral-500 font-bold text-sm uppercase tracking-widest">{profileData.mobile}</p>
-          
-          <div className="flex items-center justify-center gap-3 mt-6">
-            <div className="bg-green-50 text-green-700 px-4 py-1.5 rounded-xl text-[10px] font-black border border-green-100 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              VERIFIED PARTNER
-            </div>
-            <div className="bg-orange-50 text-orange-700 px-4 py-1.5 rounded-xl text-[10px] font-black border border-orange-100 flex items-center gap-2">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              {profileData.rating} RATING
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <div className="bg-green-50 text-green-700 px-3 py-1 rounded-lg text-[8px] font-black border border-green-100">VERIFIED</div>
+            <div className="bg-orange-50 text-orange-700 px-3 py-1 rounded-lg text-[8px] font-black border border-orange-100 flex items-center gap-1">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              {profileData.rating}
             </div>
           </div>
         </div>
 
-        {/* Information Sections */}
-        <div className="grid grid-cols-1 gap-6">
-          <Section title="Personal Information" icon="👤">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-              <Field label="Full Name" value={profileData.name} editing={isEditing} onChange={(v: string) => handleInputChange('name', v)} />
-              <Field label="Mobile Number" value={profileData.mobile} editing={isEditing} onChange={(v: string) => handleInputChange('mobile', v)} />
-              <Field label="Alternate Mobile" value={profileData.alternateMobile} editing={isEditing} onChange={(v: string) => handleInputChange('alternateMobile', v)} />
-              <Field label="Email Address" value={profileData.email} editing={isEditing} onChange={(v: string) => handleInputChange('email', v)} type="email" />
-              <Field label="Date of Birth" value={profileData.dateOfBirth} editing={isEditing} onChange={(v: string) => handleInputChange('dateOfBirth', v)} type="date" />
+        {/* Collapsible Sections */}
+        <div className="space-y-3">
+          <Section 
+            title="Personal Information" 
+            icon="👤" 
+            expanded={expandedSections.includes('Personal Information')}
+            onToggle={() => toggleSection('Personal Information')}
+          >
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <div className="col-span-2"><Field label="Full Name" value={profileData.name} editing={isEditing} onChange={(v: string) => handleInputChange('name', v)} /></div>
+              <Field label="Mobile" value={profileData.mobile} editing={isEditing} onChange={(v: string) => handleInputChange('mobile', v)} />
+              <Field label="Alternate" value={profileData.alternateMobile} editing={isEditing} onChange={(v: string) => handleInputChange('alternateMobile', v)} />
+              <div className="col-span-2"><Field label="Email" value={profileData.email} editing={isEditing} onChange={(v: string) => handleInputChange('email', v)} type="email" error={errors.email} /></div>
+              <Field label="DOB" value={profileData.dateOfBirth} editing={isEditing} onChange={(v: string) => handleInputChange('dateOfBirth', v)} type="date" />
               <Field label="Age" value={profileData.age} editing={isEditing} onChange={(v: string) => handleInputChange('age', v)} />
               <Field label="Father's Name" value={profileData.fatherName} editing={isEditing} onChange={(v: string) => handleInputChange('fatherName', v)} />
-              <Field label="Emergency Contact" value={profileData.emergencyContact} editing={isEditing} onChange={(v: string) => handleInputChange('emergencyContact', v)} />
-            </div>
-            <div className="mt-5 space-y-5 border-t border-neutral-50 pt-5">
-              <Field label="Current Address" value={profileData.address} editing={isEditing} onChange={(v: string) => handleInputChange('address', v)} />
-              <Field label="Permanent Address" value={profileData.permanentAddress} editing={isEditing} onChange={(v: string) => handleInputChange('permanentAddress', v)} />
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                <Field label="City" value={profileData.city} editing={isEditing} onChange={(v: string) => handleInputChange('city', v)} />
-                <Field label="State" value={profileData.state} editing={isEditing} onChange={(v: string) => handleInputChange('state', v)} />
-                <Field label="PIN Code" value={profileData.pincode} editing={isEditing} onChange={(v: string) => handleInputChange('pincode', v)} />
-              </div>
+              <Field label="Emergency" value={profileData.emergencyContact} editing={isEditing} onChange={(v: string) => handleInputChange('emergencyContact', v)} />
+              <div className="col-span-2"><Field label="Current Address" value={profileData.address} editing={isEditing} onChange={(v: string) => handleInputChange('address', v)} /></div>
+              <div className="col-span-2"><Field label="Permanent Address" value={profileData.permanentAddress} editing={isEditing} onChange={(v: string) => handleInputChange('permanentAddress', v)} /></div>
+              <Field label="City" value={profileData.city} editing={isEditing} onChange={(v: string) => handleInputChange('city', v)} />
+              <Field label="State" value={profileData.state} editing={isEditing} onChange={(v: string) => handleInputChange('state', v)} />
+              <Field label="PIN Code" value={profileData.pincode} editing={isEditing} onChange={(v: string) => handleInputChange('pincode', v)} />
             </div>
           </Section>
 
-          <Section title="Identity & Documents" icon="🪪">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 mb-8">
-              <Field label="Aadhaar Number" value={profileData.aadhaarNumber} editing={isEditing} onChange={(v: string) => handleInputChange('aadhaarNumber', v)} />
-              <Field label="PAN Number" value={profileData.panNumber} editing={isEditing} onChange={(v: string) => handleInputChange('panNumber', v)} />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <DocumentBox label="Aadhaar Card / ID" url={profileData.nationalIdentityCard} newFile={newFiles.nationalIdentityCard} editing={isEditing} name="nationalIdentityCard" onFileChange={handleFileChange} />
-              <DocumentBox label="Educational Marksheet" url={profileData.marksheet} newFile={newFiles.marksheet} editing={isEditing} name="marksheet" onFileChange={handleFileChange} />
-            </div>
-            <div className="mt-6 p-4 bg-neutral-50 rounded-2xl flex items-center justify-between">
-              <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Police Verification</span>
-              <span className={`px-4 py-1 rounded-full text-[10px] font-black border ${profileData.policeVerification === 'Yes' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
-                {profileData.policeVerification === 'Yes' ? 'COMPLETED' : 'PENDING'}
-              </span>
+          <Section 
+            title="Identity & Documents" 
+            icon="🪪"
+            expanded={expandedSections.includes('Identity & Documents')}
+            onToggle={() => toggleSection('Identity & Documents')}
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Aadhaar" value={profileData.aadhaarNumber} editing={isEditing} onChange={(v: string) => handleInputChange('aadhaarNumber', v)} />
+              <Field label="PAN" value={profileData.panNumber} editing={isEditing} onChange={(v: string) => handleInputChange('panNumber', v)} />
+              <DocumentBox label="ID Proof" url={profileData.nationalIdentityCard} newFile={newFiles.nationalIdentityCard} editing={isEditing} name="nationalIdentityCard" onFileChange={handleFileChange} />
+              <DocumentBox label="Marksheet" url={profileData.marksheet} newFile={newFiles.marksheet} editing={isEditing} name="marksheet" onFileChange={handleFileChange} />
             </div>
           </Section>
 
-          <Section title="Vehicle Details" icon="🛵">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-              <Field label="Vehicle Type" value={profileData.vehicleType} editing={isEditing} onChange={(v: string) => handleInputChange('vehicleType', v)} />
-              <Field label="Vehicle Number" value={profileData.vehicleNumber} editing={isEditing} onChange={(v: string) => handleInputChange('vehicleNumber', v)} />
-              <Field label="DL Number" value={profileData.drivingLicenseNumber} editing={isEditing} onChange={(v: string) => handleInputChange('drivingLicenseNumber', v)} />
-              <Field label="RC Number" value={profileData.rcNumber} editing={isEditing} onChange={(v: string) => handleInputChange('rcNumber', v)} />
-              <Field label="Insurance Number" value={profileData.vehicleInsuranceNumber} editing={isEditing} onChange={(v: string) => handleInputChange('vehicleInsuranceNumber', v)} />
-              <Field label="Insurance Valid Till" value={profileData.insuranceValidTill} editing={isEditing} onChange={(v: string) => handleInputChange('insuranceValidTill', v)} type="date" />
-            </div>
-            <div className="mt-8">
-              <DocumentBox label="Driving License Copy" url={profileData.drivingLicense} newFile={newFiles.drivingLicense} editing={isEditing} name="drivingLicense" onFileChange={handleFileChange} />
-            </div>
-          </Section>
-
-          <Section title="Banking Information" icon="🏦">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-              <Field label="Bank Name" value={profileData.bankName} editing={isEditing} onChange={(v: string) => handleInputChange('bankName', v)} />
-              <Field label="Account Holder" value={profileData.accountName} editing={isEditing} onChange={(v: string) => handleInputChange('accountName', v)} />
-              <Field label="Account Number" value={profileData.accountNumber} editing={isEditing} onChange={(v: string) => handleInputChange('accountNumber', v)} />
-              <Field label="IFSC Code" value={profileData.ifscCode} editing={isEditing} onChange={(v: string) => handleInputChange('ifscCode', v)} />
-              <Field label="Branch Name" value={profileData.branchName} editing={isEditing} onChange={(v: string) => handleInputChange('branchName', v)} />
-              <Field label="UPI ID" value={profileData.upiId} editing={isEditing} onChange={(v: string) => handleInputChange('upiId', v)} />
+          <Section 
+            title="Vehicle Details" 
+            icon="🛵"
+            expanded={expandedSections.includes('Vehicle Details')}
+            onToggle={() => toggleSection('Vehicle Details')}
+          >
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <Field label="Type" value={profileData.vehicleType} editing={isEditing} onChange={(v: string) => handleInputChange('vehicleType', v)} />
+              <Field label="Number" value={profileData.vehicleNumber} editing={isEditing} onChange={(v: string) => handleInputChange('vehicleNumber', v)} error={errors.vehicleNumber} />
+              <Field label="DL No." value={profileData.drivingLicenseNumber} editing={isEditing} onChange={(v: string) => handleInputChange('drivingLicenseNumber', v)} />
+              <Field label="RC No." value={profileData.rcNumber} editing={isEditing} onChange={(v: string) => handleInputChange('rcNumber', v)} />
+              <div className="col-span-2"><Field label="Insurance No." value={profileData.vehicleInsuranceNumber} editing={isEditing} onChange={(v: string) => handleInputChange('vehicleInsuranceNumber', v)} /></div>
+              <div className="col-span-2"><Field label="Valid Till" value={profileData.insuranceValidTill} editing={isEditing} onChange={(v: string) => handleInputChange('insuranceValidTill', v)} type="date" /></div>
+              <div className="col-span-2"><DocumentBox label="DL Copy" url={profileData.drivingLicense} newFile={newFiles.drivingLicense} editing={isEditing} name="drivingLicense" onFileChange={handleFileChange} /></div>
             </div>
           </Section>
 
-          <Section title="Final Verification" icon="🖋️">
-             <DocumentBox label="Applicant Signature" url={profileData.signature} newFile={newFiles.signature} editing={isEditing} name="signature" onFileChange={handleFileChange} />
+          <Section 
+            title="Banking" 
+            icon="🏦"
+            expanded={expandedSections.includes('Banking')}
+            onToggle={() => toggleSection('Banking')}
+          >
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <div className="col-span-2"><Field label="Bank Name" value={profileData.bankName} editing={isEditing} onChange={(v: string) => handleInputChange('bankName', v)} /></div>
+              <div className="col-span-2"><Field label="Account Holder" value={profileData.accountName} editing={isEditing} onChange={(v: string) => handleInputChange('accountName', v)} /></div>
+              <div className="col-span-2"><Field label="Account Number" value={profileData.accountNumber} editing={isEditing} onChange={(v: string) => handleInputChange('accountNumber', v)} /></div>
+              <Field label="IFSC" value={profileData.ifscCode} editing={isEditing} onChange={(v: string) => handleInputChange('ifscCode', v)} />
+              <Field label="Branch" value={profileData.branchName} editing={isEditing} onChange={(v: string) => handleInputChange('branchName', v)} />
+              <div className="col-span-2"><Field label="UPI ID" value={profileData.upiId} editing={isEditing} onChange={(v: string) => handleInputChange('upiId', v)} /></div>
+            </div>
           </Section>
 
-          {/* Stats Summary */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm text-center group hover:border-orange-200 transition-all">
-              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] mb-2">Member Since</p>
-              <p className="text-xl font-black text-neutral-900">{profileData.createdAt ? new Date(profileData.createdAt).getFullYear() : '2024'}</p>
-            </div>
-            <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm text-center group hover:border-orange-200 transition-all">
-              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] mb-2">Deliveries</p>
-              <p className="text-xl font-black text-neutral-900">{profileData.totalDeliveries || '0'}</p>
-            </div>
-          </div>
+          <Section 
+            title="Verification & Summary" 
+            icon="✅"
+            expanded={expandedSections.includes('Verification & Summary')}
+            onToggle={() => toggleSection('Verification & Summary')}
+          >
+             <div className="space-y-4">
+               <DocumentBox label="Signature" url={profileData.signature} newFile={newFiles.signature} editing={isEditing} name="signature" onFileChange={handleFileChange} />
+               <div className="grid grid-cols-2 gap-3">
+                 <div className="bg-neutral-50 p-3 rounded-2xl text-center border border-neutral-100">
+                   <p className="text-[8px] font-black text-neutral-400 uppercase mb-1">Joined</p>
+                   <p className="text-sm font-black text-neutral-800">{profileData.createdAt ? new Date(profileData.createdAt).getFullYear() : '2024'}</p>
+                 </div>
+                 <div className="bg-neutral-50 p-3 rounded-2xl text-center border border-neutral-100">
+                   <p className="text-[8px] font-black text-neutral-400 uppercase mb-1">Deliveries</p>
+                   <p className="text-sm font-black text-neutral-800">{profileData.totalDeliveries || '0'}</p>
+                 </div>
+               </div>
+             </div>
+          </Section>
         </div>
       </div>
-      
       <DeliveryBottomNav />
     </div>
   );
 }
 
-function Section({ title, icon, children }: any) {
+function Section({ title, icon, children, expanded, onToggle }: any) {
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white rounded-[2rem] shadow-xl shadow-neutral-200/40 border border-neutral-100 overflow-hidden">
-      <div className="px-8 py-5 bg-neutral-50/50 border-b border-neutral-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-xl">{icon}</span>
-          <h3 className="text-xs font-black text-neutral-800 uppercase tracking-[0.2em]">{title}</h3>
+    <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+      <button 
+        onClick={onToggle}
+        className="w-full px-5 py-3 bg-neutral-50/50 flex items-center justify-between group"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-base">{icon}</span>
+          <h3 className="text-[10px] font-black text-neutral-700 uppercase tracking-widest">{title}</h3>
         </div>
-        <div className="w-1.5 h-1.5 rounded-full bg-neutral-200" />
-      </div>
-      <div className="p-8">
-        {children}
-      </div>
-    </motion.div>
+        <svg 
+          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" 
+          className={`text-neutral-400 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+        >
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }} 
+            animate={{ height: 'auto', opacity: 1 }} 
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="p-5 border-t border-neutral-100">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
-function Field({ label, value, editing, onChange, type = "text" }: any) {
+function Field({ label, value, editing, onChange, type = "text", error }: any) {
   return (
-    <div className="space-y-1.5">
-      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{label}</label>
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest ml-1">{label}</label>
+        {editing && error && <span className="text-[9px] font-black text-red-600 animate-pulse">{error}</span>}
+      </div>
       {editing ? (
         <input 
           type={type} 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-5 py-3 bg-neutral-50 border-2 border-neutral-100 rounded-2xl text-sm font-bold focus:bg-white focus:border-orange-500 outline-none transition-all"
-          placeholder={`Enter ${label}`}
+          className={`w-full px-3 py-2 bg-neutral-50 border-2 rounded-xl text-xs font-bold outline-none transition-all ${
+            error ? 'border-red-500 bg-red-50/30' : 'border-neutral-100 focus:border-orange-500'
+          }`}
         />
       ) : (
-        <div className="px-5 py-3 bg-neutral-50/30 rounded-2xl border border-transparent">
-          <p className="text-sm font-black text-neutral-800">{value || '—'}</p>
+        <div className="px-3 py-2 bg-neutral-50/30 rounded-xl border border-transparent">
+          <p className="text-xs font-black text-neutral-800 break-words">{value || '—'}</p>
         </div>
       )}
     </div>
@@ -320,33 +375,32 @@ function DocumentBox({ label, url, newFile, editing, name, onFileChange }: any) 
   const displayUrl = newFile ? URL.createObjectURL(newFile) : url;
   
   return (
-    <div className="space-y-3">
-      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1">{label}</label>
-      <div className="relative group rounded-[1.5rem] overflow-hidden border-2 border-neutral-100 aspect-[16/10] bg-neutral-50 shadow-inner">
+    <div className="space-y-2">
+      <label className="text-[8px] font-black text-neutral-400 uppercase tracking-widest ml-1">{label}</label>
+      <div className="relative group rounded-xl overflow-hidden border border-neutral-100 aspect-[16/10] bg-neutral-50 shadow-inner">
         {displayUrl ? (
           <>
-            <img src={displayUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center gap-3">
-              <a href={displayUrl} target="_blank" rel="noopener noreferrer" className="bg-white text-neutral-900 px-6 py-2.5 rounded-2xl text-[10px] font-black tracking-widest uppercase shadow-2xl active:scale-95">View Document</a>
+            <img src={displayUrl} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+              <a href={displayUrl} target="_blank" rel="noopener noreferrer" className="bg-white text-neutral-900 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest">View</a>
             </div>
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-neutral-300">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest">Pending Upload</span>
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-neutral-300">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <span className="text-[8px] font-black uppercase">Pending</span>
           </div>
         )}
       </div>
       {editing && (
-        <div className="relative group">
+        <div className="relative">
           <input type="file" name={name} accept="image/*" onChange={onFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-          <div className="w-full py-3.5 bg-neutral-100 text-neutral-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-dashed border-neutral-200 group-hover:border-orange-400 group-hover:text-orange-600 transition-all text-center">
-            {displayUrl ? 'Replace Document' : 'Upload Document'}
+          <div className="w-full py-1.5 bg-neutral-100 text-neutral-600 rounded-lg text-[8px] font-black uppercase tracking-widest border border-dashed border-neutral-200 text-center">
+            Upload
           </div>
         </div>
       )}
     </div>
   );
 }
+

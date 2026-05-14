@@ -268,12 +268,14 @@ export default function DeliveryDashboard() {
                   </div>
                   <p className="text-neutral-600 text-xs mb-2">{order.address}</p>
                   <div className="flex items-center justify-between">
-                    <p className="text-neutral-900 font-bold">₹ {order.totalAmount}</p>
-                    {order.estimatedDeliveryTime && (
-                      <p className="text-neutral-500 text-xs">
-                        ETA: {order.estimatedDeliveryTime}
-                      </p>
-                    )}
+                    <div>
+                      <p className="text-neutral-500 text-[10px] uppercase font-bold tracking-wider">Order Value</p>
+                      <p className="text-neutral-900 font-bold">₹ {order.totalAmount}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-orange-500 text-[10px] uppercase font-bold tracking-wider">Your Earning</p>
+                      <p className="text-orange-600 font-black text-lg">₹ {order.deliveryFare || '0'}</p>
+                    </div>
                   </div>
                 </div>
               ))}

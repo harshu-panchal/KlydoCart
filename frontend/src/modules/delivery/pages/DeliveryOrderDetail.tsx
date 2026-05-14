@@ -714,6 +714,29 @@ export default function DeliveryOrderDetail() {
                 </div>
             )}
 
+            {/* Earnings Card */}
+            <div className="mx-4 mt-4 bg-green-50 border border-green-100 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="2" y="6" width="20" height="12" rx="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <path d="M6 12h.01M18 12h.01" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-green-700 uppercase tracking-wider">Your Earning</p>
+                        <p className="text-xl font-black text-green-800">₹{order.deliveryFare || '0'}</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <p className="text-[10px] font-bold text-green-600 uppercase tracking-tight mb-1">Status</p>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${order.status === 'Delivered' ? 'bg-green-600 text-white' : 'bg-green-200 text-green-800'}`}>
+                        {order.status === 'Delivered' ? 'Earned' : 'Estimated'}
+                    </span>
+                </div>
+            </div>
+
             <div className="p-4 space-y-4 max-w-lg mx-auto">
 
                 {/* Status Stepper Card */}
