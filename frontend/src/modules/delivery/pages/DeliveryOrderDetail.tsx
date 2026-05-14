@@ -863,11 +863,19 @@ export default function DeliveryOrderDetail() {
 
                         {/* 4-digit OTP Input - Always visible but disabled until OTP is sent */}
                         <input
-                            type="text"
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             value={otpValue}
-                            onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                            onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, '');
+                                if (val.length <= 4) {
+                                    setOtpValue(val);
+                                }
+                            }}
                             placeholder="Enter 4-digit OTP"
                             disabled={!showOtpInput}
+                            autoFocus={showOtpInput}
                             className={`w-full px-4 py-3 border rounded-xl text-lg font-semibold text-center mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${showOtpInput ? 'border-neutral-300 bg-white' : 'border-neutral-200 bg-neutral-100 text-neutral-400'
                                 }`}
                             maxLength={4}
@@ -898,7 +906,10 @@ export default function DeliveryOrderDetail() {
                                     </button>
                                     <button
                                         onClick={handleVerifyOtp}
-                                        className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+                                        className={`flex-1 py-3 rounded-xl font-semibold transition-all ${otpVerifying || otpValue.length !== 4
+                                            ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98]'
+                                            }`}
                                         disabled={otpVerifying || otpValue.length !== 4}
                                     >
                                         {otpVerifying ? 'Verifying...' : 'Verify OTP'}
