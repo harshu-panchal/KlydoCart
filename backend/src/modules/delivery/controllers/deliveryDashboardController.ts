@@ -103,9 +103,19 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
                             {
                                 $and: [
                                     { $eq: ["$status", "Delivered"] },
-                                    { $eq: ["$paymentMethod", "COD"] }, // Assuming 'COD' string for Cash on Delivery
-                                    { $gte: ["$deliveredAt", todayStart] },
-                                    { $lte: ["$deliveredAt", todayEnd] }
+                                    { 
+                                        $or: [
+                                            { $eq: ["$paymentMethod", "COD"] },
+                                            { $eq: ["$paymentMethod", "cod"] },
+                                            { $eq: ["$paymentMethod", "Cash on Delivery"] }
+                                        ]
+                                    },
+                                    { 
+                                        $or: [
+                                            { $and: [{ $gte: ["$deliveredAt", todayStart] }, { $lte: ["$deliveredAt", todayEnd] }] },
+                                            { $and: [{ $gte: ["$updatedAt", todayStart] }, { $lte: ["$updatedAt", todayEnd] }] }
+                                        ]
+                                    }
                                 ]
                             },
                             "$total", // Sum the order total
