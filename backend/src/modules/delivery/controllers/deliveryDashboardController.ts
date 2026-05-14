@@ -133,6 +133,31 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
                     $sum: {
                         $cond: [{ $eq: ["$status", "Delivered"] }, 1, 0]
                     }
+                },
+                // Actual Earnings: Sum of shipping charges for delivered orders
+                todayActualEarning: {
+                    $sum: {
+                        $cond: [
+                            {
+                                $and: [
+                                    { $eq: ["$status", "Delivered"] },
+                                    { $gte: ["$deliveredAt", todayStart] },
+                                    { $lte: ["$deliveredAt", todayEnd] }
+                                ]
+                            },
+                            "$shipping",
+                            0
+                        ]
+                    }
+                },
+                totalActualEarning: {
+                    $sum: {
+                        $cond: [
+                            { $eq: ["$status", "Delivered"] },
+                            "$shipping",
+                            0
+                        ]
+                    }
                 }
 
             }
@@ -145,14 +170,21 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
         returnOrdersToday: 0,
         dailyCollection: 0,
         todayDeliveredCount: 0,
-        totalDeliveredCount: 0
+        totalDeliveredCount: 0,
+        todayActualEarning: 0,
+        totalActualEarning: 0
     };
 
-    // Calculate Earnings (Mock logic: 40 per delivery)
-    // You should replace this with real commission logic stored in DB
-    const COMMISSION_PER_ORDER = 40;
-    const todayEarning = result.todayDeliveredCount * COMMISSION_PER_ORDER;
-    const totalEarning = result.totalDeliveredCount * COMMISSION_PER_ORDER;
+    // Calculate Earnings using actual shipping fees if available, 
+    // otherwise fallback to a calculated commission or fixed rate
+    const COMMISSION_RATE = deliveryPartner.commissionRate || 100; // Default to 100% of shipping if not specified
+    const todayEarning = result.todayActualEarning > 0 
+        ? (result.todayActualEarning * COMMISSION_RATE / 100) 
+        : (result.todayDeliveredCount * 40); // Absolute fallback to 40 per order if no shipping info
+        
+    const totalEarning = result.totalActualEarning > 0
+        ? (result.totalActualEarning * COMMISSION_RATE / 100)
+        : (result.totalDeliveredCount * 40);
 
     // Fetch list of Pending Orders for the "Today's Pending Order" section
     const pendingOrdersList = await Order.find({
