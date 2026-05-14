@@ -36,165 +36,54 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
     // - Today's Delivered Orders (for Earnings & Collection)
     // - Return Orders
 
+    // 2. Fetch Orders Assigned to this Partner
+    // We'll use explicit queries for better reliability and real-time accuracy
     const objectId = new mongoose.Types.ObjectId(deliveryId);
 
-    // Aggregation to get counts in one go
-    const stats = await Order.aggregate([
-        {
-            $match: {
-                deliveryBoy: objectId,
-                // We consider orders active or touching today
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                // Pending: Active statuses
-                // Pending: Active statuses AND touched today
-                pendingOrders: {
-                    $sum: {
-                        $cond: [
-                            {
-                                $and: [
-                                    { $in: ["$status", ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"]] },
-                                    {
-                                        $or: [
-                                            { $and: [{ $gte: ["$createdAt", todayStart] }, { $lte: ["$createdAt", todayEnd] }] },
-                                            { $and: [{ $gte: ["$updatedAt", todayStart] }, { $lte: ["$updatedAt", todayEnd] }] }
-                                        ]
-                                    }
-                                ]
-                            },
-                            1, 0]
-                    }
-                },
-                // All Orders Today: Created today OR Updated today
-                allOrdersToday: {
-                    $sum: {
-                        $cond: [{
-                            $or: [
-                                { $and: [{ $gte: ["$createdAt", todayStart] }, { $lte: ["$createdAt", todayEnd] }] },
-                                { $and: [{ $gte: ["$updatedAt", todayStart] }, { $lte: ["$updatedAt", todayEnd] }] }
-                            ]
-                        }, 1, 0]
-                    }
-                },
-                // Return Orders Today
-                returnOrdersToday: {
-                    $sum: {
-                        $cond: [
-                            {
-                                $and: [
-                                    { $in: ["$status", ["Returned", "Cancelled"]] },
-                                    {
-                                        $or: [
-                                            { $and: [{ $gte: ["$createdAt", todayStart] }, { $lte: ["$createdAt", todayEnd] }] },
-                                            { $and: [{ $gte: ["$updatedAt", todayStart] }, { $lte: ["$updatedAt", todayEnd] }] }
-                                        ]
-                                    }
-                                ]
-                            }, 1, 0]
-                    }
-                },
-                // Daily Collection: Cash collected from COD orders delivered TODAY
-                dailyCollection: {
-                    $sum: {
-                        $cond: [
-                            {
-                                $and: [
-                                    { $eq: ["$status", "Delivered"] },
-                                    { 
-                                        $or: [
-                                            { $eq: ["$paymentMethod", "COD"] },
-                                            { $eq: ["$paymentMethod", "cod"] },
-                                            { $eq: ["$paymentMethod", "Cash on Delivery"] }
-                                        ]
-                                    },
-                                    { 
-                                        $or: [
-                                            { $and: [{ $gte: ["$deliveredAt", todayStart] }, { $lte: ["$deliveredAt", todayEnd] }] },
-                                            { $and: [{ $gte: ["$updatedAt", todayStart] }, { $lte: ["$updatedAt", todayEnd] }] }
-                                        ]
-                                    }
-                                ]
-                            },
-                            "$total", // Sum the order total
-                            0
-                        ]
-                    }
-                },
-                // Today's Earning: Commission earned today (Mock calculation: 40 per order)
-                // In real app, this should come from a Commission model or field on Order
-                todayDeliveredCount: {
-                    $sum: {
-                        $cond: [
-                            {
-                                $and: [
-                                    { $eq: ["$status", "Delivered"] },
-                                    { $gte: ["$deliveredAt", todayStart] },
-                                    { $lte: ["$deliveredAt", todayEnd] }
-                                ]
-                            }, 1, 0
-                        ]
-                    }
-                },
-                // Total Completed Deliveries (Lifetime)
-                totalDeliveredCount: {
-                    $sum: {
-                        $cond: [{ $eq: ["$status", "Delivered"] }, 1, 0]
-                    }
-                },
-                // Actual Earnings: Sum of shipping charges for delivered orders
-                todayActualEarning: {
-                    $sum: {
-                        $cond: [
-                            {
-                                $and: [
-                                    { $eq: ["$status", "Delivered"] },
-                                    { $gte: ["$deliveredAt", todayStart] },
-                                    { $lte: ["$deliveredAt", todayEnd] }
-                                ]
-                            },
-                            "$shipping",
-                            0
-                        ]
-                    }
-                },
-                totalActualEarning: {
-                    $sum: {
-                        $cond: [
-                            { $eq: ["$status", "Delivered"] },
-                            "$shipping",
-                            0
-                        ]
-                    }
-                }
+    // Fetch active orders for counts
+    const allAssignedOrders = await Order.find({ deliveryBoy: objectId });
 
-            }
-        }
-    ]);
+    const pendingOrders = allAssignedOrders.filter(order => 
+        ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"].includes(order.status) &&
+        (order.createdAt >= todayStart || order.updatedAt >= todayStart)
+    ).length;
 
-    const result = stats[0] || {
-        pendingOrders: 0,
-        allOrdersToday: 0,
-        returnOrdersToday: 0,
-        dailyCollection: 0,
-        todayDeliveredCount: 0,
-        totalDeliveredCount: 0,
-        todayActualEarning: 0,
-        totalActualEarning: 0
-    };
+    const allOrdersToday = allAssignedOrders.filter(order => 
+        (order.createdAt >= todayStart && order.createdAt <= todayEnd) || 
+        (order.updatedAt >= todayStart && order.updatedAt <= todayEnd)
+    ).length;
 
-    // Calculate Earnings using actual shipping fees if available, 
-    // otherwise fallback to a calculated commission or fixed rate
-    const COMMISSION_RATE = deliveryPartner.commissionRate || 100; // Default to 100% of shipping if not specified
-    const todayEarning = result.todayActualEarning > 0 
-        ? (result.todayActualEarning * COMMISSION_RATE / 100) 
-        : (result.todayDeliveredCount * 40); // Absolute fallback to 40 per order if no shipping info
-        
-    const totalEarning = result.totalActualEarning > 0
-        ? (result.totalActualEarning * COMMISSION_RATE / 100)
-        : (result.totalDeliveredCount * 40);
+    const returnOrdersToday = allAssignedOrders.filter(order => 
+        ["Returned", "Cancelled", "Rejected"].includes(order.status) &&
+        (order.createdAt >= todayStart || order.updatedAt >= todayStart)
+    ).length;
+
+    // Daily Collection: Sum total of COD orders delivered TODAY
+    const deliveredToday = allAssignedOrders.filter(order => 
+        order.status === "Delivered" && 
+        (order.deliveredAt >= todayStart && order.deliveredAt <= todayEnd || 
+         order.updatedAt >= todayStart && order.updatedAt <= todayEnd)
+    );
+
+    const dailyCollection = deliveredToday
+        .filter(order => ["COD", "cod", "Cash on Delivery", "Cash", "CASH"].includes(order.paymentMethod))
+        .reduce((sum, order) => sum + (order.total || 0), 0);
+
+    // Earnings calculation
+    const COMMISSION_RATE = deliveryPartner.commissionRate || 100;
+    
+    const todayEarning = deliveredToday
+        .reduce((sum, order) => {
+            const ship = order.shipping || 0;
+            return sum + (ship > 0 ? (ship * COMMISSION_RATE / 100) : 40);
+        }, 0);
+
+    const totalDelivered = allAssignedOrders.filter(order => order.status === "Delivered");
+    const totalEarning = totalDelivered
+        .reduce((sum, order) => {
+            const ship = order.shipping || 0;
+            return sum + (ship > 0 ? (ship * COMMISSION_RATE / 100) : 40);
+        }, 0);
 
     // Fetch list of Pending Orders for the "Today's Pending Order" section
     const pendingOrdersList = await Order.find({
@@ -205,8 +94,8 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
             { updatedAt: { $gte: todayStart, $lte: todayEnd } }
         ]
     })
-        .select("orderNumber customerName deliveryAddress status total estimatedDeliveryDate") // Select necessary fields
-        .sort({ createdAt: -1 })
+        .select("orderNumber customerName deliveryAddress status total estimatedDeliveryDate")
+        .sort({ updatedAt: -1 })
         .limit(5);
 
     // Format pending list for Frontend
@@ -214,8 +103,8 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
         id: order._id,
         orderId: order.orderNumber,
         customerName: order.customerName,
-        status: order.status, // Map backend status to frontend status if needed
-        address: `${order.deliveryAddress.address}, ${order.deliveryAddress.city}`, // Simplify address
+        status: order.status,
+        address: order.deliveryAddress ? `${order.deliveryAddress.address}, ${order.deliveryAddress.city}` : 'N/A',
         totalAmount: order.total,
         estimatedDeliveryTime: order.estimatedDeliveryDate ? new Date(order.estimatedDeliveryDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'
     }));
@@ -223,14 +112,14 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
     return res.status(200).json({
         success: true,
         data: {
-            dailyCollection: result.dailyCollection,
-            cashBalance: deliveryPartner.cashCollected, // This field stores total cash holding
-            pendingOrders: result.pendingOrders,
-            allOrders: result.allOrdersToday,
-            returnOrders: result.returnOrdersToday,
-            returnItems: 0, // Need 'OrderItem' logic for this, keeping 0 for now
-            todayEarning: todayEarning,
-            totalEarning: totalEarning,
+            dailyCollection: dailyCollection,
+            cashBalance: deliveryPartner.cashCollected || 0,
+            pendingOrders: pendingOrders,
+            allOrders: allOrdersToday,
+            returnOrders: returnOrdersToday,
+            returnItems: 0,
+            todayEarning: Math.round(todayEarning * 100) / 100,
+            totalEarning: Math.round(totalEarning * 100) / 100,
             pendingOrdersList: formattedPendingList
         }
     });
