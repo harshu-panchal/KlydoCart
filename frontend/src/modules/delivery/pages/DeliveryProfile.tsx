@@ -123,7 +123,7 @@ export default function DeliveryProfile() {
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-24 font-sans text-neutral-900">
-      <DeliveryHeader />
+      {/* <DeliveryHeader /> Header hidden as per request */}
       
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Top Navigation & Action */}
