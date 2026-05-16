@@ -4,7 +4,6 @@ import Product from "../../../models/Product";
 import OrderItem from "../../../models/OrderItem";
 import Customer from "../../../models/Customer";
 import Seller from "../../../models/Seller";
-import Tax from "../../../models/Tax";
 import mongoose from "mongoose";
 import { calculateDistance } from "../../../utils/locationHelper";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
@@ -178,15 +177,21 @@ export const createOrder = async (req: Request, res: Response) => {
                     publish: true,
                     variations: {
                         $elemMatch: {
-                            $or: [
-                                { _id: mongoose.isValidObjectId(variationValue) ? new mongoose.Types.ObjectId(variationValue) : new mongoose.Types.ObjectId() },
-                                { value: variationValue },
-                                { title: variationValue },
-                                { pack: variationValue }
-                            ],
-                            $or: [
-                                { stock: { $gte: qty } },
-                                { stock: 0 }
+                            $and: [
+                                {
+                                    $or: [
+                                        { _id: mongoose.isValidObjectId(variationValue) ? new mongoose.Types.ObjectId(variationValue) : new mongoose.Types.ObjectId() },
+                                        { value: variationValue },
+                                        { title: variationValue },
+                                        { pack: variationValue }
+                                    ]
+                                },
+                                {
+                                    $or: [
+                                        { stock: { $gte: qty } },
+                                        { stock: 0 }
+                                    ]
+                                }
                             ]
                         }
                     }

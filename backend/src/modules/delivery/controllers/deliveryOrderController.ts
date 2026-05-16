@@ -6,6 +6,7 @@ import OrderItem from "../../../models/OrderItem";
 import Seller from "../../../models/Seller";
 import { generateDeliveryOtp, verifyDeliveryOtp } from "../../../services/deliveryOtpService";
 import { processOrderStatusTransition } from "../../../services/orderService";
+import Delivery from "../../../models/Delivery";
 
 /**
  * Helper to map order items for response
@@ -170,6 +171,7 @@ export const getPendingOrders = asyncHandler(async (req: Request, res: Response)
  * Get Specific Order Details
  */
 export const getOrderDetails = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
     const deliveryId = req.user?.userId;
     const deliveryPartner = await Delivery.findById(deliveryId).select('commissionRate');
     const COMMISSION_RATE = deliveryPartner?.commissionRate || 100;

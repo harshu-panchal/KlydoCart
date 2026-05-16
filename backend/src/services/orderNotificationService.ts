@@ -578,7 +578,8 @@ export async function scanOrdersForDeliveryBoy(io: SocketIOServer, deliveryBoyId
                     populate: { path: 'seller' }
                 }).lean();
 
-                if (!order || ['Delivered', 'Cancelled', 'Rejected', 'Returned'].includes(order.status as string)) {
+                const orderDataObj: any = order;
+                if (!orderDataObj || ['Delivered', 'Cancelled', 'Rejected', 'Returned'].includes(orderDataObj.status as string)) {
                     continue;
                 }
 
@@ -591,8 +592,8 @@ export async function scanOrdersForDeliveryBoy(io: SocketIOServer, deliveryBoyId
                     state.notifiedDeliveryBoys.add(normalizedId);
 
                     const orderData = {
-                        orderId: order._id.toString(),
-                        orderNumber: (order as any).orderNumber,
+                        orderId: orderDataObj._id.toString(),
+                        orderNumber: orderDataObj.orderNumber,
                         customerName: (order as any).customerName,
                         customerPhone: (order as any).customerPhone,
                         deliveryAddress: {

@@ -118,7 +118,7 @@ export default function DeliverySignUp() {
     e.preventDefault();
 
     // Basic required fields validation
-    const requiredFields = ['name', 'mobile', 'email', 'address', 'city', 'pincode', 'bankName', 'accountName', 'accountNumber', 'ifscCode', 'aadhaarNumber', 'panNumber'];
+    const requiredFields = ['name', 'mobile', 'email', 'address', 'city', 'pincode', 'bankName', 'accountName', 'accountNumber', 'ifscCode', 'aadhaarNumber'];
     const missing = requiredFields.filter(f => !formData[f as keyof typeof formData]);
     
     if (missing.length > 0) {
@@ -143,15 +143,8 @@ export default function DeliverySignUp() {
       return;
     }
 
-    if (!files.drivingLicense && formData.vehicleType !== 'Cycle') {
-      setError("Driving License is required for motorized vehicles");
-      return;
-    }
+    // Identity Card and Marksheet are now optional
 
-    if (!files.nationalIdentityCard || !files.marksheet) {
-      setError("Identity Card and Marksheet are required");
-      return;
-    }
 
     setLoading(true);
     setError("");
@@ -255,12 +248,12 @@ export default function DeliverySignUp() {
                   <h2 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] border-b pb-2">Identity Details</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="Aadhaar Number" name="aadhaarNumber" value={formData.aadhaarNumber} onChange={handleInputChange} required maxLength={12} />
-                    <InputField label="PAN Number" name="panNumber" value={formData.panNumber} onChange={handleInputChange} required maxLength={10} />
+                    <InputField label="PAN Number" name="panNumber" value={formData.panNumber} onChange={handleInputChange} maxLength={10} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
                     <FileUpload label="Passport Size Photo" name="profilePic" onChange={handleFileChange} file={files.profilePic} />
-                    <FileUpload label="National Identity Card" name="nationalIdentityCard" onChange={handleFileChange} file={files.nationalIdentityCard} required />
-                    <FileUpload label="Higher Education Marksheet" name="marksheet" onChange={handleFileChange} file={files.marksheet} required />
+                    <FileUpload label="National Identity Card" name="nationalIdentityCard" onChange={handleFileChange} file={files.nationalIdentityCard} />
+                    <FileUpload label="Higher Education Marksheet" name="marksheet" onChange={handleFileChange} file={files.marksheet} />
                   </div>
                   <div className="flex items-center gap-4 mt-4">
                     <span className="text-xs font-bold text-neutral-700">Police Verification:</span>
@@ -291,7 +284,7 @@ export default function DeliverySignUp() {
                   </div>
                   {formData.vehicleType !== 'Cycle' && (
                     <div className="mt-4">
-                      <FileUpload label="Upload Driving License" name="drivingLicense" onChange={handleFileChange} file={files.drivingLicense} required />
+                      <FileUpload label="Upload Driving License" name="drivingLicense" onChange={handleFileChange} file={files.drivingLicense} />
                     </div>
                   )}
                 </section>

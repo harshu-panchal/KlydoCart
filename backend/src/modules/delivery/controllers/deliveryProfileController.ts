@@ -96,7 +96,7 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
         const io = (req.app as any).get("io");
         if (io) {
             // Background scan to not block response
-            scanOrdersForDeliveryBoy(io, deliveryId).catch(err => 
+            scanOrdersForDeliveryBoy(io, deliveryId as string).catch(err => 
                 console.error('Error scanning orders after going online:', err)
             );
         }
