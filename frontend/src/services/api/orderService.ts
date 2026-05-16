@@ -77,6 +77,8 @@ export interface OrderDetail {
   paymentMethod: string;
   paymentStatus: string;
   deliveryAddress: DeliveryAddress;
+  shipping: number;
+  platformFee: number;
 }
 
 export interface UpdateOrderStatusData {

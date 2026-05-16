@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { uploadImage } from "../../../services/api/uploadService";
-import jsPDF from "jspdf";
-// @ts-ignore
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
   validateImageFile,

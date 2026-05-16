@@ -6,7 +6,7 @@ import {
   OrderDetail,
 } from "../../../services/api/orderService";
 import { useSellerSocket } from "../hooks/useSellerSocket";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 
 export default function SellerOrderDetail() {
   const { id } = useParams<{ id: string }>();

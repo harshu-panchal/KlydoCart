@@ -65,6 +65,7 @@ export interface Product {
   // Shop by Store fields
   isShopByStoreOnly?: boolean;
   shopId?: string | any;
+  status?: string;
 }
 
 export interface CreateProductData {
