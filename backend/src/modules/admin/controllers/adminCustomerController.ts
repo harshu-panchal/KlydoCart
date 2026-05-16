@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Customer from "../../../models/Customer";
 import Order from "../../../models/Order";
+import { processCustomerWalletTransaction } from "../../../services/walletService";
 
 /**
  * Get all customers with filters
@@ -63,7 +64,8 @@ export const getAllCustomers = asyncHandler(
         {
           $addFields: {
             totalOrders: { $ifNull: ["$stats.count", 0] },
-            totalSpent: { $ifNull: ["$stats.spent", 0] }
+            totalSpent: { $ifNull: ["$stats.spent", 0] },
+            walletAmount: { $ifNull: ["$walletAmount", 0] }
           }
         },
         {
@@ -127,7 +129,8 @@ export const getCustomerById = asyncHandler(
       {
         $addFields: {
           totalOrders: { $ifNull: ["$stats.count", 0] },
-          totalSpent: { $ifNull: ["$stats.spent", 0] }
+          totalSpent: { $ifNull: ["$stats.spent", 0] },
+          walletAmount: { $ifNull: ["$walletAmount", 0] }
         }
       },
       {
@@ -222,6 +225,51 @@ export const getCustomerOrders = asyncHandler(
         total,
         pages: Math.ceil(total / parseInt(limit as string)),
       },
+    });
+  }
+);
+
+/**
+ * Update customer wallet balance
+ */
+export const updateCustomerWallet = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { amount, type, description } = req.body;
+
+    if (!amount || !type || !description) {
+      return res.status(400).json({
+        success: false,
+        message: "Amount, type, and description are required",
+      });
+    }
+
+    if (!["credit", "debit"].includes(type.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: "Type must be Credit or Debit",
+      });
+    }
+
+    const customer = await Customer.findById(id);
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    const result = await processCustomerWalletTransaction(
+      id,
+      Number(amount),
+      type.toLowerCase() as "credit" | "debit",
+      description
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Wallet ${type.toLowerCase() === "credit" ? "credited" : "debited"} successfully`,
+      data: result,
     });
   }
 );

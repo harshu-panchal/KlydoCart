@@ -22,7 +22,8 @@ export default function Account() {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editDOB, setEditDOB] = useState("");
-  const [editErrors, setEditErrors] = useState<{ name?: string; email?: string }>({});
+  const [editErrors, setEditErrors] = useState<{ name?: string; email?: string; dob?: string }>({});
+  const [gstError, setGstError] = useState("");
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -92,15 +93,30 @@ export default function Account() {
     e.preventDefault();
 
     // Validate
-    const newErrors: { name?: string; email?: string } = {};
+    const newErrors: { name?: string; email?: string; dob?: string } = {};
     if (!editName.trim()) {
       newErrors.name = 'Full name is required';
     } else if (!/^[a-zA-Z\s]+$/.test(editName.trim())) {
-      newErrors.name = 'Name must contain only alphabets';
+      newErrors.name = 'Full name must contain only alphabets (e.g. John Doe)';
     }
+
     if (editEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) {
       newErrors.email = 'Enter a valid email  e.g. example@gmail.com';
     }
+
+    if (editDOB) {
+      const birthDate = new Date(editDOB);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      if (age < 18) {
+        newErrors.dob = 'You must be at least 18 years old';
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setEditErrors(newErrors);
       return;
@@ -128,7 +144,23 @@ export default function Account() {
 
   const handleGstSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // GSTIN Regex: 2 digits (state), 10 chars (PAN), 1 char (entity), 1 char (default Z), 1 char (check digit)
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    
+    if (!gstNumber.trim()) {
+      setGstError("GST Number is required");
+      return;
+    }
+    
+    if (!gstRegex.test(gstNumber.toUpperCase())) {
+      setGstError("Invalid GST format. Correct format: 22AAAAA0000A1Z5");
+      return;
+    }
+
+    setGstError("");
     setShowGstModal(false);
+    showToast("GST details saved locally for this session");
   };
 
   // Show login/signup prompt for unregistered users
@@ -299,6 +331,10 @@ export default function Account() {
                       <span>{formatDate(displayDateOfBirth)}</span>
                     </div>
                   )}
+                  <div className="flex items-center gap-1.5 mt-1 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/30">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M16 8h-3a2 2 0 1 0 0 4h3"/></svg>
+                    <span className="font-bold">Wallet: ₹{(profile?.walletAmount ?? 0).toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -325,6 +361,7 @@ export default function Account() {
               { label: 'Address Book', path: '/address-book', icon: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /> },
               { label: 'Your Wishlist', path: '/wishlist', icon: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /> },
               { label: 'GST Details', action: () => setShowGstModal(true), icon: <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2L14 8L20 8" /> },
+              { label: 'My Wallet', path: '/wallet', icon: <path d="M20 12V8H4v4m16 0v4H4v-4m16 0h2a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-2h-2z" /> },
               { label: 'About Us', path: '/about-us', icon: <><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></> },
               { label: 'Log Out', action: handleLogout, icon: <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17L21 12L16 7 M21 12H9" />, color: 'text-red-500' },
             ].map((item, i) => (
@@ -364,7 +401,13 @@ export default function Account() {
                 </div>
                 
                 <h2 className="text-xl font-black text-neutral-900 tracking-tight text-center truncate w-full mb-1">{displayName}</h2>
-                <span className="px-3 py-1 bg-green-50 text-green-600 text-[9px] font-black uppercase tracking-widest rounded-full border border-green-100 mb-6">Verified Customer</span>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="px-3 py-1 bg-green-50 text-green-600 text-[9px] font-black uppercase tracking-widest rounded-full border border-green-100">Verified Customer</span>
+                  <span className="px-3 py-1 bg-teal-50 text-teal-600 text-[9px] font-black uppercase tracking-widest rounded-full border border-teal-100 flex items-center gap-1">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M16 8h-3a2 2 0 1 0 0 4h3"/></svg>
+                    Wallet: ₹{(profile?.walletAmount ?? 0).toFixed(2)}
+                  </span>
+                </div>
                 
                 <div className="w-full space-y-4 pt-6 border-t border-neutral-50 text-sm font-bold">
                   <div className="flex items-center justify-between text-neutral-400 uppercase tracking-widest text-[9px]">
@@ -394,10 +437,10 @@ export default function Account() {
 
             {/* Desktop Right Content: Action Hub */}
             <div className="flex-1 min-w-0">
-              {/* Desktop Quick Nav Tiles */}
-              <div className="hidden md:grid grid-cols-3 gap-4 mb-6">
+              <div className="hidden md:grid grid-cols-4 gap-4 mb-6">
                  {[
                    { label: 'Orders', icon: <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" />, path: '/orders', color: 'bg-indigo-50 text-indigo-600', sub: 'Past & Present' },
+                   { label: 'Wallet', icon: <path d="M20 12V8H4v4m16 0v4H4v-4m16 0h2a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-2h-2z" />, path: '/wallet', color: 'bg-teal-50 text-teal-600', sub: `Balance: ₹${(profile?.walletAmount ?? 0).toFixed(2)}` },
                    { label: 'Support', icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />, path: '/faq', color: 'bg-emerald-50 text-emerald-600', sub: 'Help Center' },
                    { label: 'Wishlist', icon: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />, path: '/wishlist', color: 'bg-rose-50 text-rose-600', sub: 'Saved Items' },
                  ].map((item, i) => (
@@ -530,10 +573,21 @@ export default function Account() {
                   <input
                     type="text"
                     value={gstNumber}
-                    onChange={(e) => setGstNumber(e.target.value)}
-                    placeholder="Enter GST Number"
-                    className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    onChange={(e) => {
+                      setGstNumber(e.target.value.toUpperCase());
+                      if (gstError) setGstError("");
+                    }}
+                    placeholder="e.g. 22AAAAA0000A1Z5"
+                    className={`w-full rounded-xl border px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all uppercase font-medium ${
+                      gstError ? 'border-red-400 bg-red-50' : 'border-neutral-200'
+                    }`}
                   />
+                  {gstError && (
+                    <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1 justify-center">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                      {gstError}
+                    </p>
+                  )}
                   <button
                     type="submit"
                     disabled={!gstNumber.trim()}
@@ -604,30 +658,58 @@ export default function Account() {
                   <div className="space-y-1 text-left">
                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Email Address</label>
                     <input
-                      type="text"
+                      type="email"
                       value={editEmail}
                       onChange={(e) => {
-                        setEditEmail(e.target.value);
-                        if (editErrors.email) setEditErrors((prev) => ({ ...prev, email: undefined }));
+                        const val = e.target.value;
+                        setEditEmail(val);
+                        // If there was an error, re-validate live
+                        if (editErrors.email) {
+                          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                          if (emailRegex.test(val)) {
+                            setEditErrors(prev => ({ ...prev, email: undefined }));
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        if (editEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) {
+                          setEditErrors(prev => ({ ...prev, email: 'Enter a valid email  e.g. example@gmail.com' }));
+                        }
                       }}
                       placeholder="e.g. example@gmail.com"
-                      className={`w-full rounded-xl border px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium ${
-                        editErrors.email ? 'border-red-400 bg-red-50' : 'border-neutral-200'
+                      className={`w-full rounded-xl border px-4 py-3.5 text-sm focus:outline-none focus:ring-2 transition-all font-medium ${
+                        editErrors.email 
+                          ? 'border-red-400 bg-red-50 focus:ring-red-500/20 focus:border-red-500' 
+                          : 'border-neutral-200 focus:ring-teal-500/20 focus:border-teal-500'
                       }`}
                     />
-                    <p className={`text-[11px] mt-0.5 ml-1 flex items-center gap-1 ${editErrors.email ? 'text-red-500' : 'text-red-400'}`}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                      {editErrors.email || 'Correct format: example@gmail.com'}
-                    </p>
+                    {editErrors.email && (
+                      <p className="text-[11px] text-red-500 mt-0.5 ml-1 flex items-center gap-1">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                        {editErrors.email}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1 text-left">
                     <label className="text-[10px] font-bold text-neutral-500 uppercase ml-1">Date of Birth</label>
                     <input
                       type="date"
                       value={editDOB}
-                      onChange={(e) => setEditDOB(e.target.value)}
-                      className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium"
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        setEditDOB(e.target.value);
+                        if (editErrors.dob) setEditErrors((prev) => ({ ...prev, dob: undefined }));
+                      }}
+                      className={`w-full rounded-xl border px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-medium ${
+                        editErrors.dob ? 'border-red-400 bg-red-50' : 'border-neutral-200'
+                      }`}
                     />
+                    {editErrors.dob && (
+                      <p className="text-[11px] text-red-500 mt-0.5 ml-1 flex items-center gap-1">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                        {editErrors.dob}
+                      </p>
+                    )}
                   </div>
                   <button
                     type="submit"

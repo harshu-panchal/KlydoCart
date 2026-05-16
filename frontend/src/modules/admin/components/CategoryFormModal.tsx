@@ -48,7 +48,6 @@ export default function CategoryFormModal({
     isBestseller: false,
     hasWarning: false,
     groupCategory: "",
-    commissionRate: "" as any,
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -129,7 +128,6 @@ export default function CategoryFormModal({
           isBestseller: category.isBestseller || false,
           hasWarning: category.hasWarning || false,
           groupCategory: category.groupCategory || "",
-          commissionRate: category.commissionRate || 0,
         });
         if (category.image) {
           setImagePreview(category.image);
@@ -168,7 +166,6 @@ export default function CategoryFormModal({
           isBestseller: false,
           hasWarning: false,
           groupCategory: "",
-          commissionRate: "",
         });
       } else {
         // Reset form for new root category
@@ -182,7 +179,6 @@ export default function CategoryFormModal({
           isBestseller: false,
           hasWarning: false,
           groupCategory: "",
-          commissionRate: "",
         });
       }
       setImageFile(null);
@@ -207,7 +203,7 @@ export default function CategoryFormModal({
           type === "checkbox"
             ? checked
             : type === "number"
-              ? value === "" ? "" : (name === "commissionRate" ? parseFloat(value) : parseInt(value))
+              ? value === "" ? "" : parseInt(value)
               : value,
       };
 
@@ -396,7 +392,6 @@ export default function CategoryFormModal({
         isBestseller: formData.isBestseller,
         hasWarning: formData.hasWarning,
         groupCategory: formData.groupCategory || undefined,
-        commissionRate: formData.commissionRate === "" ? 0 : Number(formData.commissionRate),
       };
 
       await onSubmit(submitData);
@@ -763,70 +758,7 @@ export default function CategoryFormModal({
             </label>
           </div>
 
-          {/* Commission Rate - Only for SubSubCategories (Level 3) or when parent is selected */}
-          {(() => {
-            // Logic to determine if we should show commission rate (Level 3+ only)
 
-            // 1. If in subcategory creation mode
-            if (isSubcategoryMode && parentCategory) {
-              // Check if the parent ITSELF has a parent (meaning parent is L2, so new one is L3)
-              return parentCategory.parentId ? true : false;
-            }
-
-            // 2. If editing existing category
-            if (mode === "edit" && category) {
-              // We need to know if category is L3.
-              if (formData.parentId) {
-                const parent = flatCategories.find(
-                  (c) => c._id === formData.parentId
-                );
-                // If parent exists and parent also has a parentId, then current is L3+
-                if (parent && parent.parentId) {
-                  return true;
-                }
-              }
-              return false;
-            }
-
-            // 3. creating new category (not sub mode) but with parent selected
-            if (mode === "create" && formData.parentId) {
-              const parent = flatCategories.find(
-                (c) => c._id === formData.parentId
-              );
-              if (parent && parent.parentId) {
-                return true;
-              }
-            }
-
-            return false;
-          })() && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  Commission Rate (%)
-                </label>
-                <input
-                  type="number"
-                  name="commissionRate"
-                  value={formData.commissionRate}
-                  onChange={handleInputChange}
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.commissionRate ? "border-red-300" : "border-neutral-300"
-                    }`}
-                  disabled={submitting}
-                />
-                <p className="mt-1 text-xs text-neutral-500">
-                  Override default commission rate for this category (0 = use
-                  default)
-                </p>
-                {errors.commissionRate && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.commissionRate}
-                  </p>
-                )}
-              </div>
-            )}
 
           {/* Advanced Fields (Collapsible) */}
           <div className="mb-4">

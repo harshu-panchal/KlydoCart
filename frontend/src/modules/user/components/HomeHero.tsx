@@ -15,6 +15,8 @@ gsap.registerPlugin(ScrollTrigger);
 interface HomeHeroProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 interface Tab {
@@ -54,6 +56,8 @@ const ALL_TAB: Tab = {
 export default function HomeHero({
   activeTab = "all",
   onTabChange,
+  searchQuery = "",
+  onSearchChange,
 }: HomeHeroProps) {
   const [tabs, setTabs] = useState<Tab[]>([ALL_TAB]);
 
@@ -62,21 +66,23 @@ export default function HomeHero({
       try {
         const cats = await getHeaderCategoriesPublic();
         if (cats && cats.length > 0) {
-          const mapped = cats.map((c) => ({
-            id: c.slug,
-            label: c.name,
-            icon: c.image ? (
-              <img 
-                src={c.image} 
-                alt={c.name} 
-                className="w-10 h-10 object-cover rounded-lg shadow-sm transition-transform duration-300" 
-              />
-            ) : (
-              <div className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-lg backdrop-blur-sm">
-                {getIconByName(c.iconName)}
-              </div>
-            ),
-          }));
+          const mapped = cats
+            .filter(c => c.slug !== "all")
+            .map((c) => ({
+              id: c.slug,
+              label: c.name,
+              icon: c.image ? (
+                <img 
+                  src={c.image} 
+                  alt={c.name} 
+                  className="w-10 h-10 object-cover rounded-lg shadow-sm transition-transform duration-300" 
+                />
+              ) : (
+                <div className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-lg backdrop-blur-sm">
+                  {getIconByName(c.iconName)}
+                </div>
+              ),
+            }));
           setTabs([ALL_TAB, ...mapped]);
         }
       } catch (error) {
@@ -430,8 +436,7 @@ export default function HomeHero({
         <div className="px-4 md:px-6 lg:px-8 pt-2 md:pt-2 pb-2 md:pb-2">
           {/* Search Bar */}
           <div
-            onClick={() => navigate("/search")}
-            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 flex items-center gap-2 cursor-pointer hover:shadow-xl transition-all duration-300 mb-2 md:mb-1.5 bg-white"
+            className="w-full md:w-auto md:max-w-xl md:mx-auto rounded-xl shadow-lg px-3 py-2 md:px-3 md:py-1.5 flex items-center gap-2 hover:shadow-xl transition-all duration-300 mb-2 md:mb-1.5 bg-white relative"
             style={{
               backgroundColor:
                 scrollProgress > 0.1
@@ -463,34 +468,57 @@ export default function HomeHero({
                 strokeLinecap="round"
               />
             </svg>
-            <div className="flex-1 relative h-4 md:h-4 overflow-hidden">
-              {searchSuggestions.map((suggestion, index) => {
-                const isActive = index === currentSearchIndex;
-                const prevIndex =
-                  (currentSearchIndex - 1 + searchSuggestions.length) %
-                  searchSuggestions.length;
-                const isPrev = index === prevIndex;
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange?.(e.target.value)}
+              placeholder={searchQuery ? "" : " "}
+              className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-800 placeholder-neutral-400 relative z-20 py-1"
+              style={{ minWidth: 0 }}
+            />
+            {!searchQuery && (
+              <div className="absolute left-10 right-10 flex items-center pointer-events-none h-4 md:h-4 overflow-hidden z-10">
+                {searchSuggestions.map((suggestion, index) => {
+                  const isActive = index === currentSearchIndex;
+                  const prevIndex =
+                    (currentSearchIndex - 1 + searchSuggestions.length) %
+                    searchSuggestions.length;
+                  const isPrev = index === prevIndex;
 
-                return (
-                  <div
-                    key={suggestion}
-                    className={`absolute inset-0 flex items-center transition-all duration-500 ${isActive
-                        ? "translate-y-0 opacity-100"
-                        : isPrev
-                          ? "-translate-y-full opacity-0"
-                          : "translate-y-full opacity-0"
-                      }`}>
-                    <span
-                      className={`text-xs md:text-xs`}
-                      style={{
-                        color: scrollProgress > 0.5 ? "#9ca3af" : "#6b7280",
-                      }}>
-                      Search &apos;{suggestion}&apos;
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                  return (
+                    <div
+                      key={suggestion}
+                      className={`absolute inset-0 flex items-center transition-all duration-500 ${isActive
+                          ? "translate-y-0 opacity-100"
+                          : isPrev
+                            ? "-translate-y-full opacity-0"
+                            : "translate-y-full opacity-0"
+                        }`}>
+                      <span
+                        className={`text-xs md:text-xs`}
+                        style={{
+                          color: scrollProgress > 0.5 ? "#9ca3af" : "#6b7280",
+                        }}>
+                        Search &apos;{suggestion}&apos;
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {searchQuery && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSearchChange?.("");
+                }}
+                className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full bg-neutral-200 text-neutral-500 hover:bg-neutral-300 transition-colors z-30"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
             <svg
               width="18"
               height="18"

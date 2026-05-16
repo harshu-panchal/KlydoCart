@@ -37,7 +37,7 @@ export const getAllWithdrawals = async (req: Request, res: Response) => {
         });
 
         const [sellers, deliveryBoys] = await Promise.all([
-            mongoose.model('Seller').find({ _id: { $in: sellerIds } }).select('sellerName storeName email mobile accountNumber bankName ifscCode'),
+            mongoose.model('Seller').find({ _id: { $in: sellerIds } }).select('sellerName storeName email mobile accountNumber bankName ifsc'),
             mongoose.model('Delivery').find({ _id: { $in: deliveryIds } }).select('name firstName lastName email mobile accountNumber bankName ifscCode')
         ]);
 

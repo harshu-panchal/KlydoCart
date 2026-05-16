@@ -33,6 +33,8 @@ export interface Order {
   address: OrderAddress;
   status: OrderStatus;
   paymentMethod?: string;
+  paymentStatus?: string;
+  paymentDetails?: any;
   createdAt: string;
   tipAmount?: number;
   donationAmount?: number;

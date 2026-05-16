@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import HomeHero from "./components/HomeHero";
 import HomeBannerCarousel from "./components/HomeBannerCarousel";
 import PromoStrip from "./components/PromoStrip";
@@ -9,6 +9,8 @@ import FeaturedThisWeek from "./components/FeaturedThisWeek";
 import ProductCard from "./components/ProductCard";
 import { getHomeContent } from "../../services/api/customerHomeService";
 import { getHeaderCategoriesPublic } from "../../services/api/headerCategoryService";
+import { getProducts } from "../../services/api/customerProductService";
+import { Product } from "../../types/domain";
 import { useLocation } from "../../hooks/useLocation";
 import { useLoading } from "../../context/LoadingContext";
 import PageLoader from "../../components/PageLoader";
@@ -38,6 +40,19 @@ export default function Home() {
   });
 
   const [products, setProducts] = useState<any[]>([]);
+  
+  // Search state synced with URL
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get('q') || "";
+  const setSearchQuery = (val: string) => {
+    if (val.trim()) {
+      setSearchParams({ q: val }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  };
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -118,6 +133,44 @@ export default function Home() {
     preloadHeaderCategories();
   }, [location?.latitude, location?.longitude, activeTab]);
 
+  // Search effect
+  useEffect(() => {
+    const fetchSearchResults = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      setSearchLoading(true);
+      try {
+        const params: any = { search: searchQuery };
+        if (location?.latitude && location?.longitude) {
+          params.latitude = location.latitude;
+          params.longitude = location.longitude;
+        }
+        const response = await getProducts(params);
+        if (response.success) {
+          setSearchResults((response.data as unknown as Product[]).filter((p: any) => p.isAvailable !== false));
+        }
+      } catch (error) {
+        console.error("Error searching products on home:", error);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchSearchResults();
+      // Reset scroll position when query exists to show results from top
+      if (searchQuery.trim()) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 300); // Debounce search
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, location?.latitude, location?.longitude]);
+
   const getFilteredProducts = (tabId: string) => {
     // We can trust the backend to return products for the active tab (headerCategory)
     // Local filtering is not needed and can be incorrect if slug patterns don't match
@@ -166,10 +219,61 @@ export default function Home() {
   return (
     <div className="bg-white min-h-screen pb-20 md:pb-0" ref={contentRef}>
       {/* Hero Header with Gradient and Tabs */}
-      <HomeHero activeTab={activeTab} onTabChange={setActiveTab} />
+      <HomeHero 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
-      {/* Promo Strip */}
-      <PromoStrip activeTab={activeTab} />
+      {searchQuery.trim() ? (
+        <div className="bg-neutral-50 min-h-[60vh] py-6 px-4 md:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl md:text-2xl font-bold text-neutral-900 tracking-tight">
+              {searchLoading ? 'Searching...' : `Results for "${searchQuery}"`}
+            </h2>
+            <button 
+              onClick={() => setSearchQuery("")}
+              className="text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+            >
+              Clear Search
+            </button>
+          </div>
+
+          {searchLoading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-12 h-12 border-4 border-neutral-200 border-t-green-600 rounded-full animate-spin mb-4"></div>
+              <p className="text-neutral-500 font-medium">Finding best items for you...</p>
+            </div>
+          ) : searchResults.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+              {searchResults.map((product) => (
+                <ProductCard
+                  key={product.id || product._id}
+                  product={product}
+                  categoryStyle={true}
+                  showBadge={true}
+                  showPackBadge={false}
+                  showStockInfo={true}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-20 h-20 bg-neutral-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-10 h-10 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-900 mb-1">No products found</h3>
+              <p className="text-neutral-500 max-w-xs">We couldn't find any products matching your search. Try different keywords.</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Promo Strip */}
+          <PromoStrip activeTab={activeTab} />
 
       {/* Dynamic Banners Carousel */}
       {activeTab === "all" &&
@@ -186,7 +290,6 @@ export default function Home() {
 
       {/* Main content */}
       <div
-        ref={contentRef}
         className="bg-neutral-50 -mt-2 pt-1 space-y-5 md:space-y-8 md:pt-4">
 
         {/* Content Sections */}
@@ -338,6 +441,8 @@ export default function Home() {
           </>
         )}
       </div>
-    </div >
+      </>
+      )}
+    </div>
   );
 }

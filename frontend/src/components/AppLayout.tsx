@@ -534,8 +534,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                         </AnimatePresence>
                       </motion.svg>
                     </div>
-                    <span className={`text-xs mt-0.5 relative z-10 ${isActive('/order-again') ? 'font-medium text-neutral-700' : 'font-medium text-neutral-500'}`}>
-                      Order Again
+                    <span className={`text-[10px] mt-0.5 relative z-10 ${isActive('/order-again') ? 'font-medium text-neutral-700' : 'font-medium text-neutral-500'}`}>
+                      Reorder
                     </span>
                   </Link>
                 </motion.div>

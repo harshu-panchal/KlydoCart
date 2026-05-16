@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getAllSubcategories, SubCategory } from '../../../services/api/categoryService';
 
 export default function SellerSubCategory() {
+    const navigate = useNavigate();
     const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
@@ -105,7 +107,7 @@ export default function SellerSubCategory() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-semibold text-neutral-800">View SubCategory</h1>
                 <div className="text-sm text-blue-500">
-                    <span className="cursor-pointer hover:underline">Home</span> <span className="text-neutral-400">/</span> <span className="text-neutral-600">Dashboard</span>
+                    <span onClick={() => navigate('/seller')} className="cursor-pointer hover:underline text-blue-600 font-medium">Home</span> <span className="text-neutral-400 mx-1">/</span> <span className="text-neutral-600">SubCategory</span>
                 </div>
             </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getUsers, updateUserStatus, type User as UserType } from '../../../services/api/admin/adminMiscService';
+import { getUsers, updateUserStatus, updateUserWallet, type User as UserType } from '../../../services/api/admin/adminMiscService';
 import { useAuth } from '../../../context/AuthContext';
 
 interface User {
@@ -28,6 +28,14 @@ export default function AdminUsers() {
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [totalPages, setTotalPages] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
+    
+    // Wallet Modal State
+    const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+    const [selectedUserForWallet, setSelectedUserForWallet] = useState<User | null>(null);
+    const [walletAmountInput, setWalletAmountInput] = useState('');
+    const [walletTypeInput, setWalletTypeInput] = useState<'Credit' | 'Debit'>('Credit');
+    const [walletDescriptionInput, setWalletDescriptionInput] = useState('');
+    const [isWalletUpdating, setIsWalletUpdating] = useState(false);
 
     // Fetch users on component mount
     useEffect(() => {
@@ -158,6 +166,40 @@ export default function AdminUsers() {
         } catch (err: any) {
             console.error('Error updating user status:', err);
             alert('Failed to update user status: ' + (err.response?.data?.message || 'Please try again.'));
+        }
+    };
+
+    const handleWalletUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedUserForWallet || !walletAmountInput || !walletDescriptionInput) return;
+
+        try {
+            setIsWalletUpdating(true);
+            const response = await updateUserWallet(selectedUserForWallet._id, {
+                amount: parseFloat(walletAmountInput),
+                type: walletTypeInput,
+                description: walletDescriptionInput
+            });
+
+            if (response.success) {
+                // Update local state
+                setUsers(users.map(user =>
+                    user._id === selectedUserForWallet._id 
+                        ? { ...user, walletAmount: (user.walletAmount ?? 0) + (walletTypeInput === 'Credit' ? parseFloat(walletAmountInput) : -parseFloat(walletAmountInput)) } 
+                        : user
+                ));
+                setIsWalletModalOpen(false);
+                setWalletAmountInput('');
+                setWalletDescriptionInput('');
+                alert(`Wallet ${walletTypeInput === 'Credit' ? 'credited' : 'debited'} successfully!`);
+            } else {
+                alert('Failed to update wallet: ' + (response.message || 'Unknown error'));
+            }
+        } catch (err: any) {
+            console.error('Error updating wallet:', err);
+            alert('Failed to update wallet: ' + (err.response?.data?.message || 'Please try again.'));
+        } finally {
+            setIsWalletUpdating(false);
         }
     };
 
@@ -365,6 +407,20 @@ export default function AdminUsers() {
                                                             </svg>
                                                         )}
                                                     </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedUserForWallet(user);
+                                                            setIsWalletModalOpen(true);
+                                                        }}
+                                                        className="p-1.5 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors"
+                                                        title="Manage Wallet"
+                                                    >
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                                                            <line x1="12" y1="12" x2="12" y2="12"></line>
+                                                            <path d="M16 8h-3a2 2 0 1 0 0 4h3"></path>
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -467,6 +523,116 @@ export default function AdminUsers() {
                 Copyright © 2026. Developed By{' '}
                 <a href="#" className="text-blue-600 hover:underline">KlydoCart</a>
             </footer>
+
+            {/* Wallet Management Modal */}
+            {isWalletModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="bg-teal-600 text-white px-6 py-4 flex justify-between items-center">
+                            <h3 className="text-lg font-semibold">Manage User Wallet</h3>
+                            <button onClick={() => setIsWalletModalOpen(false)} className="text-white hover:text-teal-200 transition-colors">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <form onSubmit={handleWalletUpdate} className="p-6">
+                            <div className="mb-4">
+                                <p className="text-sm text-neutral-600 mb-2">
+                                    User: <span className="font-semibold text-neutral-900">{selectedUserForWallet?.name}</span>
+                                </p>
+                                <p className="text-sm text-neutral-600">
+                                    Current Balance: <span className="font-semibold text-teal-600">₹{(selectedUserForWallet?.walletAmount ?? 0).toFixed(2)}</span>
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 mb-1">Transaction Type</label>
+                                    <div className="flex gap-4">
+                                        <label className="flex items-center">
+                                            <input
+                                                type="radio"
+                                                className="w-4 h-4 text-teal-600 focus:ring-teal-500"
+                                                name="walletType"
+                                                value="Credit"
+                                                checked={walletTypeInput === 'Credit'}
+                                                onChange={() => setWalletTypeInput('Credit')}
+                                            />
+                                            <span className="ml-2 text-sm text-neutral-700">Credit (Add Money)</span>
+                                        </label>
+                                        <label className="flex items-center">
+                                            <input
+                                                type="radio"
+                                                className="w-4 h-4 text-red-600 focus:ring-red-500"
+                                                name="walletType"
+                                                value="Debit"
+                                                checked={walletTypeInput === 'Debit'}
+                                                onChange={() => setWalletTypeInput('Debit')}
+                                            />
+                                            <span className="ml-2 text-sm text-neutral-700">Debit (Deduct Money)</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 mb-1">Amount (₹)</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="0.01"
+                                        step="0.01"
+                                        value={walletAmountInput}
+                                        onChange={(e) => setWalletAmountInput(e.target.value)}
+                                        className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-neutral-700 mb-1">Description / Reason</label>
+                                    <textarea
+                                        required
+                                        value={walletDescriptionInput}
+                                        onChange={(e) => setWalletDescriptionInput(e.target.value)}
+                                        className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all h-20 resize-none"
+                                        placeholder="e.g., Refund for order #12345, Promotional credit, etc."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsWalletModalOpen(false)}
+                                    className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 rounded hover:bg-neutral-50 transition-colors font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isWalletUpdating}
+                                    className={`flex-1 px-4 py-2 rounded text-white font-medium transition-colors ${
+                                        walletTypeInput === 'Credit' 
+                                            ? 'bg-teal-600 hover:bg-teal-700' 
+                                            : 'bg-red-600 hover:bg-red-700'
+                                    } ${isWalletUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    {isWalletUpdating ? (
+                                        <div className="flex items-center justify-center">
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            Processing...
+                                        </div>
+                                    ) : (
+                                        `${walletTypeInput === 'Credit' ? 'Credit' : 'Debit'} Wallet`
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

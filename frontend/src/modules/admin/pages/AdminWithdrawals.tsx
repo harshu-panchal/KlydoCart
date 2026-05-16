@@ -7,7 +7,7 @@ import {
     WithdrawalRequest
 } from '../../../services/api/admin/adminWalletService';
 
-export default function AdminWithdrawals() {
+export default function AdminWithdrawals({ onActionComplete }: { onActionComplete?: () => void }) {
     const { showToast } = useToast();
     const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -20,6 +20,18 @@ export default function AdminWithdrawals() {
     useEffect(() => {
         fetchWithdrawals();
     }, [filter]);
+
+    // Prevent background scroll when modal is open
+    useEffect(() => {
+        if (showCompleteModal) {
+            document.documentElement.classList.add('no-scroll');
+        } else {
+            document.documentElement.classList.remove('no-scroll');
+        }
+        return () => {
+            document.documentElement.classList.remove('no-scroll');
+        };
+    }, [showCompleteModal]);
 
     const fetchWithdrawals = async () => {
         try {
@@ -53,6 +65,7 @@ export default function AdminWithdrawals() {
             if (response.success) {
                 showToast('Withdrawal approved successfully', 'success');
                 fetchWithdrawals();
+                if (onActionComplete) onActionComplete();
             }
         } catch (error: any) {
             showToast(error.response?.data?.message || 'Failed to approve withdrawal', 'error');
@@ -71,6 +84,7 @@ export default function AdminWithdrawals() {
             if (response.success) {
                 showToast('Withdrawal rejected', 'success');
                 fetchWithdrawals();
+                if (onActionComplete) onActionComplete();
             }
         } catch (error: any) {
             showToast(error.response?.data?.message || 'Failed to reject withdrawal', 'error');
@@ -98,6 +112,7 @@ export default function AdminWithdrawals() {
                 setSelectedWithdrawal(null);
                 setTransactionRef('');
                 fetchWithdrawals();
+                if (onActionComplete) onActionComplete();
             }
         } catch (error: any) {
             showToast(error.response?.data?.message || 'Failed to complete withdrawal', 'error');
@@ -189,7 +204,9 @@ export default function AdminWithdrawals() {
                                 <div>
                                     <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Bank Details</p>
                                     <p className="font-medium text-sm break-all">
-                                        {withdrawal.accountDetails || (withdrawal.userId?.accountNumber ? `****${withdrawal.userId.accountNumber.slice(-4)}` : 'N/A')}
+                                        {withdrawal.accountDetails && withdrawal.accountDetails !== "undefined" 
+                                            ? withdrawal.accountDetails 
+                                            : (withdrawal.userId?.accountNumber ? `****${withdrawal.userId.accountNumber.slice(-4)}` : 'N/A')}
                                     </p>
                                 </div>
                                 {withdrawal.transactionReference && (

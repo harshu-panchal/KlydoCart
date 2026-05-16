@@ -172,6 +172,17 @@ export const updateUser = async (
   return response.data;
 };
 
+export const updateUserWallet = async (
+  id: string,
+  data: { amount: number; type: "Credit" | "Debit"; description: string }
+): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>(
+    `/admin/customers/${id}/wallet`,
+    data
+  );
+  return response.data;
+};
+
 /**
  * Return Request APIs
  */

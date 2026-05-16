@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getSalesReport, SalesReport } from '../../../services/api/reportService';
 
 export default function SellerSalesReport() {
+    const navigate = useNavigate();
     const [reports, setReports] = useState<SalesReport[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -97,9 +98,9 @@ export default function SellerSalesReport() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <h1 className="text-2xl font-semibold text-neutral-900">Sales Report</h1>
                     <div className="flex items-center gap-2 text-sm">
-                        <Link to="/seller" className="text-blue-600 hover:text-blue-700">
+                        <span onClick={() => navigate('/seller')} className="cursor-pointer text-blue-600 hover:text-blue-700 hover:underline font-medium">
                             Home
-                        </Link>
+                        </span>
                         <span className="text-neutral-400">/</span>
                         <span className="text-neutral-900">Sales Report</span>
                     </div>

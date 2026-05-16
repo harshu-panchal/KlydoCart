@@ -64,7 +64,7 @@ export interface OrderDetail {
   orderDate: string;
   deliveryDate: string;
   timeSlot: string;
-  status: 'Out For Delivery' | 'Received' | 'Payment Pending' | 'Cancelled' | 'Rejected';
+  status: 'Out for Delivery' | 'Accepted' | 'Received' | 'Payment Pending' | 'Cancelled' | 'Rejected' | 'Delivered';
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -80,7 +80,7 @@ export interface OrderDetail {
 }
 
 export interface UpdateOrderStatusData {
-  status: 'Accepted' | 'On the way' | 'Delivered' | 'Cancelled';
+  status: 'Accepted' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Rejected';
 }
 
 export interface GetOrdersParams {

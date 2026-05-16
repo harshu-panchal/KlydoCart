@@ -922,8 +922,7 @@ export const createProduct = asyncHandler(
 
 /**
  * Get all products
- * Returns all products regardless of status (no approval workflow)
- * Use status query param to filter by specific status if needed
+ * Admin can filter by status (Pending, Active, etc.) to manage approvals
  */
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   const {
@@ -951,8 +950,7 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   if (brand) query.brand = brand;
   if (seller) query.seller = seller;
 
-  // Only filter by status if explicitly provided
-  // All products show by default (no approval workflow)
+  // Filter by status if provided (e.g., to find products needing approval)
   if (status) {
     query.status = status;
   }

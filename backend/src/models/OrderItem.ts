@@ -13,6 +13,8 @@ export interface IOrderItem extends Document {
   // Pricing
   unitPrice: number;
   quantity: number;
+  tax: number;
+  taxPercent: number;
   total: number;
 
   // Variation
@@ -68,6 +70,16 @@ const OrderItemSchema = new Schema<IOrderItem>(
       type: Number,
       required: [true, "Quantity is required"],
       min: [1, "Quantity must be at least 1"],
+    },
+    tax: {
+      type: Number,
+      default: 0,
+      min: [0, "Tax cannot be negative"],
+    },
+    taxPercent: {
+      type: Number,
+      default: 0,
+      min: [0, "Tax percentage cannot be negative"],
     },
     total: {
       type: Number,

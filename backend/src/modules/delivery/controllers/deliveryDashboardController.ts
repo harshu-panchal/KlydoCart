@@ -78,7 +78,7 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
             return sum + (ship > 0 ? (ship * COMMISSION_RATE / 100) : 40);
         }, 0);
 
-    const totalDelivered = allAssignedOrders.filter(order => order.status === "Delivered");
+    const totalDelivered = allAssignedOrders.filter(order => order.status && order.status.toLowerCase() === "delivered");
     const totalEarning = totalDelivered
         .reduce((sum, order) => {
             const ship = order.shipping || 0;
@@ -122,6 +122,7 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
             cashBalance: deliveryPartner.cashCollected || 0,
             pendingOrders: pendingOrders,
             allOrders: allOrdersToday,
+            totalDeliveries: totalDelivered.length,
             returnOrders: returnOrdersToday,
             returnItems: 0,
             todayEarning: Math.round(todayEarning * 100) / 100,

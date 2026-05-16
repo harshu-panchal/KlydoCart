@@ -624,7 +624,7 @@ const menuSections: MenuSection[] = [
             ),
           },
           {
-            label: "Out For Delivery",
+            label: "Out for Delivery",
             path: "/admin/orders/out-for-delivery",
             icon: (
               <svg

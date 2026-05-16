@@ -4,6 +4,7 @@ import Product from "../../../models/Product";
 import OrderItem from "../../../models/OrderItem";
 import Customer from "../../../models/Customer";
 import Seller from "../../../models/Seller";
+import Tax from "../../../models/Tax";
 import mongoose from "mongoose";
 import { calculateDistance } from "../../../utils/locationHelper";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
@@ -148,6 +149,7 @@ export const createOrder = async (req: Request, res: Response) => {
         });
 
         let calculatedSubtotal = 0;
+        let totalOrderTax = 0;
         const orderItemIds: mongoose.Types.ObjectId[] = [];
         const sellerIds = new Set<string>(); // Track unique sellers
 
@@ -182,7 +184,10 @@ export const createOrder = async (req: Request, res: Response) => {
                                 { title: variationValue },
                                 { pack: variationValue }
                             ],
-                            stock: { $gte: qty }
+                            $or: [
+                                { stock: { $gte: qty } },
+                                { stock: 0 }
+                            ]
                         }
                     }
                 };
@@ -192,14 +197,104 @@ export const createOrder = async (req: Request, res: Response) => {
                 product = session
                     ? await Product.findOneAndUpdate(
                         query,
-                        { $inc: { "variations.$.stock": -qty, stock: -qty } },
+                        [
+                            {
+                                $set: {
+                                    variations: {
+                                        $map: {
+                                            input: "$variations",
+                                            as: "v",
+                                            in: {
+                                                $cond: {
+                                                    if: {
+                                                        $or: [
+                                                            { $eq: ["$$v._id", mongoose.isValidObjectId(variationValue) ? new mongoose.Types.ObjectId(variationValue) : null] },
+                                                            { $eq: ["$$v.value", variationValue] },
+                                                            { $eq: ["$$v.title", variationValue] },
+                                                            { $eq: ["$$v.pack", variationValue] }
+                                                        ]
+                                                    },
+                                                    then: {
+                                                        $mergeObjects: [
+                                                            "$$v",
+                                                            {
+                                                                stock: {
+                                                                    $cond: {
+                                                                        if: { $eq: ["$$v.stock", 0] },
+                                                                        then: 0,
+                                                                        else: { $subtract: ["$$v.stock", qty] }
+                                                                    }
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    else: "$$v"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    stock: {
+                                        $cond: {
+                                            if: { $eq: ["$stock", 0] },
+                                            then: 0,
+                                            else: { $subtract: ["$stock", qty] }
+                                        }
+                                    }
+                                }
+                            }
+                        ],
                         { session, new: true }
-                    )
+                    ).populate('tax')
                     : await Product.findOneAndUpdate(
                         query,
-                        { $inc: { "variations.$.stock": -qty, stock: -qty } },
+                        [
+                            {
+                                $set: {
+                                    variations: {
+                                        $map: {
+                                            input: "$variations",
+                                            as: "v",
+                                            in: {
+                                                $cond: {
+                                                    if: {
+                                                        $or: [
+                                                            { $eq: ["$$v._id", mongoose.isValidObjectId(variationValue) ? new mongoose.Types.ObjectId(variationValue) : null] },
+                                                            { $eq: ["$$v.value", variationValue] },
+                                                            { $eq: ["$$v.title", variationValue] },
+                                                            { $eq: ["$$v.pack", variationValue] }
+                                                        ]
+                                                    },
+                                                    then: {
+                                                        $mergeObjects: [
+                                                            "$$v",
+                                                            {
+                                                                stock: {
+                                                                    $cond: {
+                                                                        if: { $eq: ["$$v.stock", 0] },
+                                                                        then: 0,
+                                                                        else: { $subtract: ["$$v.stock", qty] }
+                                                                    }
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    else: "$$v"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    stock: {
+                                        $cond: {
+                                            if: { $eq: ["$stock", 0] },
+                                            then: 0,
+                                            else: { $subtract: ["$stock", qty] }
+                                        }
+                                    }
+                                }
+                            }
+                        ],
                         { new: true }
-                    );
+                    ).populate('tax')
             }
 
             if (!product) {
@@ -231,7 +326,7 @@ export const createOrder = async (req: Request, res: Response) => {
                             },
                             { $inc: { "variations.0.stock": -qty, stock: -qty } },
                             { session, new: true }
-                        )
+                        ).populate('tax')
                         : await Product.findOneAndUpdate(
                             {
                                 _id: item.product.id,
@@ -239,20 +334,56 @@ export const createOrder = async (req: Request, res: Response) => {
                             },
                             { $inc: { "variations.0.stock": -qty, stock: -qty } },
                             { new: true }
-                        );
+                        ).populate('tax');
                 } else {
                     // No variations, just decrement top-level stock
                     product = session
                         ? await Product.findOneAndUpdate(
-                            { _id: item.product.id, stock: { $gte: qty } },
-                            { $inc: { stock: -qty } },
+                            { 
+                                _id: item.product.id, 
+                                $or: [
+                                    { stock: { $gte: qty } },
+                                    { stock: 0 }
+                                ]
+                            },
+                            [
+                                {
+                                    $set: {
+                                        stock: {
+                                            $cond: {
+                                                if: { $eq: ["$stock", 0] },
+                                                then: 0,
+                                                else: { $subtract: ["$stock", qty] }
+                                            }
+                                        }
+                                    }
+                                }
+                            ],
                             { session, new: true }
-                        )
+                        ).populate('tax')
                         : await Product.findOneAndUpdate(
-                            { _id: item.product.id, stock: { $gte: qty } },
-                            { $inc: { stock: -qty } },
+                            { 
+                                _id: item.product.id, 
+                                $or: [
+                                    { stock: { $gte: qty } },
+                                    { stock: 0 }
+                                ]
+                            },
+                            [
+                                {
+                                    $set: {
+                                        stock: {
+                                            $cond: {
+                                                if: { $eq: ["$stock", 0] },
+                                                then: 0,
+                                                else: { $subtract: ["$stock", qty] }
+                                            }
+                                        }
+                                    }
+                                }
+                            ],
                             { new: true }
-                        );
+                        ).populate('tax');
                 }
             }
 
@@ -308,7 +439,17 @@ export const createOrder = async (req: Request, res: Response) => {
                     ? product.discPrice
                     : (selectedVariation?.price || product.price || 0);
             const itemTotal = itemPrice * qty;
+            
+            // Calculate Tax
+            let taxPercent = 0;
+            let itemTax = 0;
+            if (product.tax && (product.tax as any).percentage) {
+                taxPercent = (product.tax as any).percentage;
+                itemTax = (itemTotal * taxPercent) / 100;
+            }
+
             calculatedSubtotal += itemTotal;
+            totalOrderTax += itemTax;
 
             // Create OrderItem
             const newOrderItemData = {
@@ -320,7 +461,9 @@ export const createOrder = async (req: Request, res: Response) => {
                 sku: product.sku,
                 unitPrice: itemPrice,
                 quantity: qty,
-                total: itemTotal,
+                tax: Number(itemTax.toFixed(2)),
+                taxPercent: taxPercent,
+                total: Number(itemTotal.toFixed(2)),
                 variation: variationValue,
                 status: 'Pending'
             };
@@ -373,10 +516,11 @@ export const createOrder = async (req: Request, res: Response) => {
         // Apply fees
         const platformFee = Number(fees?.platformFee) || 0;
         const deliveryFee = Number(fees?.deliveryFee) || 0;
-        const finalTotal = calculatedSubtotal + platformFee + deliveryFee;
+        const finalTotal = calculatedSubtotal + totalOrderTax + platformFee + deliveryFee;
 
         // Update Order with calculated values and items
         newOrder.subtotal = Number(calculatedSubtotal.toFixed(2));
+        newOrder.tax = Number(totalOrderTax.toFixed(2));
         newOrder.total = Number(finalTotal.toFixed(2));
         newOrder.items = orderItemIds;
 
@@ -679,15 +823,22 @@ export const cancelOrder = async (req: Request, res: Response) => {
                         const variationIndex = product.variations?.findIndex((v: any) => v.value === orderItem.variation || v.title === orderItem.variation || v.pack === orderItem.variation);
 
                         if (variationIndex !== undefined && variationIndex !== -1 && product.variations) {
-                            product.variations[variationIndex].stock += orderItem.quantity;
+                            // Only restore if it's not unlimited (0)
+                            if (product.variations[variationIndex].stock !== 0) {
+                                product.variations[variationIndex].stock += orderItem.quantity;
+                            }
                         } else if (product.variations && product.variations.length > 0) {
-                            // Fallback to first variation if specific one not found (should be rare)
-                            product.variations[0].stock += orderItem.quantity;
+                            // Fallback to first variation if specific one not found
+                            if (product.variations[0].stock !== 0) {
+                                product.variations[0].stock += orderItem.quantity;
+                            }
                         }
                     }
 
-                    // Helper: also increment main stock if variations are just attributes or if simple product
-                    product.stock += orderItem.quantity;
+                    // Only restore main stock if it's not unlimited (0)
+                    if (product.stock !== 0) {
+                        product.stock += orderItem.quantity;
+                    }
                     if (session) {
                         await product.save({ session });
                     } else {

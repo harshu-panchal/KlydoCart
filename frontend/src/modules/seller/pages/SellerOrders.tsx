@@ -126,13 +126,15 @@ export default function SellerOrders() {
   };
 
   const handleExport = () => {
-    // Create CSV content
-    const headers = ['Order ID', 'Delivery Date', 'Order Date', 'Status', 'Amount'];
+    // Create CSV content with more detailed headers
+    const headers = ['Order ID', 'Customer Name', 'Order Date', 'Delivery Date', 'Status', 'Amount'];
     
     const formatDate = (dateStr: string) => {
+      if (!dateStr) return 'N/A';
       try {
         const date = new Date(dateStr);
-        return isNaN(date.getTime()) ? dateStr : date.toLocaleDateString();
+        if (isNaN(date.getTime())) return dateStr;
+        return date.toLocaleDateString('en-IN');
       } catch {
         return dateStr;
       }
@@ -142,14 +144,15 @@ export default function SellerOrders() {
       headers.join(','),
       ...orders.map(order => {
         const row = [
-          order.orderId,
-          formatDate(order.deliveryDate),
+          order.orderId || 'N/A',
+          order.customerName || 'N/A',
           formatDate(order.orderDate),
+          formatDate(order.deliveryDate),
           order.status,
-          order.amount
+          order.amount.toFixed(2)
         ];
         // Wrap each field in quotes to handle commas and ensure better Excel compatibility
-        return row.map(val => `"${val}"`).join(',');
+        return row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',');
       })
     ].join('\n');
 
@@ -158,7 +161,7 @@ export default function SellerOrders() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `orders_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `orders_export_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -207,7 +210,7 @@ export default function SellerOrders() {
       case 'Accepted':
       case 'Received':
         return 'bg-blue-100 text-blue-800';
-      case 'On the way':
+      case 'Out for Delivery':
         return 'bg-purple-100 text-purple-800';
       case 'Delivered':
         return 'bg-green-100 text-green-800';
@@ -238,9 +241,9 @@ export default function SellerOrders() {
 
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-xs sm:text-sm">
-            <Link to="/seller" className="text-blue-600 hover:text-blue-700">
+            <span onClick={() => navigate('/seller')} className="cursor-pointer text-blue-600 hover:text-blue-700 hover:underline font-medium">
               Home
-            </Link>
+            </span>
             <span className="text-neutral-500">/</span>
             <span className="text-neutral-700">Orders</span>
           </div>
@@ -317,7 +320,7 @@ export default function SellerOrders() {
                   <option>All Status</option>
                   <option>Pending</option>
                   <option>Accepted</option>
-                  <option>On the way</option>
+                  <option>Out for Delivery</option>
                   <option>Delivered</option>
                   <option>Cancelled</option>
                 </select>

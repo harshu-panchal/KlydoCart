@@ -332,7 +332,8 @@ export const createWithdrawalRequest = async (
         }
 
         // Create account details string
-        const accountDetails = `${user.bankName} - ${user.accountNumber} (${user.ifscCode})`;
+        const ifsc = (user as any).ifsc || (user as any).ifscCode || 'N/A';
+        const accountDetails = `${user.bankName || 'N/A'} - ${user.accountNumber || 'N/A'} (${ifsc})`;
 
         // Create withdrawal request
         const withdrawRequest = new WithdrawRequest({

@@ -79,7 +79,7 @@ export default function SellerDashboard() {
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case 'Out For Delivery':
+      case 'Out for Delivery':
       case 'On the way':
         return 'text-blue-800 bg-blue-100 border border-blue-400';
       case 'Received':

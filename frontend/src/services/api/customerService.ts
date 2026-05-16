@@ -48,3 +48,11 @@ export const updateProfile = async (data: UpdateProfileData): Promise<UpdateProf
   return response.data;
 };
 
+/**
+ * Credit wallet (Demo)
+ */
+export const creditWallet = async (amount: number): Promise<{ success: boolean; message: string; data: { walletAmount: number } }> => {
+  const response = await api.post('/customer/wallet/credit', { amount });
+  return response.data;
+};
+

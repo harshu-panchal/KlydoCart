@@ -167,6 +167,7 @@ export default function SellerProductList() {
         productId: product._id,
         publish: product.publish,
         stock: (product as any).stock || 0,
+        status: product.status || "Pending",
       }];
     }
     // If product has variations, map them
@@ -189,6 +190,7 @@ export default function SellerProductList() {
       productId: product._id,
       publish: product.publish,
       stock: variation.stock || 0,
+      status: product.status || "Pending",
     }));
   });
 
@@ -297,8 +299,8 @@ export default function SellerProductList() {
           Product List
         </h1>
         <div className="text-sm text-blue-500">
-          <span className="cursor-pointer hover:underline">Home</span>{" "}
-          <span className="text-neutral-400">/</span>{" "}
+          <span onClick={() => navigate("/seller")} className="cursor-pointer hover:underline text-blue-600 font-medium">Home</span>{" "}
+          <span className="text-neutral-400 mx-1">/</span>{" "}
           <span className="text-neutral-600">Dashboard</span>
         </div>
       </div>
@@ -561,6 +563,13 @@ export default function SellerProductList() {
                     Variation <SortIcon column="variation" />
                   </div>
                 </th>
+                <th
+                  className="p-4 border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+                  onClick={() => handleSort("status")}>
+                  <div className="flex items-center justify-between text-center">
+                    Status <SortIcon column="status" />
+                  </div>
+                </th>
                 <th className="p-4 border border-neutral-200">
                   <div className="flex items-center justify-center">Action</div>
                 </th>
@@ -651,12 +660,27 @@ export default function SellerProductList() {
                         : "-"}
                     </td>
                     <td className="p-4 align-middle border border-neutral-200">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(variation as any).stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {(variation as any).stock}
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(variation as any).stock === 0 ? 'bg-green-100 text-green-700' : (variation as any).stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {(variation as any).stock === 0 ? 'Unlimited' : (variation as any).stock}
                       </span>
                     </td>
                     <td className="p-4 align-middle border border-neutral-200">
                       {variation.variation}
+                    </td>
+                    <td className="p-4 align-middle border border-neutral-200">
+                      <div className="flex justify-center">
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          variation.status === "Active" 
+                            ? "bg-green-100 text-green-700" 
+                            : variation.status === "Pending"
+                            ? "bg-amber-100 text-amber-700"
+                            : variation.status === "Rejected"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-slate-100 text-slate-700"
+                        }`}>
+                          {variation.status}
+                        </span>
+                      </div>
                     </td>
                     <td className="p-4 align-middle border border-neutral-200">
                       <div className="flex items-center justify-center gap-2">

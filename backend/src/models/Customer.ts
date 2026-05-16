@@ -11,6 +11,7 @@ export interface ICustomer extends Document {
   deliveryOtp: string; // Permanent 4-digit OTP for delivery verification
   totalOrders: number;
   totalSpent: number;
+  walletAmount: number;
   // Location fields
   latitude?: number;
   longitude?: number;
@@ -105,6 +106,11 @@ const CustomerSchema = new Schema<ICustomer>(
       type: Number,
       default: 0,
       min: [0, 'Total spent cannot be negative'],
+    },
+    walletAmount: {
+      type: Number,
+      default: 0,
+      min: [0, 'Wallet amount cannot be negative'],
     },
     // Location fields
     latitude: {

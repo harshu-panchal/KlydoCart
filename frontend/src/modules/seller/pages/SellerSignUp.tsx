@@ -14,6 +14,9 @@ import {
   HeaderCategory,
 } from "../../../services/api/headerCategoryService";
 import LocationPickerMap from "../../../components/LocationPickerMap";
+import { useJsApiLoader } from "@react-google-maps/api";
+
+const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
 
 export default function SellerSignUp() {
   const navigate = useNavigate();
@@ -44,6 +47,12 @@ export default function SellerSignUp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [categories, setCategories] = useState<HeaderCategory[]>([]);
+
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: libraries,
+  });
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -215,23 +224,42 @@ export default function SellerSignUp() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 font-sans">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-6 left-6 z-20 w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center hover:bg-slate-50 transition-all active:scale-95 border border-slate-100"
-        aria-label="Back">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round">
-          <path d="M15 18L9 12L15 6" />
-        </svg>
-      </button>
+      <div className="fixed top-6 left-6 z-20 flex gap-2">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center hover:bg-slate-50 transition-all active:scale-95 border border-slate-100"
+          aria-label="Back">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round">
+            <path d="M15 18L9 12L15 6" />
+          </svg>
+        </button>
+        <button
+          onClick={() => navigate('/')}
+          className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center hover:bg-slate-50 transition-all active:scale-95 border border-slate-100"
+          aria-label="Home"
+          title="Go to Website Home">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </button>
+      </div>
 
       {/* Sign Up Card */}
       <motion.div
@@ -402,14 +430,43 @@ export default function SellerSignUp() {
                               if (navigator.geolocation) {
                                 setLoading(true);
                                 navigator.geolocation.getCurrentPosition(
-                                  (pos) => {
+                                  async (pos) => {
                                     const { latitude, longitude } = pos.coords;
+                                    
+                                    let address = "Your Current Location";
+                                    let city = formData.city;
+
+                                    // Attempt reverse geocoding if Google Maps is loaded
+                                    if (isLoaded && (window as any).google && (window as any).google.maps) {
+                                      const geocoder = new (window as any).google.maps.Geocoder();
+                                      try {
+                                        const response = await geocoder.geocode({
+                                          location: { lat: latitude, lng: longitude }
+                                        });
+                                        if (response.results && response.results[0]) {
+                                          address = response.results[0].formatted_address;
+                                          // Try to extract city from components
+                                          for (const component of response.results[0].address_components) {
+                                            if (component.types.includes('locality')) {
+                                              city = component.long_name;
+                                              break;
+                                            } else if (component.types.includes('administrative_area_level_3') && !city) {
+                                              city = component.long_name;
+                                            }
+                                          }
+                                        }
+                                      } catch (err) {
+                                        console.error("Reverse geocoding error:", err);
+                                      }
+                                    }
+
                                     setFormData(p => ({
                                       ...p,
                                       latitude: latitude.toString(),
                                       longitude: longitude.toString(),
-                                      searchLocation: "Your Location",
-                                      address: "Your Current Location"
+                                      searchLocation: address,
+                                      address: address,
+                                      city: city || p.city
                                     }));
                                     setLoading(false);
                                   },
@@ -423,6 +480,21 @@ export default function SellerSignUp() {
                             </svg>
                           </button>
                         </div>
+                        
+                        {/* Dedicated Full Address Field */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-700 ml-1">Full Address *</label>
+                          <textarea
+                            name="address"
+                            value={formData.address}
+                            onChange={handleInputChange}
+                            placeholder="Full address will appear here..."
+                            rows={3}
+                            className="w-full px-3 py-2.5 bg-slate-50 border border-transparent rounded-xl text-slate-900 placeholder:text-slate-500 focus:outline-none focus:border-teal-500 focus:bg-white transition-all text-sm font-medium resize-none"
+                            disabled={loading}
+                          />
+                        </div>
+
                         {formData.latitude && (
                           <div className="mt-3 rounded-xl overflow-hidden border border-slate-100">
                             <LocationPickerMap

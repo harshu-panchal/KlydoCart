@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSellerProfile, updateSellerProfile } from '../../../services/api/auth/sellerAuthService';
 import { useAuth } from '../../../context/AuthContext';
-import { getCategories, Category } from '../../../services/api/categoryService';
+import { getHeaderCategoriesPublic } from '../../../services/api/headerCategoryService';
 import GoogleMapsAutocomplete from '../../../components/GoogleMapsAutocomplete';
 import LocationPickerMap from '../../../components/LocationPickerMap';
 import { useToast } from '../../../context/ToastContext';
@@ -13,10 +14,11 @@ const SellerAccountSettings = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [searchParams] = useSearchParams();
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   // Initial state with empty values
   const [sellerData, setSellerData] = useState({
@@ -45,21 +47,37 @@ const SellerAccountSettings = () => {
     storeDescription: '',
     commission: 0,
     status: '',
+    categories: [] as string[],
     newPassword: '',
     confirmPassword: ''
   });
 
+  const [headerCategories, setHeaderCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['profile', 'store', 'branding', 'bank'].includes(tab)) {
+      setActiveTab(tab);
+      // If redirected to bank tab, automatically enable editing mode
+      if (tab === 'bank') {
+        setIsEditing(true);
+      }
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     fetchProfile();
-    fetchCategories();
+    fetchHeaderCategories();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchHeaderCategories = async () => {
     try {
-      const res = await getCategories();
-      if (res.success) setCategories(res.data);
+      const res = await getHeaderCategoriesPublic();
+      if (Array.isArray(res)) {
+        setHeaderCategories(res.filter((cat: any) => cat.status === 'Published'));
+      }
     } catch (err) {
-      console.error('Error fetching categories:', err);
+      console.error('Error fetching header categories:', err);
     }
   };
 
@@ -73,6 +91,7 @@ const SellerAccountSettings = () => {
         const locationCoords = data.location?.coordinates || [];
         setSellerData({
           ...data,
+          categories: data.categories || (data.category ? [data.category] : []),
           latitude: data.latitude || (locationCoords[1]?.toString() || ''),
           longitude: data.longitude || (locationCoords[0]?.toString() || ''),
           searchLocation: data.searchLocation || data.address || '',
@@ -86,6 +105,21 @@ const SellerAccountSettings = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleCategory = (catName: string) => {
+    if (!isEditing) return;
+    setSellerData(prev => {
+      const exists = prev.categories.includes(catName);
+      const nextCategories = exists
+        ? prev.categories.filter(c => c !== catName)
+        : [...prev.categories, catName];
+      return {
+        ...prev,
+        categories: nextCategories,
+        category: nextCategories[0] || ''
+      };
+    });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -212,9 +246,9 @@ const SellerAccountSettings = () => {
       if (!sellerData.storeName.trim()) {
         errors.storeName = "Store Name is required";
       }
-
-      if (!sellerData.category) {
-        errors.category = "Please select a category";
+      
+      if (sellerData.categories.length === 0) {
+        errors.category = "Please select at least one category";
       }
 
       if (!sellerData.address?.trim() && !sellerData.searchLocation?.trim()) {
@@ -348,8 +382,18 @@ const SellerAccountSettings = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Settings</h1>
-              <p className="mt-1 text-sm text-gray-500">Manage your store preferences and profile details</p>
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Account Settings</h1>
+              <div className="flex items-center gap-2 text-sm mt-1">
+                <span 
+                  onClick={() => navigate('/seller')} 
+                  className="cursor-pointer text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                >
+                  Home
+                </span>
+                <span className="text-gray-400">/</span>
+                <span className="text-gray-600">Settings</span>
+              </div>
+              <p className="mt-2 text-sm text-gray-500">Manage your store preferences and profile details</p>
             </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -539,30 +583,42 @@ const SellerAccountSettings = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                           <InputGroup label="Store Name" name="storeName" value={sellerData.storeName} onChange={handleInputChange} disabled={!isEditing} />
 
-                          <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-gray-700 ml-1">Store Category</label>
-                            <div className="relative">
-                              <select
-                                name="category"
-                                value={sellerData.category}
-                                onChange={handleInputChange}
-                                disabled={!isEditing}
-                                className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all appearance-none bg-white ${
-                                  formErrors.category ? 'border-red-400 focus:ring-red-500/20 focus:border-red-500' : 'border-gray-300 focus:ring-teal-500/20 focus:border-teal-500'
-                                }`}
-                              >
-                                <option value="">Select Category</option>
-                                {categories.map(cat => (
-                                  <option key={cat._id} value={cat.name}>{cat.name}</option>
-                                ))}
-                              </select>
-                              {formErrors.category && (
-                                <p className="mt-1 text-[10px] text-red-500 font-bold ml-1">{formErrors.category}</p>
-                              )}
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                              </div>
+                          <div className="md:col-span-2 space-y-2">
+                            <label className="text-sm font-semibold text-gray-700 ml-1">Store Categories (Multiple selection allowed)</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-4 bg-gray-50/50 rounded-xl border border-gray-100">
+                              {headerCategories.map((cat) => (
+                                <label 
+                                  key={cat._id} 
+                                  className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all cursor-pointer ${
+                                    sellerData.categories.includes(cat.name)
+                                      ? 'bg-teal-50 border-teal-200 text-teal-700'
+                                      : 'bg-white border-gray-100 text-gray-600 hover:border-gray-200'
+                                  } ${!isEditing ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={sellerData.categories.includes(cat.name)}
+                                    onChange={() => toggleCategory(cat.name)}
+                                    disabled={!isEditing}
+                                    className="hidden"
+                                  />
+                                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                                    sellerData.categories.includes(cat.name) ? 'bg-teal-600 border-teal-600' : 'bg-white border-gray-300'
+                                  }`}>
+                                    {sellerData.categories.includes(cat.name) && (
+                                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                                    )}
+                                  </div>
+                                  <span className="text-xs font-medium truncate">{cat.name}</span>
+                                </label>
+                              ))}
                             </div>
+                            {!isEditing && sellerData.categories.length === 0 && (
+                              <p className="text-xs text-gray-400 italic ml-1">No categories selected</p>
+                            )}
+                            {formErrors.category && isEditing && (
+                              <p className="mt-1 text-[10px] text-red-500 font-bold ml-1">{formErrors.category}</p>
+                            )}
                           </div>
 
                           <div className="md:col-span-2 space-y-1.5">

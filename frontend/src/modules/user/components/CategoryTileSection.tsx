@@ -183,7 +183,7 @@ export default function CategoryTileSection({
                         <img
                           src={images[0]}
                           alt={tile.name}
-                          className="w-[90%] h-[90%] object-contain rounded-lg transition-transform md:scale-[1.1] lg:scale-[1.15]"
+                          className="w-full h-full p-2.5 md:p-3 object-contain rounded-lg transition-transform hover:scale-105"
                           onError={(e) => {
                             // Hide broken image and show fallback
                             const target = e.target as HTMLImageElement;

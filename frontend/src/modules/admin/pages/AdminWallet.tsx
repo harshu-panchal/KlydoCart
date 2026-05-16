@@ -351,7 +351,7 @@ export default function AdminWallet() {
           )}
 
           {activeTab === 'withdrawals' && (
-            <AdminWithdrawals />
+            <AdminWithdrawals onActionComplete={fetchStats} />
           )}
         </div>
       </div>

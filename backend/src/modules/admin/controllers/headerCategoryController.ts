@@ -50,6 +50,12 @@ export const createHeaderCategory = async (req: Request, res: Response) => {
       order,
     } = req.body;
 
+    if (slug === "all") {
+      return res
+        .status(400)
+        .json({ message: " 'all' is a reserved theme/slug and cannot be used" });
+    }
+
     // Check if category with same name or slug exists
     const categoryExists = await HeaderCategory.findOne({ 
       $or: [
@@ -113,6 +119,11 @@ export const updateHeaderCategory = async (req: Request, res: Response) => {
 
       // Check if slug is being updated and if it's already taken
       if (slug && slug !== category.slug) {
+        if (slug === "all") {
+          return res
+            .status(400)
+            .json({ message: " 'all' is a reserved theme/slug and cannot be used" });
+        }
         const slugExists = await HeaderCategory.findOne({ slug });
         if (slugExists) {
           return res

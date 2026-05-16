@@ -90,10 +90,10 @@ export const createProduct = asyncHandler(
       }
     }
 
-    // 6. Set product status - All products are published automatically without approval
-    newProductData.publish = true;
-    newProductData.status = "Active";
-    newProductData.requiresApproval = false;
+    // 6. Set product status - Products now require approval
+    newProductData.publish = true; // Still allow sellers to set publish: true, but status handles visibility
+    newProductData.status = "Pending";
+    newProductData.requiresApproval = true;
 
     // Set default values for other required fields if not provided
     if (!newProductData.popular) newProductData.popular = false;
@@ -452,8 +452,11 @@ export const updateStock = asyncHandler(async (req: Request, res: Response) => {
   if (stock !== undefined) {
     variation.stock = stock;
     // Automatically update status based on stock
+    // 0 = Unlimited, so we only set "Sold out" if stock > 0 and someone manually sets it, 
+    // or if we have a different logic for out of stock (e.g. status === "Sold out").
+    // For now, if stock is 0, ensure it's "Available" unless specifically set otherwise.
     if (stock === 0) {
-      variation.status = "Sold out";
+      variation.status = "Available"; // 0 is unlimited
     } else if (stock > 0 && variation.status === "Sold out") {
       variation.status = "Available";
     }
@@ -537,9 +540,9 @@ export const bulkUpdateStock = asyncHandler(
         );
         if (variation) {
           variation.stock = stock;
-          if (stock === 0) variation.status = "Sold out";
+          if (stock === 0) variation.status = "Available"; // 0 is unlimited
           else if (stock > 0 && variation.status === "Sold out")
-            variation.status = "In stock";
+            variation.status = "Available";
 
           await product.save();
           results.push({ productId, variationId, success: true });

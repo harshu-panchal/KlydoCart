@@ -27,7 +27,6 @@ export default function AdminSubCategory() {
   const [subcategoryImagePreview, setSubcategoryImagePreview] =
     useState<string>("");
   const [subcategoryImageUrl, setSubcategoryImageUrl] = useState<string>("");
-  const [commissionRate, setCommissionRate] = useState<number>(0);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -157,7 +156,6 @@ export default function AdminSubCategory() {
         name: subcategoryName.trim(),
         category: selectedCategory,
         image: imageUrl,
-        commissionRate: commissionRate,
       };
 
       if (editingId) {
@@ -185,7 +183,6 @@ export default function AdminSubCategory() {
       setSubcategoryImageFile(null);
       setSubcategoryImagePreview("");
       setSubcategoryImageUrl("");
-      setCommissionRate(0);
     } catch (error) {
       if (error && typeof error === "object" && "response" in error) {
         const axiosError = error as {
@@ -214,7 +211,6 @@ export default function AdminSubCategory() {
       setSelectedCategory(categoryId);
       setSubcategoryName(subCategory.name);
       setSubcategoryImageUrl(subCategory.image || "");
-      setCommissionRate(subCategory.commissionRate || 0);
     }
   };
 
@@ -307,27 +303,7 @@ export default function AdminSubCategory() {
               />
             </div>
 
-            {/* Commission Rate */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Commission Rate (%):
-              </label>
-              <input
-                type="number"
-                value={commissionRate}
-                onChange={(e) => setCommissionRate(Number(e.target.value))}
-                placeholder="0"
-                min="0"
-                max="100"
-                step="0.01"
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
-                disabled={uploading}
-              />
-              <p className="mt-1 text-xs text-neutral-500">
-                Default commission rate for products in this subcategory (0 =
-                use seller default)
-              </p>
-            </div>
+
 
             {/* SubCategory Image */}
             <div>
@@ -407,7 +383,6 @@ export default function AdminSubCategory() {
                   setSubcategoryImageFile(null);
                   setSubcategoryImagePreview("");
                   setSubcategoryImageUrl("");
-                  setCommissionRate(0);
                 }}
                 className="w-full py-2.5 rounded text-sm font-medium bg-neutral-200 hover:bg-neutral-300 text-neutral-700 transition-colors mt-2">
                 Cancel Edit

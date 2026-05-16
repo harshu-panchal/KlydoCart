@@ -15,7 +15,7 @@ export default function SellerOrderDetail() {
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [orderStatus, setOrderStatus] = useState<string>("Out For Delivery");
+  const [orderStatus, setOrderStatus] = useState<string>("Out for Delivery");
 
   // Fetch order detail from API
   useEffect(() => {
@@ -318,16 +318,15 @@ export default function SellerOrderDetail() {
       yPos += 10;
     });
 
-    // Calculate totals
-    const totalSubtotal = orderDetail.items.reduce(
-      (sum, item) => sum + item.subtotal,
-      0
-    );
-    const totalTax = orderDetail.items.reduce((sum, item) => sum + item.tax, 0);
-    const grandTotal = totalSubtotal + totalTax;
+    // Calculate totals from orderDetail
+    const totalSubtotal = orderDetail.subtotal || 0;
+    const totalTax = orderDetail.tax || 0;
+    const shipping = orderDetail.shipping || 0;
+    const platformFee = orderDetail.platformFee || 0;
+    const grandTotal = orderDetail.grandTotal || (totalSubtotal + totalTax + shipping + platformFee);
 
     yPos += 5;
-    checkPageBreak(30);
+    checkPageBreak(40);
 
     // Totals Section
     doc.setDrawColor(200, 200, 200);
@@ -336,17 +335,41 @@ export default function SellerOrderDetail() {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
+    
+    // Subtotal
     doc.text("Subtotal:", pageWidth - margin - 60, yPos, { align: "right" });
     doc.text(`Rs. ${totalSubtotal.toFixed(2)}`, pageWidth - margin, yPos, {
       align: "right",
     });
     yPos += 7;
 
+    // Tax
     doc.text("Tax:", pageWidth - margin - 60, yPos, { align: "right" });
     doc.text(`Rs. ${totalTax.toFixed(2)}`, pageWidth - margin, yPos, {
       align: "right",
     });
     yPos += 7;
+
+    // Shipping
+    if (shipping > 0) {
+      doc.text("Shipping Fee:", pageWidth - margin - 60, yPos, { align: "right" });
+      doc.text(`Rs. ${shipping.toFixed(2)}`, pageWidth - margin, yPos, {
+        align: "right",
+      });
+      yPos += 7;
+    }
+
+    // Platform Fee
+    if (platformFee > 0) {
+      doc.text("Platform Fee:", pageWidth - margin - 60, yPos, { align: "right" });
+      doc.text(`Rs. ${platformFee.toFixed(2)}`, pageWidth - margin, yPos, {
+        align: "right",
+      });
+      yPos += 7;
+    }
+
+    doc.line(pageWidth - margin - 80, yPos - 2, pageWidth - margin, yPos - 2);
+    yPos += 3;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
@@ -392,13 +415,13 @@ export default function SellerOrderDetail() {
     switch (status) {
       case "Accepted":
         return "bg-blue-100 text-blue-800 border border-blue-400";
-      case "On the way":
+      case "Out for Delivery":
         return "bg-purple-100 text-purple-800 border border-purple-400";
       case "Delivered":
         return "bg-green-100 text-green-800 border border-green-400";
       case "Cancelled":
         return "bg-red-100 text-red-800 border border-red-400";
-      case "Out For Delivery":
+      case "Out for Delivery":
         return "bg-blue-600 text-white border border-blue-700";
       case "Received":
         return "bg-blue-50 text-blue-600 border border-blue-200";
@@ -428,7 +451,31 @@ export default function SellerOrderDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-8">
+    <div className="min-h-screen bg-neutral-50 pb-8 px-4 sm:px-6 lg:px-8">
+      {/* Breadcrumb Header */}
+      <div className="flex justify-between items-center mb-6 pt-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Order Detail</h1>
+          <div className="flex items-center gap-2 text-sm mt-1">
+            <span 
+              onClick={() => navigate('/seller')} 
+              className="cursor-pointer text-blue-600 hover:text-blue-700 hover:underline font-medium"
+            >
+              Home
+            </span>
+            <span className="text-gray-400">/</span>
+            <span 
+              onClick={() => navigate('/seller/orders')} 
+              className="cursor-pointer text-blue-600 hover:text-blue-700 hover:underline font-medium"
+            >
+              Orders
+            </span>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-600">Detail</span>
+          </div>
+        </div>
+      </div>
+
       {/* Order Action Section */}
       <div className="bg-white mb-6 rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
         <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
@@ -471,7 +518,7 @@ export default function SellerOrderDetail() {
                     orderStatus === "Delivered"
                   }>
                   <option value="Accepted">Accepted</option>
-                  <option value="On the way">On the way</option>
+                  <option value="Out for Delivery">Out for Delivery</option>
                   <option value="Delivered">Delivered</option>
                   <option value="Cancelled">Cancelled</option>
                   {orderStatus === "Rejected" && (

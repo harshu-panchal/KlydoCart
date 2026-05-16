@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getProducts, updateStock, Product } from '../../../services/api/productService';
 import { getCategories } from '../../../services/api/categoryService';
 import { useAuth } from '../../../context/AuthContext';
@@ -16,6 +17,7 @@ interface StockItem {
 }
 
 export default function SellerStockManagement() {
+    const navigate = useNavigate();
     const [stockItems, setStockItems] = useState<StockItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
@@ -220,7 +222,7 @@ export default function SellerStockManagement() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-semibold text-neutral-800">Stock Management</h1>
                 <div className="text-sm text-blue-500">
-                    <span className="cursor-pointer hover:underline">Home</span> <span className="text-neutral-400">/</span> <span className="text-neutral-600">Dashboard</span>
+                    <span onClick={() => navigate('/seller')} className="cursor-pointer hover:underline text-blue-600 font-medium">Home</span> <span className="text-neutral-400 mx-1">/</span> <span className="text-neutral-600">Stock Management</span>
                 </div>
             </div>
 
@@ -420,10 +422,10 @@ export default function SellerStockManagement() {
                                     <td className="p-4 align-middle border border-neutral-200">
                                         <div className="flex items-center gap-2">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.stock === 0
-                                                ? 'bg-red-50 text-red-600'
-                                                : 'bg-green-50 text-green-600'
+                                                ? 'bg-green-50 text-green-600'
+                                                : item.stock < 10 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
                                                 }`}>
-                                                {item.stock}
+                                                {item.stock === 0 ? 'Unlimited' : item.stock}
                                             </span>
                                         </div>
                                     </td>

@@ -126,6 +126,23 @@ export default function DeliverySignUp() {
       return;
     }
 
+    if (!formData.dateOfBirth) {
+      setError("Date of Birth is required");
+      return;
+    }
+
+    const birthDate = new Date(formData.dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      setError("You must be at least 18 years old to register as a delivery partner");
+      return;
+    }
+
     if (!files.drivingLicense && formData.vehicleType !== 'Cycle') {
       setError("Driving License is required for motorized vehicles");
       return;
@@ -210,7 +227,14 @@ export default function DeliverySignUp() {
                     <InputField label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleInputChange} required maxLength={10} />
                     <InputField label="Alternate Mobile" name="alternateMobile" value={formData.alternateMobile} onChange={handleInputChange} maxLength={10} />
                     <InputField label="Email ID" name="email" value={formData.email} onChange={handleInputChange} required type="email" />
-                    <InputField label="Date of Birth" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleInputChange} type="date" />
+                    <InputField 
+                      label="Date of Birth" 
+                      name="dateOfBirth" 
+                      value={formData.dateOfBirth} 
+                      onChange={handleInputChange} 
+                      type="date" 
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                    />
                     <InputField label="Age" name="age" value={formData.age} onChange={handleInputChange} maxLength={2} />
                     <InputField label="Father's Name" name="fatherName" value={formData.fatherName} onChange={handleInputChange} />
                   </div>

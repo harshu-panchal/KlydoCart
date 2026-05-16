@@ -219,7 +219,7 @@ export default function OrderAgain() {
 
           <div className="space-y-1.5 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 md:gap-8">
             {displayedOrders.map((order) => {
-              const shortId = order.id.split('-').slice(-1)[0];
+              const shortId = order.id.length > 8 ? order.id.slice(-8).toUpperCase() : order.id;
               const previewItems = order.items.slice(0, 3);
 
               return (
@@ -244,33 +244,14 @@ export default function OrderAgain() {
                       </div>
                       <div className="text-[10px] md:text-xs text-neutral-500 mb-1 md:mb-3">{formatDate(order.createdAt)}</div>
 
-                      {/* Product Images Preview - Compact */}
-                      <div className="flex items-center mt-auto md:mt-2">
-                        {previewItems
-                          .filter(item => item?.product) // Filter out items with null/undefined products
-                          .map((item, idx) => (
-                            <div
-                              key={item.product.id}
-                              className={`w-6 h-6 md:w-12 md:h-12 bg-neutral-100 rounded md:rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden md:border md:border-neutral-200 ${idx > 0 ? '-ml-1 md:-ml-3' : ''}`}
-                            >
-                              {item.product.imageUrl ? (
-                                <img
-                                  src={item.product.imageUrl}
-                                  alt={item.product.name}
-                                  className="w-full h-full object-contain"
-                                />
-                              ) : (
-                                <span className="text-[8px] md:text-xs font-bold text-neutral-400">
-                                  {(item.product.name || item.product.productName || '?').charAt(0).toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        {order.items.length > 3 && (
-                          <div className={`w-6 h-6 md:w-12 md:h-12 bg-neutral-200 rounded md:rounded-lg flex items-center justify-center text-[8px] md:text-sm font-bold text-neutral-600 md:border md:border-neutral-300 md:z-10 ${previewItems.length > 0 ? '-ml-1 md:-ml-3' : ''}`}>
-                            +{order.items.length - 3}
-                          </div>
-                        )}
+                      {/* Item Count Summary instead of icons */}
+                      <div className="flex items-center mt-auto md:mt-3 text-neutral-500 font-bold text-[10px] md:text-sm gap-2 bg-neutral-50 w-fit px-2 py-1 rounded-md border border-neutral-100">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400">
+                          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                          <path d="m3.3 7 8.7 5 8.7-5" />
+                          <path d="M12 22V12" />
+                        </svg>
+                        <span>View {order.totalItems} {order.totalItems === 1 ? 'Item' : 'Items'}</span>
                       </div>
                     </div>
 
@@ -401,8 +382,12 @@ export default function OrderAgain() {
                           className="w-full h-full object-contain"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400 text-4xl">
-                          {(product.name || product.productName || '?').charAt(0).toUpperCase()}
+                        <div className="w-full h-full flex items-center justify-center bg-neutral-100">
+                          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-300">
+                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                            <path d="m3.3 7 8.7 5 8.7-5" />
+                            <path d="M12 22V12" />
+                          </svg>
                         </div>
                       )}
 

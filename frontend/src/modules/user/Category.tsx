@@ -9,6 +9,37 @@ import {
 } from "../../services/api/customerProductService";
 import { useLocation as useLocationContext } from "../../hooks/useLocation";
 
+const COMMON_FILTER_TYPES = [
+  { keywords: ["tomato", "tomatoes"], display: "Tomato" },
+  { keywords: ["potato", "potatoes"], display: "Potato" },
+  { keywords: ["chilli", "chili", "chilies"], display: "Chilli" },
+  { keywords: ["spinach"], display: "Spinach" },
+  { keywords: ["brinjal", "eggplant"], display: "Brinjal" },
+  { keywords: ["onion", "onions"], display: "Onion" },
+  { keywords: ["peanut", "peanuts"], display: "Peanuts" },
+  { keywords: ["lemon", "lemons"], display: "Lemon" },
+  { keywords: ["mushroom", "mushrooms"], display: "Mushroom" },
+  {
+    keywords: ["capsicum", "bell pepper", "pepper"],
+    display: "Capsicum",
+  },
+  { keywords: ["ginger"], display: "Ginger" },
+  { keywords: ["carrot", "carrots"], display: "Carrot" },
+  { keywords: ["fenugreek", "methi"], display: "Fenugreek" },
+  { keywords: ["broccoli"], display: "Broccoli" },
+  { keywords: ["cucumber", "cucumbers"], display: "Cucumber" },
+  { keywords: ["cabbage"], display: "Cabbage" },
+  { keywords: ["cauliflower"], display: "Cauliflower" },
+  { keywords: ["ladyfinger", "okra"], display: "Ladyfinger" },
+  { keywords: ["beans"], display: "Beans" },
+  { keywords: ["peas"], display: "Peas" },
+  { keywords: ["garlic"], display: "Garlic" },
+  { keywords: ["apple", "apples"], display: "Apple" },
+  { keywords: ["banana", "bananas"], display: "Banana" },
+  { keywords: ["orange", "oranges"], display: "Orange" },
+  { keywords: ["mango", "mangoes"], display: "Mango" },
+];
+
 export default function CategoryPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -19,7 +50,10 @@ export default function CategoryPage() {
   const [subcategories, setSubcategories] = useState<ApiCategory[]>([]);
   const [selectedSubcategory, setSelectedSubcategory] = useState("all");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("relevance");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [appliedFilters, setAppliedFilters] = useState<string[]>([]);
   const [filterSearchQuery, setFilterSearchQuery] = useState("");
   const [selectedFilterCategory, setSelectedFilterCategory] = useState("Type");
   const [products, setProducts] = useState<any[]>([]);
@@ -126,8 +160,55 @@ export default function CategoryPage() {
     }
   }, [id, selectedSubcategory, category?._id, userLocation]);
 
-  // Client-side filtering removed in favor of backend subcategory filtering
-  const categoryProducts = products;
+  // Client-side filtering and sorting logic
+  const categoryProducts = useMemo(() => {
+    let filtered = [...products];
+
+    // 1. Apply Search Filter from modal if any
+    if (filterSearchQuery.trim()) {
+      const query = filterSearchQuery.toLowerCase();
+      filtered = filtered.filter(p => 
+        (p.name || p.productName || "").toLowerCase().includes(query) ||
+        (p.brand || "").toLowerCase().includes(query)
+      );
+    }
+
+    // 2. Apply Category Filters (Type)
+    if (appliedFilters.length > 0) {
+      filtered = filtered.filter(product => {
+        const name = (product.name || product.productName || "").toLowerCase();
+        const cleanName = name.replace(/^(fresh|organic|premium|best|new)\s+/i, "").trim();
+        
+        return appliedFilters.some(filter => {
+          const type = COMMON_FILTER_TYPES.find(t => t.display === filter);
+          if (type) {
+            return type.keywords.some(keyword => cleanName.includes(keyword));
+          }
+          return false;
+        });
+      });
+    }
+
+    // 3. Apply Sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "price-low":
+          return (a.price || 0) - (b.price || 0);
+        case "price-high":
+          return (b.price || 0) - (a.price || 0);
+        case "rating":
+          return (b.rating || 0) - (a.rating || 0);
+        case "discount":
+          const discountA = a.mrp ? ((a.mrp - a.price) / a.mrp) : 0;
+          const discountB = b.mrp ? ((b.mrp - b.price) / b.mrp) : 0;
+          return discountB - discountA;
+        default: // relevance
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [products, appliedFilters, filterSearchQuery, sortBy]);
 
   if ((categoryLoading || loading) && !products.length && !category) {
     return null; // Let global IconLoader handle it
@@ -168,49 +249,17 @@ export default function CategoryPage() {
 
   // Extract filter options from products
   const getFilterOptions = () => {
-    const categoryProducts = products.filter((p) => p.categoryId === id);
     const filterMap = new Map<string, number>();
 
-    categoryProducts.forEach((product) => {
+    products.forEach((product) => {
       // Extract main ingredient/type from product name
-      const name = product.name.toLowerCase();
+      const name = (product.name || product.productName || "").toLowerCase();
       // Remove common prefixes like "fresh", "organic", etc.
       const cleanName = name
         .replace(/^(fresh|organic|premium|best|new)\s+/i, "")
         .trim();
 
-      const commonTypes = [
-        { keywords: ["tomato", "tomatoes"], display: "Tomato" },
-        { keywords: ["potato", "potatoes"], display: "Potato" },
-        { keywords: ["chilli", "chili", "chilies"], display: "Chilli" },
-        { keywords: ["spinach"], display: "Spinach" },
-        { keywords: ["brinjal", "eggplant"], display: "Brinjal" },
-        { keywords: ["onion", "onions"], display: "Onion" },
-        { keywords: ["peanut", "peanuts"], display: "Peanuts" },
-        { keywords: ["lemon", "lemons"], display: "Lemon" },
-        { keywords: ["mushroom", "mushrooms"], display: "Mushroom" },
-        {
-          keywords: ["capsicum", "bell pepper", "pepper"],
-          display: "Capsicum",
-        },
-        { keywords: ["ginger"], display: "Ginger" },
-        { keywords: ["carrot", "carrots"], display: "Carrot" },
-        { keywords: ["fenugreek", "methi"], display: "Fenugreek" },
-        { keywords: ["broccoli"], display: "Broccoli" },
-        { keywords: ["cucumber", "cucumbers"], display: "Cucumber" },
-        { keywords: ["cabbage"], display: "Cabbage" },
-        { keywords: ["cauliflower"], display: "Cauliflower" },
-        { keywords: ["ladyfinger", "okra"], display: "Ladyfinger" },
-        { keywords: ["beans"], display: "Beans" },
-        { keywords: ["peas"], display: "Peas" },
-        { keywords: ["garlic"], display: "Garlic" },
-        { keywords: ["apple", "apples"], display: "Apple" },
-        { keywords: ["banana", "bananas"], display: "Banana" },
-        { keywords: ["orange", "oranges"], display: "Orange" },
-        { keywords: ["mango", "mangoes"], display: "Mango" },
-      ];
-
-      for (const type of commonTypes) {
+      for (const type of COMMON_FILTER_TYPES) {
         if (type.keywords.some((keyword) => cleanName.includes(keyword))) {
           filterMap.set(type.display, (filterMap.get(type.display) || 0) + 1);
           break;
@@ -265,10 +314,12 @@ export default function CategoryPage() {
 
   const handleClearFilters = () => {
     setSelectedFilters([]);
+    setAppliedFilters([]);
+    setFilterSearchQuery("");
   };
 
   const handleApplyFilters = () => {
-    // Apply filters logic here
+    setAppliedFilters(selectedFilters);
     setIsFiltersOpen(false);
   };
 
@@ -411,7 +462,9 @@ export default function CategoryPage() {
             </button>
 
             {/* Sort Button */}
-            <button className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50 transition-colors flex-shrink-0 whitespace-nowrap">
+            <button 
+              onClick={() => setIsSortOpen(true)}
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50 transition-colors flex-shrink-0 whitespace-nowrap">
               <svg
                 width="12"
                 height="12"
@@ -427,7 +480,15 @@ export default function CategoryPage() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span>Sort</span>
+              <span>{
+                {
+                  "relevance": "Sort",
+                  "price-low": "Price: Low to High",
+                  "price-high": "Price: High to Low",
+                  "rating": "Rating",
+                  "discount": "Discount"
+                }[sortBy] || "Sort"
+              }</span>
               <span className="text-neutral-500 text-[10px] ml-0.5">▾</span>
             </button>
 
@@ -633,18 +694,69 @@ export default function CategoryPage() {
                   </button>
                   <button
                     onClick={handleApplyFilters}
-                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
-                      selectedFilters.length > 0
-                        ? "bg-green-600 text-white hover:bg-green-700"
-                        : "bg-neutral-300 text-neutral-500 cursor-not-allowed"
-                    }`}
-                    disabled={selectedFilters.length === 0}>
+                    className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg font-medium text-sm hover:bg-green-700 transition-colors"
+                  >
                     Apply
                   </button>
                 </div>
               </motion.div>
             </div>
           </>
+        )}
+      </AnimatePresence>
+      {/* Sort Modal */}
+      <AnimatePresence>
+        {isSortOpen && (
+          <div className="fixed inset-0 z-[100]">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setIsSortOpen(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl flex flex-col p-4">
+              <div className="flex items-center justify-between mb-4 px-2">
+                <h2 className="text-base font-bold text-neutral-900">Sort By</h2>
+                <button onClick={() => setIsSortOpen(false)} className="text-neutral-400">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="space-y-1">
+                {[
+                  { id: "relevance", label: "Relevance" },
+                  { id: "price-low", label: "Price: Low to High" },
+                  { id: "price-high", label: "Price: High to Low" },
+                  { id: "rating", label: "Customer Rating" },
+                  { id: "discount", label: "Biggest Discount" },
+                ].map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => {
+                      setSortBy(option.id);
+                      setIsSortOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl transition-colors ${
+                      sortBy === option.id ? "bg-green-50 text-green-700" : "text-neutral-700 hover:bg-neutral-50"
+                    }`}>
+                    <span className="font-semibold text-sm">{option.label}</span>
+                    {sortBy === option.id && (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

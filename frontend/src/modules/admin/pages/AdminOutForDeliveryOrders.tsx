@@ -199,7 +199,7 @@ export default function AdminOutForDeliveryOrders() {
         return 'bg-purple-100 text-purple-800';
       case 'Shipped':
         return 'bg-indigo-100 text-indigo-800';
-      case 'Out For Delivery':
+      case 'Out for Delivery':
         return 'bg-orange-100 text-orange-800';
       case 'Delivered':
         return 'bg-green-100 text-green-800';
@@ -328,7 +328,7 @@ export default function AdminOutForDeliveryOrders() {
                   }}
                   className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                 >
-                  <option>Out For Delivery</option>
+                  <option>Out for Delivery</option>
                   <option>All Status</option>
                   <option>Payment Pending</option>
                   <option>Received</option>

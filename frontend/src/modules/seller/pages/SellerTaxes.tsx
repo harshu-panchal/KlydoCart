@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as taxService from '../../../services/api/taxService';
 
 export default function SellerTaxes() {
+    const navigate = useNavigate();
     const [taxes, setTaxes] = useState<taxService.Tax[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -9,23 +11,66 @@ export default function SellerTaxes() {
     const [currentPage, setCurrentPage] = useState(1);
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [newTax, setNewTax] = useState({
+        name: '',
+        percentage: '',
+        description: '',
+        status: 'Active'
+    });
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchTaxes = async () => {
+        setLoading(true);
+        try {
+            const response = await taxService.getTaxes();
+            if (response.success) {
+                setTaxes(response.data);
+            }
+        } catch (err) {
+            console.error('Error fetching taxes:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchTaxes = async () => {
-            setLoading(true);
-            try {
-                const response = await taxService.getTaxes();
-                if (response.success) {
-                    setTaxes(response.data);
-                }
-            } catch (err) {
-                console.error('Error fetching taxes:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchTaxes();
     }, []);
+
+    const handleAddTax = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+
+        if (!newTax.name || !newTax.percentage) {
+            setError('Please fill in all required fields');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await taxService.createTax({
+                name: newTax.name,
+                percentage: Number(newTax.percentage),
+                description: newTax.description,
+                status: newTax.status,
+                type: 'Percentage' // Default type
+            });
+
+            if (response.success) {
+                setIsModalOpen(false);
+                setNewTax({ name: '', percentage: '', description: '', status: 'Active' });
+                fetchTaxes();
+            } else {
+                setError(response.message || 'Failed to add tax');
+            }
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Error creating tax');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const filteredTaxes = taxes.filter(tax =>
         tax.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
@@ -72,7 +117,29 @@ export default function SellerTaxes() {
         <div className="flex flex-col h-full max-w-full overflow-hidden">
             {/* Page Header */}
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-semibold text-neutral-800">Tax</h1>
+                <div>
+                    <h1 className="text-2xl font-semibold text-neutral-800">Tax</h1>
+                    <div className="flex items-center gap-2 text-sm mt-1">
+                        <span 
+                            onClick={() => navigate('/seller')} 
+                            className="cursor-pointer text-blue-600 hover:text-blue-700 hover:underline font-medium"
+                        >
+                            Home
+                        </span>
+                        <span className="text-gray-400">/</span>
+                        <span className="text-gray-600">Tax</span>
+                    </div>
+                </div>
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all active:scale-95 flex items-center gap-2"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add New Tax
+                </button>
             </div>
 
             {/* Content Card */}
@@ -268,6 +335,99 @@ export default function SellerTaxes() {
                     </div>
                 </div>
             </div>
+
+            {/* Add Tax Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="bg-teal-600 px-6 py-4 flex justify-between items-center">
+                            <h2 className="text-white font-bold text-lg">Add New Tax</h2>
+                            <button 
+                                onClick={() => setIsModalOpen(false)}
+                                className="text-white/80 hover:text-white transition-colors"
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <form onSubmit={handleAddTax} className="p-6 space-y-4">
+                            {error && (
+                                <div className="bg-rose-50 border border-rose-100 text-rose-600 p-3 rounded-lg text-sm font-medium">
+                                    {error}
+                                </div>
+                            )}
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-neutral-600 uppercase tracking-wider ml-1">Tax Name *</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={newTax.name}
+                                    onChange={(e) => setNewTax({ ...newTax, name: e.target.value })}
+                                    placeholder="e.g. GST 18%, VAT"
+                                    className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-neutral-600 uppercase tracking-wider ml-1">Tax Rate (%) *</label>
+                                <input
+                                    type="number"
+                                    required
+                                    step="0.01"
+                                    value={newTax.percentage}
+                                    onChange={(e) => setNewTax({ ...newTax, percentage: e.target.value })}
+                                    placeholder="0.00"
+                                    className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-neutral-600 uppercase tracking-wider ml-1">Description</label>
+                                <textarea
+                                    value={newTax.description}
+                                    onChange={(e) => setNewTax({ ...newTax, description: e.target.value })}
+                                    placeholder="Enter tax details..."
+                                    rows={3}
+                                    className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all resize-none"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-bold text-neutral-600 uppercase tracking-wider ml-1">Status</label>
+                                <select
+                                    value={newTax.status}
+                                    onChange={(e) => setNewTax({ ...newTax, status: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all cursor-pointer"
+                                >
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="flex-1 px-4 py-2.5 border border-neutral-200 text-neutral-600 rounded-xl text-sm font-bold hover:bg-neutral-50 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="flex-1 px-4 py-2.5 bg-teal-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-teal-600/20 hover:bg-teal-700 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                                >
+                                    {isSubmitting ? 'Adding...' : 'Save Tax'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

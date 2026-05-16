@@ -49,7 +49,7 @@ export interface IProduct extends Document {
   // Product Details
   manufacturer?: string;
   madeIn?: string;
-  tax?: string;
+  tax?: mongoose.Types.ObjectId;
   fssaiLicNo?: string;
   totalAllowedQuantity?: number;
 
@@ -228,7 +228,7 @@ const ProductSchema = new Schema<IProduct>(
     status: {
       type: String,
       enum: ["Active", "Inactive", "Pending", "Rejected"],
-      default: "Active",
+      default: "Pending",
     },
 
     // Product Details
@@ -241,8 +241,8 @@ const ProductSchema = new Schema<IProduct>(
       trim: true,
     },
     tax: {
-      type: String,
-      trim: true,
+      type: Schema.Types.ObjectId,
+      ref: "Tax",
     },
     fssaiLicNo: {
       type: String,
@@ -302,7 +302,7 @@ const ProductSchema = new Schema<IProduct>(
     // Approval (removed - all products are auto-published)
     requiresApproval: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     approvedBy: {
       type: Schema.Types.ObjectId,

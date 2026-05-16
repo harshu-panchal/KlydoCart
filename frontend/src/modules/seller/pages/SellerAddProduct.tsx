@@ -23,6 +23,7 @@ import {
 } from "../../../services/api/categoryService";
 import { getActiveTaxes, Tax } from "../../../services/api/taxService";
 import { getBrands, Brand } from "../../../services/api/brandService";
+import { useAuth } from "../../../context/AuthContext";
 import {
   getHeaderCategoriesPublic,
   HeaderCategory,
@@ -32,6 +33,7 @@ export default function SellerAddProduct() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     productName: "",
     headerCategory: "",
@@ -564,7 +566,25 @@ export default function SellerAddProduct() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Main Content */}
+      {/* Breadcrumb Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{id ? 'Edit Product' : 'Add New Product'}</h1>
+          <div className="flex items-center gap-2 text-sm mt-1">
+            <span 
+              onClick={() => navigate('/seller')} 
+              className="cursor-pointer text-blue-600 hover:text-blue-700 hover:underline font-medium"
+            >
+              Home
+            </span>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-600">Product</span>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-600">{id ? 'Edit' : 'Add'}</span>
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Product Section */}
@@ -598,11 +618,24 @@ export default function SellerAddProduct() {
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white">
                     <option value="">Select Header Category</option>
-                    {headerCategories.map((headerCat) => (
-                      <option key={headerCat._id} value={headerCat._id}>
-                        {headerCat.name}
-                      </option>
-                    ))}
+                     {headerCategories
+                       .filter((headerCat) => {
+                         if (user) {
+                           const sellerAllowedCategories = [
+                             ...(user.category ? [user.category] : []),
+                             ...(user.categories || [])
+                           ];
+                           if (sellerAllowedCategories.length > 0) {
+                             return sellerAllowedCategories.includes(headerCat.name);
+                           }
+                         }
+                         return true;
+                       })
+                       .map((headerCat) => (
+                         <option key={headerCat._id} value={headerCat._id}>
+                           {headerCat.name}
+                         </option>
+                       ))}
                   </select>
                 </div>
                 <div>

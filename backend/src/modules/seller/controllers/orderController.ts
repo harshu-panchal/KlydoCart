@@ -47,7 +47,7 @@ export const getOrders = asyncHandler(
       const statusMapping: Record<string, string> = {
         'Pending': 'Pending',
         'Accepted': 'Accepted',
-        'On the way': 'On the way',
+        'Out for Delivery': 'Out for Delivery',
         'Delivered': 'Delivered',
         'Cancelled': 'Cancelled',
         'Rejected': 'Rejected',
@@ -95,7 +95,7 @@ export const getOrders = asyncHandler(
         ? order.estimatedDeliveryDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
         : order.orderDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       orderDate: order.orderDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-      status: order.status === 'On the way' ? 'On the way' : order.status,
+      status: order.status,
       amount: order.total,
       customerName: (order.customer as any)?.name || order.customerName || '',
       customerPhone: (order.customer as any)?.phone || order.customerPhone || '',
@@ -123,10 +123,22 @@ export const getOrderById = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
     const { id } = req.params;
+    // First check if this seller has items in this order
+    // Support finding order by orderNumber if id is not an ObjectId
+    let orderSearchId = id;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      const foundOrder = await Order.findOne({ orderNumber: id }).select('_id');
+      if (foundOrder) {
+        orderSearchId = foundOrder._id.toString();
+      } else {
+         return res.status(404).json({
+           success: false,
+           message: "Order not found",
+         });
+      }
+    }
 
-    // First check if this seller has items in this order
-    // First check if this seller has items in this order
-    const sellerItems = await OrderItem.find({ order: id, seller: sellerId })
+    const sellerItems = await OrderItem.find({ order: orderSearchId, seller: sellerId })
       .populate("seller", "storeName")
       .populate("product");
 
@@ -138,9 +150,19 @@ export const getOrderById = asyncHandler(
     }
 
     // Get order with populated data
-    const order = await Order.findById(id)
-      .populate("customer", "name email phone")
-      .populate("deliveryBoy", "name mobile email");
+    // Support finding by both _id and orderNumber
+    let order;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      order = await Order.findById(id)
+        .populate("customer", "name email phone")
+        .populate("deliveryBoy", "name mobile email");
+    }
+
+    if (!order) {
+      order = await Order.findOne({ orderNumber: id })
+        .populate("customer", "name email phone")
+        .populate("deliveryBoy", "name mobile email");
+    }
 
     if (!order) {
       return res.status(404).json({
@@ -196,8 +218,8 @@ export const getOrderById = asyncHandler(
         soldBy: (item.seller as any)?.storeName || 'N/A',
         unit: unit,
         price: item.unitPrice || 0,
-        tax: 0,
-        taxPercent: 0,
+        tax: item.tax || 0,
+        taxPercent: item.taxPercent || 0,
         qty: item.quantity || 0,
         subtotal: item.total || 0,
       };
@@ -210,7 +232,7 @@ export const getOrderById = asyncHandler(
       orderDate: order.orderDate ? order.orderDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       deliveryDate: order.estimatedDeliveryDate ? order.estimatedDeliveryDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       timeSlot: order.timeSlot || 'N/A',
-      status: order.status === 'On the way' ? 'Out For Delivery' : order.status,
+      status: order.status,
       customerName: (order.customer as any)?.name || order.customerName || '',
       customerEmail: (order.customer as any)?.email || order.customerEmail || '',
       customerPhone: (order.customer as any)?.phone || order.customerPhone || '',
@@ -223,6 +245,8 @@ export const getOrderById = asyncHandler(
       paymentMethod: order.paymentMethod || 'N/A',
       paymentStatus: order.paymentStatus || 'Pending',
       deliveryAddress: order.deliveryAddress || {},
+      shipping: order.shipping || 0,
+      platformFee: order.platformFee || 0,
     };
 
     return res.status(200).json({
@@ -243,7 +267,7 @@ export const updateOrderStatus = asyncHandler(
     const { status } = req.body;
 
     // Validate allowed status updates for seller
-    const allowedStatuses = ['Accepted', 'On the way', 'Delivered', 'Cancelled', 'Rejected'];
+    const allowedStatuses = ['Accepted', 'Out for Delivery', 'Delivered', 'Cancelled', 'Rejected'];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
         success: false,

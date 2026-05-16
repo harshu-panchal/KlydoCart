@@ -226,3 +226,37 @@ export const getLocation = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 });
+/**
+ * Credit customer wallet (Demo/Testing)
+ */
+export const creditWallet = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+  const { amount } = req.body;
+
+  if (!userId || (req as any).user?.userType !== "Customer") {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized or not a customer",
+    });
+  }
+
+  const customer = await Customer.findById(userId);
+  if (!customer) {
+    return res.status(404).json({
+      success: false,
+      message: "Customer not found",
+    });
+  }
+
+  const creditAmount = Number(amount) || 50;
+  customer.walletAmount += creditAmount;
+  await customer.save();
+
+  return res.status(200).json({
+    success: true,
+    message: `₹${creditAmount} added to wallet`,
+    data: {
+      walletAmount: customer.walletAmount,
+    },
+  });
+});
