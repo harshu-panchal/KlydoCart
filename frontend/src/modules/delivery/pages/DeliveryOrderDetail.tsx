@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getOrderDetails, updateOrderStatus, getSellerLocationsForOrder, sendDeliveryOtp, verifyDeliveryOtp, updateDeliveryLocation, checkSellerProximity, confirmSellerPickup, checkCustomerProximity } from '../../../services/api/delivery/deliveryService';
+import { getOrderDetails, updateOrderStatus, getSellerLocationsForOrder, sendDeliveryOtp, verifyDeliveryOtp, updateDeliveryLocation, checkSellerProximity, confirmSellerPickup, checkCustomerProximity, confirmReturnPickup, confirmReturnDropoff } from '../../../services/api/delivery/deliveryService';
 import deliveryIcon from '@assets/deliveryboy/deliveryIcon.png';
 import GoogleMapsTracking from '../../../components/GoogleMapsTracking';
 
@@ -85,7 +85,7 @@ const Icons = {
     )
 };
 
-type DeliveryOrderStatus = 'Pending' | 'Ready for pickup' | 'Picked up' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned';
+type DeliveryOrderStatus = 'Pending' | 'Ready for pickup' | 'Picked up' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned' | 'Assigned' | 'Picked Up' | 'Completed';
 
 export default function DeliveryOrderDetail() {
     const { id } = useParams();
@@ -111,6 +111,32 @@ export default function DeliveryOrderDetail() {
     // New state for customer proximity
     const [customerProximity, setCustomerProximity] = useState<{ withinRange: boolean; distance: number } | null>(null);
     const [getOtpEnabled, setGetOtpEnabled] = useState(false);
+
+    // States for Return Request Pickup Image Upload
+    const [pickupPhoto, setPickupPhoto] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+    // States for Return Request Drop-off Image Upload
+    const [dropoffPhoto, setDropoffPhoto] = useState<File | null>(null);
+    const [dropoffPhotoPreview, setDropoffPhotoPreview] = useState<string | null>(null);
+    const [uploadingDropoffPhoto, setUploadingDropoffPhoto] = useState(false);
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setPickupPhoto(file);
+            setPhotoPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleDropoffPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setDropoffPhoto(file);
+            setDropoffPhotoPreview(URL.createObjectURL(file));
+        }
+    };
 
     const fetchOrder = async () => {
         if (!id) return;
@@ -177,7 +203,7 @@ export default function DeliveryOrderDetail() {
         }
 
         // COD Reminder
-        const isCOD = order?.paymentMethod === 'COD';
+        const isCOD = order?.paymentMethod && ['COD', 'cod', 'Cash on Delivery', 'Cash', 'CASH', 'Cash On Delivery'].includes(order.paymentMethod);
         if (isCOD) {
             const confirmCash = window.confirm(`This is a COD order. Have you collected ₹${order.totalAmount} from the customer?`);
             if (!confirmCash) return;
@@ -213,6 +239,64 @@ export default function DeliveryOrderDetail() {
             alert(err.message || 'Failed to confirm pickup');
         } finally {
             setPickupLoading(prev => ({ ...prev, [sellerId]: false }));
+        }
+    };
+
+    // Handle customer pickup confirmation for returns
+    const handleCustomerPickupConfirm = async () => {
+        if (!id) return;
+        
+        let imageUrls = ['https://klydokart.com/assets/deliveryboy/return-pickup.png']; // Fallback placeholder
+        
+        try {
+            setLoading(true);
+            if (pickupPhoto) {
+                setUploadingPhoto(true);
+                const { uploadImage } = await import('../../../services/api/uploadService');
+                const result = await uploadImage(pickupPhoto, 'return-pickups');
+                imageUrls = [result.secureUrl || result.url];
+            }
+            
+            await confirmReturnPickup(id, imageUrls);
+            alert('Pickup confirmed successfully! Please return the package to the seller.');
+            setPickupPhoto(null);
+            setPhotoPreview(null);
+            await fetchOrder();
+        } catch (err: any) {
+            alert(err.message || 'Failed to confirm pickup');
+        } finally {
+            setLoading(false);
+            setUploadingPhoto(false);
+        }
+    };
+
+    // Handle return drop-off to seller
+    const handleReturnDropoff = async () => {
+        if (!id) return;
+        if (!dropoffPhoto) {
+            alert('Please capture a photo to confirm drop-off to the seller');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setUploadingDropoffPhoto(true);
+            let imageUrls = ['https://klydokart.com/assets/deliveryboy/return-dropoff.png']; // Fallback placeholder
+
+            const { uploadImage } = await import('../../../services/api/uploadService');
+            const result = await uploadImage(dropoffPhoto, 'return-dropoffs');
+            imageUrls = [result.secureUrl || result.url];
+
+            const resultDropoff = await confirmReturnDropoff(id, imageUrls);
+            alert(resultDropoff.message || 'Drop-off confirmed successfully! Refund is pending admin approval.');
+            setDropoffPhoto(null);
+            setDropoffPhotoPreview(null);
+            await fetchOrder();
+        } catch (err: any) {
+            alert(err.message || 'Failed to confirm drop-off');
+        } finally {
+            setLoading(false);
+            setUploadingDropoffPhoto(false);
         }
     };
 
@@ -505,11 +589,14 @@ export default function DeliveryOrderDetail() {
         );
     }
 
-    const statusFlow: DeliveryOrderStatus[] = ['Pending', 'Ready for pickup', 'Picked up', 'Out for Delivery', 'Delivered'];
+    const isReturn = order?.isReturn === true;
+    const statusFlow: DeliveryOrderStatus[] = isReturn
+        ? ['Assigned', 'Picked Up', 'Completed']
+        : ['Pending', 'Ready for pickup', 'Picked up', 'Out for Delivery', 'Delivered'];
 
     let currentStatusIndex = statusFlow.indexOf(order.status as DeliveryOrderStatus);
     // Handle cases where status might not be in the flow (e.g. Cancelled)
-    if (currentStatusIndex === -1 && (order.status === 'Cancelled' || order.status === 'Returned')) {
+    if (currentStatusIndex === -1 && (order.status === 'Cancelled' || order.status === 'Returned' || order.status === 'Completed')) {
         // Maybe show a different UI for cancelled/returned orders
         currentStatusIndex = -1;
     }
@@ -540,9 +627,13 @@ export default function DeliveryOrderDetail() {
     };
 
     const nextStatus = getNextStatus();
-    const isMapVisible = order.status === 'Out for Delivery' || order.status === 'Picked up' || (sellerLocations.length > 0 && order.status !== 'Delivered');
-    const showSellerLocations = sellerLocations.length > 0 && order.status !== 'Picked up' && order.status !== 'Out for Delivery' && order.status !== 'Delivered';
-    const showCustomerLocation = order.status === 'Picked up' || order.status === 'Out for Delivery';
+    const isMapVisible = isReturn 
+        ? (order.status !== 'Completed') 
+        : (order.status === 'Out for Delivery' || order.status === 'Picked up' || (sellerLocations.length > 0 && order.status !== 'Delivered'));
+    const showSellerLocations = !isReturn && sellerLocations.length > 0 && order.status !== 'Picked up' && order.status !== 'Out for Delivery' && order.status !== 'Delivered';
+    const showCustomerLocation = isReturn
+        ? (order.status === 'Assigned')
+        : (order.status === 'Picked up' || order.status === 'Out for Delivery');
 
     // Check if we have valid customer coordinates
     const customerLat = order.deliveryAddress?.latitude || order.address?.latitude;
@@ -560,7 +651,9 @@ export default function DeliveryOrderDetail() {
                 >
                     <Icons.ChevronLeft size={24} />
                 </button>
-                <span className="ml-2 font-semibold text-lg text-neutral-800">Order Details</span>
+                <span className="ml-2 font-semibold text-lg text-neutral-800">
+                    {isReturn ? "Return Request Details" : "Order Details"}
+                </span>
 
                 <div className="ml-auto">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
@@ -588,13 +681,17 @@ export default function DeliveryOrderDetail() {
             {isMapVisible && (
                 <GoogleMapsTracking
                     sellerLocations={
-                        (order.status === 'Out for Delivery' || order.status === 'Picked up')
-                            ? []  // Hide seller markers when delivering to customer
-                            : sellerLocations.map(s => ({
-                                lat: s.latitude,
-                                lng: s.longitude,
-                                name: s.storeName
-                            }))
+                        isReturn
+                            ? (order.status === 'Picked Up' && order.seller
+                                ? [{ lat: order.seller.latitude, lng: order.seller.longitude, name: order.seller.storeName }]
+                                : [])
+                            : ((order.status === 'Out for Delivery' || order.status === 'Picked up')
+                                ? []  // Hide seller markers when delivering to customer
+                                : sellerLocations.map(s => ({
+                                    lat: s.latitude,
+                                    lng: s.longitude,
+                                    name: s.storeName
+                                })))
                     }
                     customerLocation={{
                         lat: order.deliveryAddress?.latitude || order.address?.latitude || 0,
@@ -603,33 +700,42 @@ export default function DeliveryOrderDetail() {
                     deliveryLocation={deliveryBoyLocation || undefined}
                     isTracking={!!deliveryBoyLocation}
                     showRoute={!!deliveryBoyLocation && (
-                        ((order.status === 'Picked up' || order.status === 'Out for Delivery') && hasValidCustomerLocation) ||
-                        (sellerLocations.length > 0 && order.status !== 'Delivered' && order.status !== 'Picked up' && order.status !== 'Out for Delivery')
+                        isReturn
+                            ? (order.status === 'Assigned' || order.status === 'Picked Up')
+                            : (((order.status === 'Picked up' || order.status === 'Out for Delivery') && hasValidCustomerLocation) ||
+                               (sellerLocations.length > 0 && order.status !== 'Delivered' && order.status !== 'Picked up' && order.status !== 'Out for Delivery'))
                     )}
                     routeOrigin={deliveryBoyLocation || undefined}
                     routeDestination={
-                        order.status === 'Picked up' || order.status === 'Out for Delivery'
-                            ? (hasValidCustomerLocation ? {
-                                lat: customerLat!,
-                                lng: customerLng!
-                            } : undefined)
-                            : sellerLocations.length > 0
-                                ? { lat: sellerLocations[sellerLocations.length - 1].latitude, lng: sellerLocations[sellerLocations.length - 1].longitude }
-                                : undefined
+                        isReturn
+                            ? (order.status === 'Assigned'
+                                ? (hasValidCustomerLocation ? { lat: customerLat!, lng: customerLng! } : undefined)
+                                : (order.seller ? { lat: order.seller.latitude, lng: order.seller.longitude } : undefined))
+                            : (order.status === 'Picked up' || order.status === 'Out for Delivery'
+                                ? (hasValidCustomerLocation ? { lat: customerLat!, lng: customerLng! } : undefined)
+                                : sellerLocations.length > 0
+                                    ? { lat: sellerLocations[sellerLocations.length - 1].latitude, lng: sellerLocations[sellerLocations.length - 1].longitude }
+                                    : undefined)
                     }
                     routeWaypoints={
-                        order.status === 'Picked up' || order.status === 'Out for Delivery'
+                        isReturn
                             ? []
-                            : sellerLocations.length > 1
-                                ? sellerLocations.slice(0, -1).map(s => ({ lat: s.latitude, lng: s.longitude }))
-                                : []
+                            : (order.status === 'Picked up' || order.status === 'Out for Delivery'
+                                ? []
+                                : sellerLocations.length > 1
+                                    ? sellerLocations.slice(0, -1).map(s => ({ lat: s.latitude, lng: s.longitude }))
+                                    : [])
                     }
                     destinationName={
-                        order.status === 'Picked up' || order.status === 'Out for Delivery'
-                            ? order.address?.split(',')[0]
-                            : sellerLocations.length > 0
-                                ? sellerLocations[0].storeName
-                                : undefined
+                        isReturn
+                            ? (order.status === 'Assigned'
+                                ? order.address?.split(',')[0]
+                                : (order.seller?.storeName || 'Seller Store'))
+                            : (order.status === 'Picked up' || order.status === 'Out for Delivery'
+                                ? order.address?.split(',')[0]
+                                : sellerLocations.length > 0
+                                    ? sellerLocations[0].storeName
+                                    : undefined)
                     }
                     onRouteInfoUpdate={setRouteInfo}
                     lastUpdate={lastUpdate}
@@ -699,7 +805,7 @@ export default function DeliveryOrderDetail() {
             )}
 
             {/* COD Banner */}
-            {order.paymentMethod === 'COD' && order.status !== 'Delivered' && (
+            {order.paymentMethod && ['COD', 'cod', 'Cash on Delivery', 'Cash', 'CASH', 'Cash On Delivery'].includes(order.paymentMethod) && order.status !== 'Delivered' && (
                 <div className="mx-4 mt-4 bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700">
@@ -745,7 +851,9 @@ export default function DeliveryOrderDetail() {
                         <div className="flex justify-between items-start mb-6">
                             <div>
                                 <p className="text-neutral-500 text-xs font-medium uppercase tracking-wider mb-1">Process</p>
-                                <h2 className="text-lg font-bold text-neutral-900">Order Progress</h2>
+                                <h2 className="text-lg font-bold text-neutral-900">
+                                    {isReturn ? "Return Progress" : "Order Progress"}
+                                </h2>
                             </div>
                         </div>
 
@@ -786,7 +894,7 @@ export default function DeliveryOrderDetail() {
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
                     <h3 className="font-semibold text-neutral-900 mb-4 flex items-center gap-2">
                         <Icons.User size={18} className="text-neutral-500" />
-                        Customer Details
+                        {isReturn ? "Customer Pickup Details" : "Customer Details"}
                     </h3>
                     <div className="space-y-4">
                         <div className="flex items-start gap-3">
@@ -817,8 +925,117 @@ export default function DeliveryOrderDetail() {
                                 )}
                             </div>
                         </div>
+
+                        {/* Custom Return Pickup Action area */}
+                        {isReturn && order.status === 'Assigned' && (
+                            <div className="pt-4 border-t border-dashed border-neutral-200">
+                                <p className="text-sm font-semibold text-neutral-800 mb-3">Product Return Verification</p>
+                                
+                                {/* Photo uploader component */}
+                                <div className="mt-3">
+                                    <label className="block text-xs font-bold text-neutral-500 uppercase mb-2">Take product photo to confirm pickup</label>
+                                    {photoPreview ? (
+                                        <div className="relative rounded-xl overflow-hidden border border-neutral-200 bg-neutral-50 max-h-48 mb-3">
+                                            <img src={photoPreview} alt="Preview" className="w-full h-full object-cover max-h-48" />
+                                            <button
+                                                onClick={() => {
+                                                    setPickupPhoto(null);
+                                                    setPhotoPreview(null);
+                                                }}
+                                                className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 shadow-md hover:bg-red-700 transition-colors"
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <label className="flex flex-col items-center justify-center border-2 border-dashed border-neutral-300 hover:border-blue-500 rounded-xl p-6 bg-neutral-50 cursor-pointer transition-colors mb-3 group">
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-400 group-hover:text-blue-500 transition-colors mb-2">
+                                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                                <circle cx="12" cy="13" r="4" />
+                                            </svg>
+                                            <span className="text-sm font-semibold text-neutral-700 group-hover:text-blue-600 transition-colors">Capture or Upload Photo</span>
+                                            <span className="text-[10px] text-neutral-400 mt-1">Image size under 5MB</span>
+                                            <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} className="hidden" />
+                                        </label>
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={handleCustomerPickupConfirm}
+                                    disabled={loading || uploadingPhoto}
+                                    className={`w-full py-3.5 rounded-xl font-bold text-base transition-all ${!uploadingPhoto && !loading
+                                        ? 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98]'
+                                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                                        }`}
+                                >
+                                    {uploadingPhoto ? 'Uploading Photo...' : loading ? 'Confirming...' : 'Confirm Pickup from Customer'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                {/* Seller Drop-off Location (for Return requests when picked up from customer) */}
+                {isReturn && order.status === 'Picked Up' && order.seller && (
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
+                        <h3 className="font-semibold text-neutral-900 mb-4 flex items-center gap-2">
+                            <Icons.Store size={18} className="text-neutral-500" />
+                            Seller Drop-off Location
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200">
+                                <p className="font-bold text-neutral-900 mb-1">{order.seller.storeName}</p>
+                                <p className="text-sm text-neutral-600">
+                                    {order.seller.address}{!order.seller.address.includes(order.seller.city) && `, ${order.seller.city}`}
+                                </p>
+                            </div>
+                            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-blue-800 text-sm font-medium leading-relaxed">
+                                <p className="font-semibold mb-1">Return Items Picked Up!</p>
+                                Please return the package to the Seller at the above location. Once handed over, capture a drop-off photo and confirm drop-off below.
+                            </div>
+
+                            {/* Dropoff Photo uploader component */}
+                            <div className="mt-3">
+                                <label className="block text-xs font-bold text-neutral-500 uppercase mb-2">Take product photo to confirm drop-off</label>
+                                {dropoffPhotoPreview ? (
+                                    <div className="relative rounded-xl overflow-hidden border border-neutral-200 bg-neutral-50 max-h-48 mb-3">
+                                        <img src={dropoffPhotoPreview} alt="Preview" className="w-full h-full object-cover max-h-48" />
+                                        <button
+                                            onClick={() => {
+                                                setDropoffPhoto(null);
+                                                setDropoffPhotoPreview(null);
+                                            }}
+                                            className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 shadow-md hover:bg-red-700 transition-colors"
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-neutral-300 hover:border-blue-500 rounded-xl p-6 bg-neutral-50 cursor-pointer transition-colors mb-3 group">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-400 group-hover:text-blue-500 transition-colors mb-2">
+                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                            <circle cx="12" cy="13" r="4" />
+                                        </svg>
+                                        <span className="text-sm font-semibold text-neutral-700 group-hover:text-blue-600 transition-colors">Capture or Upload Photo</span>
+                                        <span className="text-[10px] text-neutral-400 mt-1">Image size under 5MB</span>
+                                        <input type="file" accept="image/*" capture="environment" onChange={handleDropoffPhotoChange} className="hidden" />
+                                    </label>
+                                )}
+                            </div>
+                            
+                            <button
+                                onClick={handleReturnDropoff}
+                                disabled={loading || uploadingDropoffPhoto}
+                                className={`w-full py-3.5 mt-2 rounded-xl font-bold text-base transition-all ${!loading && !uploadingDropoffPhoto
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md active:scale-[0.98]'
+                                    : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                                    }`}
+                            >
+                                {uploadingDropoffPhoto ? 'Uploading Photo...' : loading ? 'Processing...' : 'Confirm Drop-off to Seller'}
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Order Items */}
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
@@ -946,7 +1163,7 @@ export default function DeliveryOrderDetail() {
 
             {/* Floating Glassmorphic Action Button Dock - Order Taken button or status update */}
             {/* Hide this button when order is "Out for Delivery" because OTP section is shown instead */}
-            {nextStatus && order.status !== 'Picked up' && order.status !== 'Out for Delivery' && !showOtpInput && (
+            {nextStatus && order.status !== 'Picked up' && order.status !== 'Out for Delivery' && !showOtpInput && !isReturn && (
                 <div className="sticky bottom-[72px] z-30 mx-4 mb-4">
                     <button
                         onClick={() => handleStatusChange(nextStatus)}

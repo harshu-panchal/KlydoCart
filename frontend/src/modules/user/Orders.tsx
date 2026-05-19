@@ -1,10 +1,24 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
+
 import { useOrders } from '../../hooks/useOrders';
 import { useAuth } from '../../context/AuthContext';
 import RazorpayCheckout from '../../components/RazorpayCheckout';
 import Button from '../../components/ui/button';
 import { Order } from '../../types/order';
+
+const ArrowLeftIcon = ({ className }: { className?: string }) => (
+  <svg 
+    className={className} 
+    width="24" height="24" viewBox="0 0 24 24" 
+    fill="none" stroke="currentColor" strokeWidth="2.5" 
+    strokeLinecap="round" strokeLinejoin="round"
+  >
+    <path d="M19 12H5" />
+    <path d="m12 19-7-7 7-7" />
+  </svg>
+);
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -35,6 +49,7 @@ const formatDate = (dateString: string) => {
 export default function Orders() {
   const { orders, fetchOrders } = useOrders();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<Order | null>(null);
 
   console.log('📋 Orders component - orders:', orders);
@@ -58,7 +73,14 @@ export default function Orders() {
 
   return (
     <div className="pb-4 md:pb-8">
-      <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6 bg-white border-b border-neutral-200 mb-4 md:mb-6 sticky top-0 z-10">
+      <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6 bg-white border-b border-neutral-200 mb-4 md:mb-6 sticky top-0 z-10 flex items-center gap-3">
+        <button 
+          onClick={() => navigate(-1)}
+          className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeftIcon className="w-6 h-6 text-neutral-700" />
+        </button>
         <h1 className="text-xl md:text-2xl font-bold text-neutral-900">My Orders</h1>
       </div>
 

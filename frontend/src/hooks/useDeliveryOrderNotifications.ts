@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
-import { OrderNotificationData } from '../services/api/delivery/deliveryOrderNotificationService';
+import { DeliveryNotificationData, ReturnNotificationData } from '../services/api/delivery/deliveryOrderNotificationService';
 import { acceptOrder, rejectOrder } from '../services/api/delivery/deliveryOrderNotificationService';
+import { acceptReturnPickup } from '../services/api/delivery/deliveryService';
 import { getSocketBaseURL } from '../services/api/config';
 
 interface NotificationState {
-    currentNotification: OrderNotificationData | null;
-    notificationQueue: OrderNotificationData[];
+    currentNotification: DeliveryNotificationData | null;
+    notificationQueue: DeliveryNotificationData[];
     isConnected: boolean;
     error: string | null;
 }
@@ -112,7 +113,7 @@ export const useDeliveryOrderNotifications = () => {
             }
         });
 
-        socket.on('new-order', (orderData: OrderNotificationData) => {
+        socket.on('new-order', (orderData: any) => {
             console.log('📦 New order notification received:', orderData);
 
             setState(prev => {
@@ -127,6 +128,37 @@ export const useDeliveryOrderNotifications = () => {
                 return {
                     ...prev,
                     currentNotification: orderData,
+                };
+            });
+        });
+
+        socket.on('NEW_RETURN_PICKUP', (returnData: any) => {
+            console.log('🔄 New return pickup notification received:', returnData);
+
+            const returnNotification: ReturnNotificationData = {
+                isReturn: true,
+                returnId: returnData.returnId,
+                orderId: returnData.orderId,
+                reason: returnData.reason,
+                quantity: returnData.quantity,
+                storeName: returnData.storeName,
+                pickupAddress: returnData.pickupAddress,
+                customerName: returnData.customerName,
+                customerPhone: returnData.customerPhone,
+                customerAddress: returnData.customerAddress,
+                createdAt: new Date().toISOString(),
+            };
+
+            setState(prev => {
+                if (prev.currentNotification) {
+                    return {
+                        ...prev,
+                        notificationQueue: [...prev.notificationQueue, returnNotification],
+                    };
+                }
+                return {
+                    ...prev,
+                    currentNotification: returnNotification,
                 };
             });
         });
@@ -150,6 +182,29 @@ export const useDeliveryOrderNotifications = () => {
                     ...prev,
                     notificationQueue: prev.notificationQueue.filter(
                         notif => notif.orderId !== data.orderId
+                    ),
+                };
+            });
+        });
+
+        socket.on('return-accepted', (data: { returnId: string; acceptedBy: string }) => {
+            console.log('✅ Return accepted by another delivery boy:', data);
+
+            setState(prev => {
+                // If this is the current notification, clear it
+                if (prev.currentNotification?.isReturn && (prev.currentNotification as ReturnNotificationData).returnId === data.returnId) {
+                    const nextNotification = prev.notificationQueue[0] || null;
+                    return {
+                        ...prev,
+                        currentNotification: nextNotification,
+                        notificationQueue: prev.notificationQueue.slice(1),
+                    };
+                }
+                // Remove from queue if it's there
+                return {
+                    ...prev,
+                    notificationQueue: prev.notificationQueue.filter(
+                        notif => !notif.isReturn || (notif as ReturnNotificationData).returnId !== data.returnId
                     ),
                 };
             });
@@ -224,6 +279,33 @@ export const useDeliveryOrderNotifications = () => {
     }, []);
 
     const handleAccept = useCallback(async (orderId: string, navigate?: (path: string) => void) => {
+        const isReturn = state.currentNotification?.isReturn === true;
+        const returnId = isReturn ? (state.currentNotification as ReturnNotificationData).returnId : null;
+
+        if (isReturn && returnId) {
+            try {
+                const result = await acceptReturnPickup(returnId);
+                if (result.success) {
+                    setState(prev => {
+                        const nextNotification = prev.notificationQueue[0] || null;
+                        return {
+                            ...prev,
+                            currentNotification: nextNotification,
+                            notificationQueue: prev.notificationQueue.slice(1),
+                        };
+                    });
+                    if (navigate) {
+                        navigate(`/delivery/orders/${returnId}`);
+                    }
+                    return { success: true, message: 'Return pickup accepted successfully' };
+                } else {
+                    return { success: false, message: result.message || 'Failed to accept return pickup' };
+                }
+            } catch (error: any) {
+                return { success: false, message: error.message || 'Failed to accept return pickup' };
+            }
+        }
+
         if (!socketRef.current || !user?.id) {
             return { success: false, message: 'Not connected or user not found' };
         }
@@ -263,9 +345,24 @@ export const useDeliveryOrderNotifications = () => {
         } catch (error: any) {
             return { success: false, message: error.message || 'Failed to accept order' };
         }
-    }, [user]);
+    }, [user, state.currentNotification]);
 
     const handleReject = useCallback(async (orderId: string) => {
+        const isReturn = state.currentNotification?.isReturn === true;
+
+        if (isReturn) {
+            // Immediately clear the notification from UI
+            setState(prev => {
+                const nextNotification = prev.notificationQueue[0] || null;
+                return {
+                    ...prev,
+                    currentNotification: nextNotification,
+                    notificationQueue: prev.notificationQueue.slice(1),
+                };
+            });
+            return { success: true, message: 'Return rejected', allRejected: false };
+        }
+
         if (!socketRef.current || !user?.id) {
             return { success: false, message: 'Not connected or user not found', allRejected: false };
         }
@@ -288,7 +385,7 @@ export const useDeliveryOrderNotifications = () => {
             console.error('Failed to reject order in background:', error);
             return { success: false, message: error.message || 'Failed to reject order', allRejected: false };
         }
-    }, [user]);
+    }, [user, state.currentNotification]);
 
     const clearCurrentNotification = useCallback(() => {
         setState(prev => {

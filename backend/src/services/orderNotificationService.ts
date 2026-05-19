@@ -2,6 +2,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import Delivery from '../models/Delivery';
 import Order from '../models/Order';
 import Seller from '../models/Seller';
+import Return from '../models/Return';
 import mongoose from 'mongoose';
 import { notifySellersOfOrderUpdate } from './sellerNotificationService';
 import { sendPushNotification } from './firebaseAdmin';
@@ -40,6 +41,44 @@ function calculateDistance(
 }
 
 /**
+ * Check if a delivery boy has any active order or return request
+ */
+export async function isDeliveryBoyBusy(deliveryBoyId: string | mongoose.Types.ObjectId): Promise<boolean> {
+    try {
+        const id = new mongoose.Types.ObjectId(deliveryBoyId.toString());
+
+        // 1. Check for active orders (Assigned, Picked Up, In Transit)
+        const activeOrder = await Order.findOne({
+            deliveryBoy: id,
+            deliveryBoyStatus: { $in: ['Assigned', 'Picked Up', 'In Transit'] },
+            status: { $nin: ['Delivered', 'Cancelled', 'Rejected', 'Returned'] }
+        });
+
+        if (activeOrder) {
+            console.log(`ℹ️ Delivery boy ${id} has active order ${activeOrder._id} with delivery status: ${activeOrder.deliveryBoyStatus}`);
+            return true;
+        }
+
+        // 2. Check for active return requests (Assigned, Picked Up)
+        const activeReturn = await Return.findOne({
+            deliveryBoy: id,
+            pickupStatus: { $in: ['Assigned', 'Picked Up'] },
+            status: { $nin: ['Completed', 'Rejected'] }
+        });
+
+        if (activeReturn) {
+            console.log(`ℹ️ Delivery boy ${id} has active return request ${activeReturn._id} with pickup status: ${activeReturn.pickupStatus}`);
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        console.error(`Error checking if delivery boy ${deliveryBoyId} is busy:`, error);
+        return false;
+    }
+}
+
+/**
  * Find all available delivery boys (online and active)
  */
 export async function findAvailableDeliveryBoys(): Promise<mongoose.Types.ObjectId[]> {
@@ -69,55 +108,63 @@ export async function findDeliveryBoysNearLocation(
     longitude: number,
     radiusKm: number = 10
 ): Promise<{ deliveryBoyId: mongoose.Types.ObjectId; distance: number }[]> {
+    const nearbyDeliveryBoys: { deliveryBoyId: mongoose.Types.ObjectId; distance: number }[] = [];
+
     try {
         // 1. Try to find delivery boys using the new GeoJSON location field in Delivery model
-        const nearbyDeliveryBoys: { deliveryBoyId: mongoose.Types.ObjectId; distance: number }[] = [];
-
-        // NOTE: Removed status:'Active' filter — any online delivery boy is eligible.
-        const deliveryBoysWithLocation = await Delivery.find({
-            isOnline: true,
-            location: {
-                $near: {
-                    $geometry: {
-                        type: "Point",
-                        coordinates: [longitude, latitude]
-                    },
-                    $maxDistance: radiusKm * 1000 // Convert km to meters
+        try {
+            // NOTE: Removed status:'Active' filter — any online delivery boy is eligible.
+            const deliveryBoysWithLocation = await Delivery.find({
+                isOnline: true,
+                "location.coordinates": {
+                    $near: {
+                        $geometry: {
+                            type: "Point",
+                            coordinates: [longitude, latitude]
+                        },
+                        $maxDistance: radiusKm * 1000 // Convert km to meters
+                    }
                 }
-            }
-        }).select('_id location');
+            }).select('_id location');
 
-        if (deliveryBoysWithLocation.length > 0) {
-            for (const db of deliveryBoysWithLocation) {
-                if (db.location && db.location.coordinates) {
-                    const [dbLng, dbLat] = db.location.coordinates;
-                    const distance = calculateDistance(latitude, longitude, dbLat, dbLng);
-                    nearbyDeliveryBoys.push({
-                        deliveryBoyId: db._id as mongoose.Types.ObjectId,
-                        distance
-                    });
+            if (deliveryBoysWithLocation.length > 0) {
+                for (const db of deliveryBoysWithLocation) {
+                    if (db.location && db.location.coordinates) {
+                        const [dbLng, dbLat] = db.location.coordinates;
+                        const distance = calculateDistance(latitude, longitude, dbLat, dbLng);
+                        nearbyDeliveryBoys.push({
+                            deliveryBoyId: db._id as mongoose.Types.ObjectId,
+                            distance
+                        });
+                    }
                 }
+                console.log(`📍 Found ${nearbyDeliveryBoys.length} delivery boys using live location within ${radiusKm}km`);
             }
-            console.log(`📍 Found ${nearbyDeliveryBoys.length} delivery boys using live location within ${radiusKm}km`);
+        } catch (geoError) {
+            console.error('⚠️ Warning: GeoNear query failed (likely missing 2dsphere index). Proceeding to fallback.', geoError);
         }
 
         // 2. ALSO include online delivery boys who might NOT have the location field set yet (Fallback/Inclusive)
         // This ensures new or untracked online delivery boys still get notifications
         const trackedIds = new Set(nearbyDeliveryBoys.map(db => db.deliveryBoyId.toString()));
         
-        const otherOnlineBoys = await Delivery.find({
-            isOnline: true,
-            _id: { $nin: Array.from(trackedIds).map(id => new mongoose.Types.ObjectId(id)) }
-        }).select('_id');
+        try {
+            const otherOnlineBoys = await Delivery.find({
+                isOnline: true,
+                _id: { $nin: Array.from(trackedIds).map(id => new mongoose.Types.ObjectId(id)) }
+            }).select('_id');
 
-        if (otherOnlineBoys.length > 0) {
-            console.log(`ℹ️ Including ${otherOnlineBoys.length} additional online delivery boys without recent location data`);
-            for (const db of otherOnlineBoys) {
-                nearbyDeliveryBoys.push({
-                    deliveryBoyId: db._id as mongoose.Types.ObjectId,
-                    distance: radiusKm / 2, // Default distance (middle of radius)
-                });
+            if (otherOnlineBoys.length > 0) {
+                console.log(`ℹ️ Including ${otherOnlineBoys.length} additional online delivery boys without recent location data`);
+                for (const db of otherOnlineBoys) {
+                    nearbyDeliveryBoys.push({
+                        deliveryBoyId: db._id as mongoose.Types.ObjectId,
+                        distance: radiusKm / 2, // Default distance (middle of radius)
+                    });
+                }
             }
+        } catch (fallbackError) {
+            console.error('❌ Fallback query failed:', fallbackError);
         }
 
         if (nearbyDeliveryBoys.length > 0) {
@@ -241,26 +288,31 @@ export async function notifyDeliveryBoysOfNewOrder(
         console.log(`✅ Found ${nearbyDeliveryBoyIds.length} available delivery boys:`, nearbyDeliveryBoyIds.map(id => id.toString()));
 
         // --- FILTER BUSY DELIVERY BOYS ---
-        // Check if any of these delivery boys already have an active order
-        // Active = deliveryBoyStatus is Assigned, Picked Up, or In Transit
-        const busyDeliveryBoys = await Order.find({
+        // Check if any of these delivery boys already have an active order or return request
+        const busyOrderDeliveryBoys = await Order.find({
             deliveryBoy: { $in: nearbyDeliveryBoyIds },
             deliveryBoyStatus: { $in: ['Assigned', 'Picked Up', 'In Transit'] },
-            // Double check status to be sure we don't count completed/cancelled ones just in case statuses are out of sync
             status: { $nin: ['Delivered', 'Cancelled', 'Rejected', 'Returned'] }
         }).distinct('deliveryBoy');
 
-        if (busyDeliveryBoys.length > 0) {
-            const busyIdsSet = new Set(busyDeliveryBoys.map(id => id.toString()));
+        const busyReturnDeliveryBoys = await Return.find({
+            deliveryBoy: { $in: nearbyDeliveryBoyIds },
+            pickupStatus: { $in: ['Assigned', 'Picked Up'] }
+        }).distinct('deliveryBoy');
 
+        const busyIdsSet = new Set([
+            ...busyOrderDeliveryBoys.map(id => id.toString()),
+            ...busyReturnDeliveryBoys.map(id => id.toString())
+        ]);
+
+        if (busyIdsSet.size > 0) {
             const originalCount = nearbyDeliveryBoyIds.length;
             nearbyDeliveryBoyIds = nearbyDeliveryBoyIds.filter(id => !busyIdsSet.has(id.toString()));
 
             console.log(`ℹ️ Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Available: ${nearbyDeliveryBoyIds.length}`);
 
             if (nearbyDeliveryBoyIds.length === 0) {
-                console.log('⚠️ All nearby delivery boys are currently busy with other orders.');
-                // Optionally: could emit to admin or retry later
+                console.log('⚠️ All nearby delivery boys are currently busy with other orders or return requests.');
                 return;
             }
         }
@@ -384,6 +436,12 @@ export async function handleOrderAcceptance(
     try {
         const state = notificationStates.get(orderId);
         const normalizedDeliveryBoyId = String(deliveryBoyId).trim();
+
+        // Check if delivery boy is already busy with another order or return request
+        const isBusy = await isDeliveryBoyBusy(normalizedDeliveryBoyId);
+        if (isBusy) {
+            return { success: false, message: 'You are currently busy with another order or return request' };
+        }
 
         // 1. In-Memory Check (Preferred)
         if (state) {
@@ -563,57 +621,91 @@ export function getNotificationState(orderId: string): OrderNotificationState | 
  */
 export async function scanOrdersForDeliveryBoy(io: SocketIOServer, deliveryBoyId: string): Promise<void> {
     const normalizedId = String(deliveryBoyId).trim();
+    
+    // Check if delivery boy is already busy with another order or return request
+    const isBusy = await isDeliveryBoyBusy(normalizedId);
+    if (isBusy) {
+        console.log(`ℹ️ Skipping scanOrdersForDeliveryBoy for ${normalizedId} as they are currently busy.`);
+        return;
+    }
+
     console.log(`🔍 Scanning pending orders for delivery boy ${normalizedId} who just went online/connected`);
 
-    for (const [orderId, state] of notificationStates.entries()) {
-        if (state.acceptedBy) continue;
-        if (state.rejectedDeliveryBoys.has(normalizedId)) continue;
+    try {
+        // Query database for all pending orders that don't have a delivery boy assigned yet
+        const pendingOrders = await Order.find({
+            status: { $in: ['Received', 'Accepted', 'Processed'] },
+            deliveryBoy: { $exists: false }
+        });
 
-        // If they were already notified, they'll get it via the socket join logic in socketService.ts
-        // But if they WEREN'T notified because they were offline, we should check eligibility now
-        if (!state.notifiedDeliveryBoys.has(normalizedId)) {
-            try {
-                const order = await Order.findById(orderId).populate({
-                    path: 'items',
-                    populate: { path: 'seller' }
-                }).lean();
+        console.log(`🔍 Found ${pendingOrders.length} pending orders in database`);
 
-                const orderDataObj: any = order;
-                if (!orderDataObj || ['Delivered', 'Cancelled', 'Rejected', 'Returned'].includes(orderDataObj.status as string)) {
-                    continue;
+        for (const orderRequest of pendingOrders) {
+            const orderId = orderRequest._id.toString();
+
+            // Initialize state in-memory if it was lost on server restart
+            if (!notificationStates.has(orderId)) {
+                notificationStates.set(orderId, {
+                    orderId,
+                    notifiedDeliveryBoys: new Set(),
+                    rejectedDeliveryBoys: new Set(),
+                    acceptedBy: null
+                });
+            }
+
+            const state = notificationStates.get(orderId)!;
+
+            if (state.acceptedBy) continue;
+            if (state.rejectedDeliveryBoys.has(normalizedId)) continue;
+
+            // If they were already notified, they'll get it via the socket join logic in socketService.ts
+            // But if they WEREN'T notified because they were offline, we should check eligibility now
+            if (!state.notifiedDeliveryBoys.has(normalizedId)) {
+                try {
+                    const order = await Order.findById(orderId).populate({
+                        path: 'items',
+                        populate: { path: 'seller' }
+                    }).lean();
+
+                    const orderDataObj: any = order;
+                    if (!orderDataObj || ['Delivered', 'Cancelled', 'Rejected', 'Returned'].includes(orderDataObj.status as string)) {
+                        continue;
+                    }
+
+                    // Check if they are near any seller for this order
+                    const nearbyBoys = await findDeliveryBoysNearSellerLocations(order);
+                    const isNearby = nearbyBoys.some(id => id.toString() === normalizedId);
+
+                    if (isNearby) {
+                        console.log(`🎯 Delivery boy ${normalizedId} is eligible for order ${orderId}. Notifying now.`);
+                        state.notifiedDeliveryBoys.add(normalizedId);
+
+                        const orderData = {
+                            orderId: orderDataObj._id.toString(),
+                            orderNumber: orderDataObj.orderNumber,
+                            customerName: (order as any).customerName,
+                            customerPhone: (order as any).customerPhone,
+                            deliveryAddress: {
+                                address: (order as any).deliveryAddress?.address,
+                                city: (order as any).deliveryAddress?.city,
+                                state: (order as any).deliveryAddress?.state,
+                                pincode: (order as any).deliveryAddress?.pincode,
+                            },
+                            total: (order as any).total,
+                            subtotal: (order as any).subtotal,
+                            shipping: (order as any).shipping,
+                            createdAt: (order as any).createdAt,
+                        };
+
+                        io.to(`delivery-${normalizedId}`).emit('new-order', orderData);
+                    }
+                } catch (err) {
+                    console.error(`Error scanning order ${orderId} for boy ${normalizedId}:`, err);
                 }
-
-                // Check if they are near any seller for this order
-                const nearbyBoys = await findDeliveryBoysNearSellerLocations(order);
-                const isNearby = nearbyBoys.some(id => id.toString() === normalizedId);
-
-                if (isNearby) {
-                    console.log(`🎯 Delivery boy ${normalizedId} is eligible for order ${orderId}. Notifying now.`);
-                    state.notifiedDeliveryBoys.add(normalizedId);
-
-                    const orderData = {
-                        orderId: orderDataObj._id.toString(),
-                        orderNumber: orderDataObj.orderNumber,
-                        customerName: (order as any).customerName,
-                        customerPhone: (order as any).customerPhone,
-                        deliveryAddress: {
-                            address: (order as any).deliveryAddress?.address,
-                            city: (order as any).deliveryAddress?.city,
-                            state: (order as any).deliveryAddress?.state,
-                            pincode: (order as any).deliveryAddress?.pincode,
-                        },
-                        total: (order as any).total,
-                        subtotal: (order as any).subtotal,
-                        shipping: (order as any).shipping,
-                        createdAt: (order as any).createdAt,
-                    };
-
-                    io.to(`delivery-${normalizedId}`).emit('new-order', orderData);
-                }
-            } catch (err) {
-                console.error(`Error scanning order ${orderId} for boy ${normalizedId}:`, err);
             }
         }
+    } catch (dbError) {
+        console.error('Error scanning pending orders from database:', dbError);
     }
 }
 
@@ -622,5 +714,286 @@ export async function scanOrdersForDeliveryBoy(io: SocketIOServer, deliveryBoyId
  */
 export function clearNotificationState(orderId: string): void {
     notificationStates.delete(orderId);
+}
+
+// Track return notification state
+export interface ReturnNotificationState {
+    returnId: string;
+    notifiedDeliveryBoys: Set<string>;
+    rejectedDeliveryBoys: Set<string>;
+    acceptedBy: string | null;
+}
+
+export const returnNotificationStates = new Map<string, ReturnNotificationState>();
+
+/**
+ * Notify delivery boys of a new return pickup request
+ */
+export async function notifyDeliveryBoysOfNewReturn(io: SocketIOServer, returnRequest: any): Promise<void> {
+    try {
+        const returnId = returnRequest._id.toString();
+        console.log(`🔄 Notifying delivery boys for new return request: ${returnId}`);
+
+        // Fetch seller details to get the pickup location/radius
+        const sellerId = returnRequest.seller?._id || returnRequest.seller;
+        const seller = await Seller.findById(sellerId);
+        if (!seller) {
+            console.error(`❌ Seller not found for return ${returnId}`);
+            return;
+        }
+
+        // Fetch customer/order details to enrich the payload
+        const orderId = returnRequest.order?._id || returnRequest.order;
+        const order = await Order.findById(orderId);
+        if (!order) {
+            console.error(`❌ Order not found for return ${returnId}`);
+            return;
+        }
+
+        let lat: number | null = null;
+        let lng: number | null = null;
+
+        // Use customer delivery location as the primary search center for pickup
+        if (order.deliveryAddress) {
+            lat = order.deliveryAddress.latitude;
+            lng = order.deliveryAddress.longitude;
+        }
+
+        // Fallback to seller location if customer location is missing
+        if (!lat || !lng) {
+            if (seller.location && seller.location.coordinates) {
+                lng = seller.location.coordinates[0];
+                lat = seller.location.coordinates[1];
+            } else {
+                lat = seller.latitude ? parseFloat(seller.latitude) : null;
+                lng = seller.longitude ? parseFloat(seller.longitude) : null;
+            }
+        }
+
+        if (!lat || !lng) {
+            console.warn('⚠️ No valid coordinates found for return pickup, skipping notification.');
+            return;
+        }
+
+        const radius = seller.serviceRadiusKm || 10;
+        const nearbyBoys = await findDeliveryBoysNearLocation(lat, lng, radius);
+
+        if (nearbyBoys.length === 0) {
+            console.log('❌ No available delivery boys to notify for return');
+            return;
+        }
+
+        let nearbyDeliveryBoyIds = nearbyBoys.map(b => b.deliveryBoyId);
+
+        // --- FILTER BUSY DELIVERY BOYS FOR RETURN ---
+        const busyOrderDeliveryBoys = await Order.find({
+            deliveryBoy: { $in: nearbyDeliveryBoyIds },
+            deliveryBoyStatus: { $in: ['Assigned', 'Picked Up', 'In Transit'] },
+            status: { $nin: ['Delivered', 'Cancelled', 'Rejected', 'Returned'] }
+        }).distinct('deliveryBoy');
+
+        const busyReturnDeliveryBoys = await Return.find({
+            deliveryBoy: { $in: nearbyDeliveryBoyIds },
+            pickupStatus: { $in: ['Assigned', 'Picked Up'] }
+        }).distinct('deliveryBoy');
+
+        const busyIdsSet = new Set([
+            ...busyOrderDeliveryBoys.map(id => id.toString()),
+            ...busyReturnDeliveryBoys.map(id => id.toString())
+        ]);
+
+        if (busyIdsSet.size > 0) {
+            const originalCount = nearbyDeliveryBoyIds.length;
+            nearbyDeliveryBoyIds = nearbyDeliveryBoyIds.filter(id => !busyIdsSet.has(id.toString()));
+            console.log(`ℹ️ [Return] Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Available: ${nearbyDeliveryBoyIds.length}`);
+            
+            if (nearbyDeliveryBoyIds.length === 0) {
+                console.log('⚠️ All nearby delivery boys are currently busy with other orders or return requests. No one to notify for return.');
+                return;
+            }
+        }
+        // --------------------------------------------
+
+        const customerName = order.customerName || 'Customer';
+        const customerPhone = order.customerPhone || '';
+        const customerAddress = returnRequest.pickupAddress ? `${returnRequest.pickupAddress.address}, ${returnRequest.pickupAddress.city}` : '';
+
+        const returnData = {
+            returnId,
+            orderId: orderId.toString(),
+            reason: returnRequest.reason,
+            quantity: returnRequest.quantity,
+            storeName: seller.storeName,
+            pickupAddress: seller.address,
+            customerName,
+            customerPhone,
+            customerAddress
+        };
+
+        const notifiedIds = new Set<string>();
+        const disconnectedIds: string[] = [];
+
+        for (const id of nearbyDeliveryBoyIds) {
+            const idString = id.toString().trim();
+            const roomName = `delivery-${idString}`;
+            const room = io.sockets.adapter.rooms.get(roomName);
+
+            if (room && room.size > 0) {
+                notifiedIds.add(idString);
+                io.to(roomName).emit('NEW_RETURN_PICKUP', returnData);
+            } else {
+                disconnectedIds.push(idString);
+            }
+        }
+
+        // Register ALL eligible delivery boy IDs in-memory, so if they go online slightly later, they can scan and get it!
+        const allEligibleIds = new Set<string>(nearbyDeliveryBoyIds.map(id => id.toString().trim()));
+
+        returnNotificationStates.set(returnId, {
+            returnId,
+            notifiedDeliveryBoys: allEligibleIds,
+            rejectedDeliveryBoys: new Set(),
+            acceptedBy: null,
+        });
+
+        // FCM push notifications
+        try {
+            const deliveryBoysWithTokens = await Delivery.find({
+                _id: { $in: nearbyDeliveryBoyIds },
+                $or: [
+                    { fcmTokens: { $exists: true, $ne: [] } },
+                    { fcmTokenMobile: { $exists: true, $ne: [] } }
+                ]
+            }).select('fcmTokens fcmTokenMobile name');
+
+            if (deliveryBoysWithTokens.length > 0) {
+                const allTokens: string[] = [];
+                deliveryBoysWithTokens.forEach(db => {
+                    if (db.fcmTokens) allTokens.push(...db.fcmTokens);
+                    if (db.fcmTokenMobile) allTokens.push(...db.fcmTokenMobile);
+                });
+
+                if (allTokens.length > 0) {
+                    const uniqueTokens = [...new Set(allTokens)];
+                    await sendPushNotification(uniqueTokens, {
+                        title: '🔄 New Return Pickup!',
+                        body: `New return pickup available at ${seller.storeName}. Tap to accept.`,
+                        data: {
+                            type: 'NEW_RETURN_PICKUP',
+                            returnId: returnId,
+                        }
+                    });
+                }
+            }
+        } catch (fcmError) {
+            console.error('Error sending FCM push notification for return:', fcmError);
+        }
+    } catch (error) {
+        console.error('Error notifying delivery boys of return:', error);
+    }
+}
+
+/**
+ * Scan all pending returns and notify a delivery boy if they are now eligible
+ */
+export async function scanReturnsForDeliveryBoy(io: SocketIOServer, deliveryBoyId: string): Promise<void> {
+    const normalizedId = String(deliveryBoyId).trim();
+    
+    // Check if delivery boy is already busy with another order or return request
+    const isBusy = await isDeliveryBoyBusy(normalizedId);
+    if (isBusy) {
+        console.log(`ℹ️ Skipping scanReturnsForDeliveryBoy for ${normalizedId} as they are currently busy.`);
+        return;
+    }
+
+    console.log(`🔍 Scanning pending returns for delivery boy ${normalizedId} who just went online/connected`);
+
+    try {
+        // Query database for all approved return requests that don't have a delivery boy assigned yet
+        const pendingReturns = await Return.find({
+            status: 'Approved',
+            deliveryBoy: { $exists: false }
+        });
+
+        console.log(`🔍 Found ${pendingReturns.length} pending approved returns in database`);
+
+        for (const returnRequest of pendingReturns) {
+            const returnId = returnRequest._id.toString();
+
+            // Initialize state in-memory if it was lost on server restart
+            if (!returnNotificationStates.has(returnId)) {
+                returnNotificationStates.set(returnId, {
+                    returnId,
+                    notifiedDeliveryBoys: new Set(),
+                    rejectedDeliveryBoys: new Set(),
+                    acceptedBy: null
+                });
+            }
+
+            const state = returnNotificationStates.get(returnId)!;
+
+            if (state.acceptedBy) continue;
+            if (state.rejectedDeliveryBoys.has(normalizedId)) continue;
+
+            if (!state.notifiedDeliveryBoys.has(normalizedId)) {
+                try {
+                    const sellerId = returnRequest.seller?._id || returnRequest.seller;
+                    const seller = await Seller.findById(sellerId).lean() as any;
+                    if (!seller) continue;
+
+                    const orderId = returnRequest.order?._id || returnRequest.order;
+                    const order = await Order.findById(orderId).lean() as any;
+                    if (!order) continue;
+
+                    let lat: number | null = null;
+                    let lng: number | null = null;
+
+                    if (order.deliveryAddress) {
+                        lat = order.deliveryAddress.latitude;
+                        lng = order.deliveryAddress.longitude;
+                    }
+
+                    if (!lat || !lng) {
+                        if (seller.location && seller.location.coordinates) {
+                            lng = seller.location.coordinates[0];
+                            lat = seller.location.coordinates[1];
+                        } else {
+                            lat = seller.latitude ? parseFloat(seller.latitude) : null;
+                            lng = seller.longitude ? parseFloat(seller.longitude) : null;
+                        }
+                    }
+
+                    if (!lat || !lng) continue;
+
+                    const radius = seller.serviceRadiusKm || 10;
+                    const nearbyBoys = await findDeliveryBoysNearLocation(lat, lng, radius);
+                    const isNearby = nearbyBoys.some(b => b.deliveryBoyId.toString() === normalizedId);
+
+                    if (isNearby) {
+                        console.log(`🎯 Delivery boy ${normalizedId} is eligible for return pickup ${returnId}. Notifying now.`);
+                        state.notifiedDeliveryBoys.add(normalizedId);
+
+                        const returnData = {
+                            returnId,
+                            orderId: orderId.toString(),
+                            reason: returnRequest.reason,
+                            quantity: returnRequest.quantity,
+                            storeName: seller.storeName,
+                            pickupAddress: seller.address,
+                            customerName: order.customerName || 'Customer',
+                            customerPhone: order.customerPhone || '',
+                            customerAddress: returnRequest.pickupAddress ? `${returnRequest.pickupAddress.address}, ${returnRequest.pickupAddress.city}` : ''
+                        };
+
+                        io.to(`delivery-${normalizedId}`).emit('NEW_RETURN_PICKUP', returnData);
+                    }
+                } catch (err) {
+                    console.error(`Error scanning return ${returnId} for boy ${normalizedId}:`, err);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error scanning pending returns:', error);
+    }
 }
 

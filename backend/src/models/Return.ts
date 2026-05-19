@@ -1,19 +1,23 @@
-
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IReturn extends Document {
   order: mongoose.Types.ObjectId;
   orderItem: mongoose.Types.ObjectId;
   customer: mongoose.Types.ObjectId;
+  seller?: mongoose.Types.ObjectId;
+  deliveryBoy?: mongoose.Types.ObjectId;
 
   // Return Info
   reason: string;
   description?: string;
-  status: "Pending" | "Approved" | "Rejected" | "Processing" | "Completed";
+  status: "Pending" | "Approved" | "Rejected" | "Processing" | "Completed" | "Picked Up";
+  pickupStatus?: "Pending" | "Assigned" | "Picked Up" | "Dropped Off";
 
   // Items
   quantity: number;
-  images?: string[]; // Images of returned items
+  images?: string[]; // Images of returned items from customer
+  pickupImages?: string[]; // Images uploaded by delivery boy upon pickup
+  dropoffImages?: string[]; // Images uploaded by delivery boy upon dropoff to seller
 
   // Processing
   processedBy?: mongoose.Types.ObjectId;
@@ -54,6 +58,14 @@ const ReturnSchema = new Schema<IReturn>(
       ref: "Customer",
       required: [true, "Customer is required"],
     },
+    seller: {
+      type: Schema.Types.ObjectId,
+      ref: "Seller",
+    },
+    deliveryBoy: {
+      type: Schema.Types.ObjectId,
+      ref: "Delivery",
+    },
 
     // Return Info
     reason: {
@@ -67,7 +79,12 @@ const ReturnSchema = new Schema<IReturn>(
     },
     status: {
       type: String,
-      enum: ["Pending", "Approved", "Rejected", "Processing", "Completed"],
+      enum: ["Pending", "Approved", "Rejected", "Processing", "Completed", "Picked Up"],
+      default: "Pending",
+    },
+    pickupStatus: {
+      type: String,
+      enum: ["Pending", "Assigned", "Picked Up", "Dropped Off"],
       default: "Pending",
     },
 
@@ -78,6 +95,14 @@ const ReturnSchema = new Schema<IReturn>(
       min: [1, "Quantity must be at least 1"],
     },
     images: {
+      type: [String],
+      default: [],
+    },
+    pickupImages: {
+      type: [String],
+      default: [],
+    },
+    dropoffImages: {
       type: [String],
       default: [],
     },
@@ -126,8 +151,10 @@ const ReturnSchema = new Schema<IReturn>(
 // Indexes
 ReturnSchema.index({ order: 1 });
 ReturnSchema.index({ customer: 1 });
+ReturnSchema.index({ seller: 1 });
 ReturnSchema.index({ status: 1 });
+ReturnSchema.index({ deliveryBoy: 1, pickupStatus: 1 });
 
-const Return = mongoose.model<IReturn>("Return", ReturnSchema);
+const Return = mongoose.models.Return || mongoose.model<IReturn>("Return", ReturnSchema);
 
 export default Return;

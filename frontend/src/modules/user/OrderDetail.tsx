@@ -13,6 +13,7 @@ import {
   updateOrderNotes,
   getSellerLocationsForOrder,
   refreshDeliveryOtp,
+  createReturnRequest,
 } from "../../services/api/customerOrderService";
 import RazorpayCheckout from "../../components/RazorpayCheckout";
 import { useToast } from "../../context/ToastContext";
@@ -477,10 +478,10 @@ export default function OrderDetail() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showInstructionsModal, setShowInstructionsModal] = useState(false);
   const [showItemsModal, setShowItemsModal] = useState(false);
-  const [showSpecialRequestsModal, setShowSpecialRequestsModal] =
-    useState(false);
+  const [showSpecialRequestsModal, setShowSpecialRequestsModal] = useState(false);
   const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showRazorpayCheckout, setShowRazorpayCheckout] = useState(false);
 
@@ -488,6 +489,7 @@ export default function OrderDetail() {
   const [deliveryInstructions, setDeliveryInstructions] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
+  const [returnReason, setReturnReason] = useState("");
   const [selectedTip, setSelectedTip] = useState<number | "other" | null>(null);
   const [customTip, setCustomTip] = useState("");
 
@@ -747,6 +749,34 @@ export default function OrderDetail() {
     }
   };
 
+  const handleReturnOrder = async () => {
+    if (!returnReason.trim()) {
+      alert("Please provide a return reason");
+      return;
+    }
+
+    if (!id) return;
+
+    try {
+      const orderItemId = order.items?.[0]?._id || order.items?.[0]?.id;
+      const quantity = order.items?.[0]?.quantity || 1;
+      
+      if (!orderItemId) {
+        alert("Cannot find order item to return");
+        return;
+      }
+
+      await createReturnRequest(id, orderItemId, quantity, returnReason);
+      setOrderStatus("Returned" as any);
+      setShowReturnModal(false);
+      alert("Return request submitted successfully");
+      handleRefresh();
+    } catch (error: any) {
+      console.error("Error submitting return:", error);
+      alert(error.message || "Failed to submit return request");
+    }
+  };
+
   const handleSaveInstructions = async () => {
     try {
       if (!id) return;
@@ -867,6 +897,10 @@ export default function OrderDetail() {
   };
 
   const currentStatus = statusConfig[orderStatus] || statusConfig["Received"];
+
+  const isCancellable = !["Delivered", "Cancelled", "Rejected", "Returned", "Shipped", "Out for Delivery"].includes(orderStatus);
+  const isWithinReturnWindow = orderStatus === 'Delivered' && order?.updatedAt && 
+    (new Date().getTime() - new Date(order.updatedAt).getTime() < 7 * 24 * 60 * 60 * 1000);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -1267,12 +1301,27 @@ export default function OrderDetail() {
                     View Invoice
                   </Button>
                 </Link>
-                <Button 
-                  onClick={() => setShowCancelModal(true)}
-                  variant="outline" 
-                  className="col-span-2 flex-1 h-10 rounded-none border-red-50 text-red-500 hover:bg-red-50 font-bold text-xs">
-                  Cancel
-                </Button>
+                {isCancellable && (
+                  <Button 
+                    onClick={() => setShowCancelModal(true)}
+                    variant="outline" 
+                    className="col-span-2 flex-1 h-10 rounded-none border-red-50 text-red-500 hover:bg-red-50 font-bold text-xs">
+                    Cancel
+                  </Button>
+                )}
+                {isWithinReturnWindow && (
+                  <Button 
+                    onClick={() => !order?.hasReturnRequest && setShowReturnModal(true)}
+                    disabled={order?.hasReturnRequest}
+                    variant="outline" 
+                    className={`col-span-2 flex-1 h-10 rounded-none border-orange-50 font-bold text-xs ${
+                      order?.hasReturnRequest 
+                        ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500 hover:bg-gray-100' 
+                        : 'text-orange-500 hover:bg-orange-50'
+                    }`}>
+                    {order?.hasReturnRequest ? 'Return Requested' : 'Return Order'}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -1483,6 +1532,55 @@ export default function OrderDetail() {
                     window.location.href = `tel:${order?.address?.phone || ''}`;
                   }}>
                   Call Now
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Return Order Modal */}
+      <AnimatePresence>
+        {showReturnModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setShowReturnModal(false)}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+              <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mb-6">
+                <RefreshCwIcon className="w-8 h-8 text-orange-600" />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">
+                Return Order?
+              </h2>
+              <p className="text-gray-500 mb-6 leading-relaxed">
+                Please tell us why you want to return this order. You can request a return within 7 days of delivery.
+              </p>
+              <textarea
+                className="w-full border border-gray-200 rounded-2xl p-4 mb-6 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-700"
+                rows={4}
+                placeholder="Reason for return..."
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+              />
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowReturnModal(false)}
+                  className="flex-1 rounded-2xl border-gray-200 text-gray-700">
+                  Keep Order
+                </Button>
+                <Button
+                  onClick={handleReturnOrder}
+                  className="flex-1 rounded-2xl bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-600/30">
+                  Submit Return
                 </Button>
               </div>
             </motion.div>

@@ -20,6 +20,8 @@ export interface ReturnRequest {
   customerName?: string;
   customerPhone?: string;
   orderId?: string;
+  returnReason?: string;
+  returnDescription?: string;
 }
 
 export interface ReturnRequestDetail {

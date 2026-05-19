@@ -16,7 +16,24 @@ export interface OrderNotificationData {
     subtotal: number;
     shipping: number;
     createdAt: string;
+    isReturn?: false;
 }
+
+export interface ReturnNotificationData {
+    isReturn: true;
+    returnId: string;
+    orderId: string;
+    reason: string;
+    quantity: number;
+    storeName: string;
+    pickupAddress: string;
+    customerName: string;
+    customerPhone: string;
+    customerAddress: string;
+    createdAt: string;
+}
+
+export type DeliveryNotificationData = OrderNotificationData | ReturnNotificationData;
 
 export interface AcceptOrderResponse {
     success: boolean;

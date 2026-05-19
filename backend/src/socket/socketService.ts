@@ -1,7 +1,7 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
-import { handleOrderAcceptance, handleOrderRejection, scanOrdersForDeliveryBoy } from '../services/orderNotificationService';
+import { handleOrderAcceptance, handleOrderRejection, scanOrdersForDeliveryBoy, scanReturnsForDeliveryBoy } from '../services/orderNotificationService';
 import Order from '../models/Order';
 import DeliveryTracking from '../models/DeliveryTracking';
 
@@ -222,11 +222,12 @@ export const initializeSocket = (httpServer: HttpServer) => {
                 deliveryBoyId: normalizedDeliveryBoyId
             });
 
-            // Check for any pending orders this delivery boy is eligible for (even if they were offline during creation)
+            // Check for any pending orders/returns this delivery boy is eligible for (even if they were offline during creation)
             try {
                 await scanOrdersForDeliveryBoy(io, normalizedDeliveryBoyId);
+                await scanReturnsForDeliveryBoy(io, normalizedDeliveryBoyId);
             } catch (err) {
-                console.error('Error scanning pending orders for delivery boy:', err);
+                console.error('Error scanning pending orders/returns for delivery boy:', err);
             }
         });
 

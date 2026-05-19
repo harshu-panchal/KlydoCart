@@ -7,6 +7,7 @@ import Seller from "../../../models/Seller";
 import { generateDeliveryOtp, verifyDeliveryOtp } from "../../../services/deliveryOtpService";
 import { processOrderStatusTransition } from "../../../services/orderService";
 import Delivery from "../../../models/Delivery";
+import Return from "../../../models/Return";
 
 /**
  * Helper to map order items for response
@@ -176,9 +177,65 @@ export const getOrderDetails = asyncHandler(async (req: Request, res: Response) 
     const deliveryPartner = await Delivery.findById(deliveryId).select('commissionRate');
     const COMMISSION_RATE = deliveryPartner?.commissionRate || 100;
 
-    const order = await Order.findById(id).populate("items");
+    let order = await Order.findById(id).populate("items");
 
     if (!order) {
+        // Check if this is a Return Request ID
+        const returnRequest = await Return.findById(id)
+            .populate({
+                path: 'order',
+                populate: { path: 'items' }
+            })
+            .populate('orderItem')
+            .populate('seller')
+            .populate('customer');
+
+        if (returnRequest) {
+            const returnItem = returnRequest.orderItem as any;
+            const items = [{
+                name: returnItem?.productName || "Returned Product",
+                quantity: returnRequest.quantity || 1,
+                price: returnItem?.unitPrice || 0,
+                image: returnItem?.productImage
+            }];
+
+            const formattedOrder = {
+                id: returnRequest._id,
+                orderId: (returnRequest.order as any)?.orderNumber ? `${(returnRequest.order as any).orderNumber} (Return)` : "Return Request",
+                customerName: (returnRequest.customer as any)?.name || (returnRequest.order as any)?.customerName || "Customer",
+                customerPhone: (returnRequest.customer as any)?.mobile || (returnRequest.order as any)?.customerPhone || "",
+                address: returnRequest.pickupAddress ? `${returnRequest.pickupAddress.address}, ${returnRequest.pickupAddress.city}` : '',
+                deliveryAddress: returnRequest.pickupAddress ? {
+                    address: returnRequest.pickupAddress.address,
+                    city: returnRequest.pickupAddress.city,
+                    pincode: returnRequest.pickupAddress.pincode,
+                    latitude: (returnRequest.order as any)?.deliveryAddress?.latitude,
+                    longitude: (returnRequest.order as any)?.deliveryAddress?.longitude
+                } : null,
+                status: returnRequest.pickupStatus || "Assigned",
+                items,
+                totalAmount: (returnItem?.unitPrice || 0) * (returnRequest.quantity || 1),
+                deliveryFare: 40, // standard return fare or dynamic
+                createdAt: returnRequest.createdAt,
+                distance: null,
+                isReturn: true,
+                returnStatus: returnRequest.status,
+                seller: returnRequest.seller ? {
+                    id: returnRequest.seller._id,
+                    storeName: (returnRequest.seller as any).storeName,
+                    address: (returnRequest.seller as any).address,
+                    city: (returnRequest.seller as any).city,
+                    latitude: (returnRequest.seller as any).latitude,
+                    longitude: (returnRequest.seller as any).longitude
+                } : null
+            };
+
+            return res.status(200).json({
+                success: true,
+                data: formattedOrder
+            });
+        }
+
         return res.status(404).json({ success: false, message: "Order not found" });
     }
 
@@ -329,8 +386,34 @@ export const getSellerLocationsForOrder = asyncHandler(async (req: Request, res:
     const deliveryId = req.user?.userId;
 
     // Verify order exists and is assigned to this delivery boy
-    const order = await Order.findById(id);
+    let order = await Order.findById(id);
     if (!order) {
+        const returnRequest = await Return.findById(id).populate('seller');
+        if (returnRequest) {
+            console.log(`[getSellerLocationsForOrder] ID: ${id}`);
+            console.log(`[getSellerLocationsForOrder] req.user?.userId (deliveryId): ${deliveryId}`);
+            console.log(`[getSellerLocationsForOrder] returnRequest.deliveryBoy: ${returnRequest.deliveryBoy}`);
+            console.log(`[getSellerLocationsForOrder] returnRequest.deliveryBoy?.toString(): ${returnRequest.deliveryBoy?.toString()}`);
+
+            if (returnRequest.deliveryBoy?.toString() !== deliveryId) {
+                return res.status(403).json({ success: false, message: "This return is not assigned to you" });
+            }
+            const seller = returnRequest.seller;
+            if (seller) {
+                return res.status(200).json({
+                    success: true,
+                    data: [{
+                        sellerId: seller._id.toString(),
+                        storeName: (seller as any).storeName,
+                        address: (seller as any).address,
+                        city: (seller as any).city,
+                        latitude: parseFloat((seller as any).latitude || '0'),
+                        longitude: parseFloat((seller as any).longitude || '0')
+                    }]
+                });
+            }
+            return res.status(200).json({ success: true, data: [] });
+        }
         return res.status(404).json({ success: false, message: "Order not found" });
     }
 
@@ -699,18 +782,38 @@ export const checkCustomerProximity = asyncHandler(async (req: Request, res: Res
         return res.status(400).json({ success: false, message: "Latitude and longitude are required" });
     }
 
-    const order = await Order.findById(id);
+    let order = await Order.findById(id);
+    let customerLat = null;
+    let customerLng = null;
+    let customerName = "";
+
     if (!order) {
-        return res.status(404).json({ success: false, message: "Order not found" });
-    }
+        const returnRequest = await Return.findById(id)
+            .populate('order')
+            .populate('customer');
+        if (returnRequest) {
+            console.log(`[checkCustomerProximity] ID: ${id}`);
+            console.log(`[checkCustomerProximity] req.user?.userId (deliveryId): ${deliveryId}`);
+            console.log(`[checkCustomerProximity] returnRequest.deliveryBoy: ${returnRequest.deliveryBoy}`);
+            console.log(`[checkCustomerProximity] returnRequest.deliveryBoy?.toString(): ${returnRequest.deliveryBoy?.toString()}`);
 
-    if (order.deliveryBoy?.toString() !== deliveryId) {
-        return res.status(403).json({ success: false, message: "This order is not assigned to you" });
+            if (returnRequest.deliveryBoy?.toString() !== deliveryId) {
+                return res.status(403).json({ success: false, message: "This return is not assigned to you" });
+            }
+            customerLat = returnRequest.pickupAddress?.latitude || (returnRequest.order as any)?.deliveryAddress?.latitude;
+            customerLng = returnRequest.pickupAddress?.longitude || (returnRequest.order as any)?.deliveryAddress?.longitude;
+            customerName = (returnRequest.customer as any)?.name || "Customer";
+        } else {
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+    } else {
+        if (order.deliveryBoy?.toString() !== deliveryId) {
+            return res.status(403).json({ success: false, message: "This order is not assigned to you" });
+        }
+        customerLat = order.deliveryAddress?.latitude;
+        customerLng = order.deliveryAddress?.longitude;
+        customerName = order.customerName;
     }
-
-    // Get customer location from delivery address
-    const customerLat = order.deliveryAddress?.latitude;
-    const customerLng = order.deliveryAddress?.longitude;
 
     if (!customerLat || !customerLng) {
         return res.status(400).json({
@@ -736,7 +839,7 @@ export const checkCustomerProximity = asyncHandler(async (req: Request, res: Res
             withinRange,
             distance: distance.toFixed(3), // in km
             distanceMeters: Math.round(distance * 1000), // in meters
-            customerName: order.customerName
+            customerName
         }
     });
 });

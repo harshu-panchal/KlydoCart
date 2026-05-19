@@ -35,7 +35,10 @@ export interface MiscReturnRequest {
   quantity: number;
   total: number;
   reason: string;
-  status: "Pending" | "Approved" | "Rejected" | "Refunded";
+  status: "Pending" | "Approved" | "Rejected" | "Refunded" | "Processing" | "Completed" | "Picked Up";
+  pickupStatus?: "Pending" | "Assigned" | "Picked Up" | "Dropped Off";
+  pickupImages?: string[];
+  dropoffImages?: string[];
   requestedAt: string;
   processedAt?: string;
   refundAmount?: number;
@@ -85,11 +88,11 @@ export interface CreateReturnRequestData {
   orderItemId: string;
   userId: string;
   reason: string;
-  status?: "Pending" | "Approved" | "Rejected" | "Refunded";
+  status?: "Pending" | "Approved" | "Rejected" | "Refunded" | "Processing" | "Completed";
 }
 
 export interface UpdateReturnRequestData {
-  status?: "Pending" | "Approved" | "Rejected" | "Refunded";
+  status?: "Pending" | "Approved" | "Rejected" | "Refunded" | "Processing" | "Completed";
   refundAmount?: number;
   adminNotes?: string;
 }

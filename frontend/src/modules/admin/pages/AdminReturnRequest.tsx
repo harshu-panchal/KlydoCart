@@ -21,6 +21,7 @@ export default function AdminReturnRequest() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<ReturnRequest | null>(null);
 
   // Fetch return requests on component mount
   useEffect(() => {
@@ -117,6 +118,38 @@ export default function AdminReturnRequest() {
       console.error("Error approving return request:", err);
       alert(
         "Failed to approve return request: " +
+        (err.response?.data?.message || "Please try again.")
+      );
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleCompleteReturn = async (requestId: string) => {
+    try {
+      setUpdating(requestId);
+      const response = await updateReturnRequest(requestId, {
+        status: "Completed",
+      });
+
+      if (response.success) {
+        // Update local state
+        setReturnRequests((requests) =>
+          requests.map((req) =>
+            req._id === requestId ? { ...req, status: "Completed" } : req
+          )
+        );
+        alert("Return request completed and refunded to customer wallet successfully!");
+      } else {
+        alert(
+          "Failed to complete return request: " +
+          (response.message || "Unknown error")
+        );
+      }
+    } catch (err: any) {
+      console.error("Error completing return request:", err);
+      alert(
+        "Failed to complete return request: " +
         (err.response?.data?.message || "Please try again.")
       );
     } finally {
@@ -444,6 +477,9 @@ export default function AdminReturnRequest() {
                     </svg>
                   </div>
                 </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">
+                  Seller
+                </th>
                 <th
                   className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
                   onClick={() => handleSort("product")}>
@@ -618,9 +654,9 @@ export default function AdminReturnRequest() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-neutral-200">
-              {loading ? (
+               {loading ? (
                 <tr>
-                  <td colSpan={11} className="px-4 sm:px-6 py-8 text-center">
+                  <td colSpan={12} className="px-4 sm:px-6 py-8 text-center">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600 mr-2"></div>
                       Loading return requests...
@@ -630,7 +666,7 @@ export default function AdminReturnRequest() {
               ) : error ? (
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={12}
                     className="px-4 sm:px-6 py-8 text-center text-red-600">
                     {error}
                   </td>
@@ -638,7 +674,7 @@ export default function AdminReturnRequest() {
               ) : displayedRequests.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={12}
                     className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
                     No return requests found
                   </td>
@@ -646,16 +682,19 @@ export default function AdminReturnRequest() {
               ) : (
                 displayedRequests.map((request) => (
                   <tr key={request._id} className="hover:bg-neutral-50">
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
+                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 max-w-[120px] truncate" title={request.orderItemId}>
                       {request.orderItemId}
                     </td>
                     <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">
                       {request.userName}
                     </td>
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
+                    <td className="px-4 sm:px-6 py-3 text-sm text-teal-800 font-semibold">
+                      {request.sellerName}
+                    </td>
+                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600 max-w-[180px] truncate" title={request.productName}>
                       {request.productName}
                     </td>
-                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
+                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600 max-w-[120px] truncate" title={request.variant}>
                       {request.variant || "-"}
                     </td>
                     <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
@@ -672,13 +711,15 @@ export default function AdminReturnRequest() {
                     </td>
                     <td className="px-4 sm:px-6 py-3">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${request.status === "Approved"
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${request.status === "Completed"
                           ? "bg-green-100 text-green-800"
-                          : request.status === "Pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : request.status === "Rejected"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-blue-100 text-blue-800"
+                          : request.status === "Approved"
+                            ? "bg-teal-100 text-teal-800"
+                            : request.status === "Pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : request.status === "Rejected"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-blue-100 text-blue-800"
                           }`}>
                         {request.status}
                       </span>
@@ -688,13 +729,30 @@ export default function AdminReturnRequest() {
                     </td>
                     <td className="px-4 sm:px-6 py-3">
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedRequest(request)}
+                          className="p-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors"
+                          title="View Proof & Details">
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                        </button>
                         {request.status === "Pending" ? (
                           <>
                             <button
                               onClick={() => handleApproveReturn(request._id)}
                               disabled={updating === request._id}
-                              className="p-1.5 bg-green-100 hover:bg-green-200 disabled:bg-neutral-100 disabled:text-neutral-400 text-green-700 rounded transition-colors"
-                              title="Approve">
+                              className="p-1.5 bg-teal-50 hover:bg-teal-100 disabled:bg-neutral-100 disabled:text-neutral-400 text-teal-700 rounded transition-colors"
+                              title="Approve Pickup">
                               <svg
                                 width="16"
                                 height="16"
@@ -710,7 +768,49 @@ export default function AdminReturnRequest() {
                             <button
                               onClick={() => handleRejectReturn(request._id)}
                               disabled={updating === request._id}
-                              className="p-1.5 bg-red-100 hover:bg-red-200 disabled:bg-neutral-100 disabled:text-neutral-400 text-red-700 rounded transition-colors"
+                              className="p-1.5 bg-red-50 hover:bg-red-100 disabled:bg-neutral-100 disabled:text-neutral-400 text-red-700 rounded transition-colors"
+                              title="Reject">
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                              </svg>
+                            </button>
+                          </>
+                        ) : request.status === "Processing" ? (
+                          <>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to COMPLETE this return request and REFUND ₹${request.total.toFixed(2)} to the customer's wallet?`)) {
+                                  handleCompleteReturn(request._id);
+                                }
+                              }}
+                              disabled={updating === request._id}
+                              className="p-1.5 bg-green-600 hover:bg-green-700 disabled:bg-neutral-100 disabled:text-neutral-400 text-white rounded transition-colors"
+                              title="Approve & Refund">
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleRejectReturn(request._id)}
+                              disabled={updating === request._id}
+                              className="p-1.5 bg-red-50 hover:bg-red-100 disabled:bg-neutral-100 disabled:text-neutral-400 text-red-700 rounded transition-colors"
                               title="Reject">
                               <svg
                                 width="16"
@@ -727,10 +827,8 @@ export default function AdminReturnRequest() {
                             </button>
                           </>
                         ) : (
-                          <span className="text-sm text-neutral-400">
-                            {request.status === "Approved"
-                              ? "Approved"
-                              : "Rejected"}
+                          <span className="text-xs font-semibold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">
+                            {request.status}
                           </span>
                         )}
                       </div>
@@ -809,6 +907,183 @@ export default function AdminReturnRequest() {
           KlydoCart
         </a>
       </div>
+
+      {/* Detail Modal */}
+      {selectedRequest && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-neutral-100 flex flex-col">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between sticky top-0 bg-white z-10">
+              <h3 className="font-bold text-lg text-neutral-900">Return Request Proof & Details</h3>
+              <button
+                onClick={() => setSelectedRequest(null)}
+                className="text-neutral-400 hover:text-neutral-600 transition-colors p-1.5 rounded-full hover:bg-neutral-100">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6 overflow-y-auto">
+              {/* Overview Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-neutral-50 rounded-xl">
+                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">Customer Details</p>
+                  <p className="font-semibold text-neutral-800">{selectedRequest.userName}</p>
+                  <p className="text-xs text-neutral-500">ID: {selectedRequest.userId}</p>
+                </div>
+                <div className="p-4 bg-neutral-50 rounded-xl">
+                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">Seller Store (Returned To)</p>
+                  <p className="font-semibold text-neutral-800">{selectedRequest.sellerName}</p>
+                  <p className="text-xs text-neutral-500">ID: {selectedRequest.sellerId}</p>
+                </div>
+                <div className="p-4 bg-neutral-50 rounded-xl">
+                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">Product Details</p>
+                  <p className="font-semibold text-neutral-800">{selectedRequest.productName}</p>
+                  <p className="text-sm text-neutral-600">Qty: {selectedRequest.quantity} | Total: ₹{selectedRequest.total.toFixed(2)}</p>
+                </div>
+                <div className="p-4 bg-neutral-50 rounded-xl">
+                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">Status Details</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                      selectedRequest.status === "Approved"
+                        ? "bg-green-100 text-green-800"
+                        : selectedRequest.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : selectedRequest.status === "Rejected"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-blue-100 text-blue-800"
+                    }`}>
+                      Return: {selectedRequest.status}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-neutral-100 text-neutral-700">
+                      Pickup: {selectedRequest.pickupStatus || "Pending"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Return Reason */}
+              <div className="p-4 border border-neutral-100 rounded-xl bg-orange-50/50">
+                <p className="text-xs font-bold text-orange-700 uppercase tracking-wider mb-1">Reason for Return</p>
+                <p className="text-sm text-neutral-700 leading-relaxed font-medium">{selectedRequest.reason}</p>
+              </div>
+
+              {/* Delivery Proof Photos */}
+              <div className="space-y-4">
+                <h4 className="font-bold text-neutral-800 text-sm border-b border-neutral-100 pb-2 flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-500"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  Delivery Partner Verification Proof
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Return Pickup Photo */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider">1. Customer Pickup Proof</p>
+                    {selectedRequest.pickupImages && selectedRequest.pickupImages.length > 0 ? (
+                      <div className="rounded-xl overflow-hidden border border-neutral-200 bg-neutral-50 h-48">
+                        <img
+                          src={selectedRequest.pickupImages[0]}
+                          alt="Return Pickup Proof"
+                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                          onClick={() => window.open(selectedRequest.pickupImages?.[0], "_blank")}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center border-2 border-dashed border-neutral-200 rounded-xl h-48 bg-neutral-50 text-neutral-400">
+                        <p className="text-xs font-medium">No pickup image uploaded</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Seller Drop-off Photo */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider">2. Seller Drop-off Proof (Proof of Delivery)</p>
+                    {selectedRequest.dropoffImages && selectedRequest.dropoffImages.length > 0 ? (
+                      <div className="rounded-xl overflow-hidden border border-neutral-200 bg-neutral-50 h-48">
+                        <img
+                          src={selectedRequest.dropoffImages[0]}
+                          alt="Seller Drop-off Proof"
+                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+                          onClick={() => window.open(selectedRequest.dropoffImages?.[0], "_blank")}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center border-2 border-dashed border-neutral-200 rounded-xl h-48 bg-neutral-50 text-neutral-400">
+                        <p className="text-xs font-medium">No drop-off image uploaded yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer / Actions */}
+            <div className="px-6 py-4 border-t border-neutral-100 bg-neutral-50 flex items-center justify-end gap-3 rounded-b-2xl">
+              <button
+                onClick={() => setSelectedRequest(null)}
+                className="px-4 py-2 border border-neutral-200 rounded-xl text-neutral-700 font-semibold hover:bg-neutral-100 transition-colors">
+                Close
+              </button>
+              {selectedRequest.status === "Pending" && (
+                <>
+                  <button
+                    onClick={async () => {
+                      if (window.confirm("Are you sure you want to REJECT this return request?")) {
+                        const reqId = selectedRequest._id;
+                        setSelectedRequest(null);
+                        await handleRejectReturn(reqId);
+                      }
+                    }}
+                    disabled={updating === selectedRequest._id}
+                    className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-bold transition-colors">
+                    Reject
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (window.confirm(`Are you sure you want to APPROVE this return request for pickup?`)) {
+                        const reqId = selectedRequest._id;
+                        setSelectedRequest(null);
+                        await handleApproveReturn(reqId);
+                      }
+                    }}
+                    disabled={updating === selectedRequest._id}
+                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold shadow-md transition-colors">
+                    Approve Pickup
+                  </button>
+                </>
+              )}
+              {selectedRequest.status === "Processing" && (
+                <>
+                  <button
+                    onClick={async () => {
+                      if (window.confirm("Are you sure you want to REJECT this return request?")) {
+                        const reqId = selectedRequest._id;
+                        setSelectedRequest(null);
+                        await handleRejectReturn(reqId);
+                      }
+                    }}
+                    disabled={updating === selectedRequest._id}
+                    className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-bold transition-colors">
+                    Reject
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (window.confirm(`Are you sure you want to COMPLETE this return request and REFUND ₹${selectedRequest.total.toFixed(2)} to the customer's wallet?`)) {
+                        const reqId = selectedRequest._id;
+                        setSelectedRequest(null);
+                        await handleCompleteReturn(reqId);
+                      }
+                    }}
+                    disabled={updating === selectedRequest._id}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-md transition-colors">
+                    Approve & Refund
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

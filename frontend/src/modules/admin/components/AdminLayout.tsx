@@ -33,8 +33,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </div>
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 w-full ${
-        isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
+      <div className={`flex-1 flex flex-col transition-all duration-300 min-w-0 ${
+        isSidebarOpen ? 'lg:pl-64' : 'pl-0'
       }`}>
         {/* Header */}
         <AdminHeader onMenuClick={toggleSidebar} isSidebarOpen={isSidebarOpen} />
