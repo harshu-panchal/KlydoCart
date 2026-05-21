@@ -7,6 +7,7 @@ import { getSubcategories } from "../../../services/api/categoryService";
 import { apiCache } from "../../../utils/apiCache";
 import { useLocation } from "../../../hooks/useLocation";
 import { calculateProductPrice } from "../../../utils/priceUtils";
+import { useThemeContext } from "../../../context/ThemeContext";
 
 interface PromoCard {
   id: string;
@@ -43,6 +44,7 @@ interface PromoStripProps {
 
 export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
   const { location } = useLocation();
+  const { setActiveCategory } = useThemeContext();
   const theme = getTheme(activeTab);
   const navigate = useNavigate();
   const [categoryCards, setCategoryCards] = useState<PromoCard[]>([]);
@@ -728,14 +730,16 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
       {/* Main Content: Crazy Deals + Category Cards */}
       <div className="px-4 mt-2 md:px-8 md:pb-4 md:max-w-screen-xl md:mx-auto">
         <div ref={containerRef} className="flex gap-2 md:gap-4">
-          {/* Crazy Deals Section - Left */}
-          <div className="flex-shrink-0 w-[115px] md:w-[190px] promo-card self-start">
+          {/* Left Column for Crazy Deals & Fast Food */}
+          <div className="flex flex-col gap-2 md:gap-4 flex-shrink-0 w-[115px] md:w-[190px] self-start">
+            {/* Crazy Deals Box */}
+            <div className="promo-card">
             <div
               className="rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg"
               style={{
                 background: `radial-gradient(circle at center, rgba(255, 255, 255, 0.15), transparent 60%), linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`,
-                height: "180px",
-                minHeight: "180px",
+                height: "145px",
+                minHeight: "145px",
               }}>
               {/* CRAZY DEALS - Two lines, bigger */}
               <div className="text-center mb-1.5 md:mb-2" style={{ marginTop: "4px" }}>
@@ -789,7 +793,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
               <div
                 ref={productNameRef}
                 onClick={handleProductClick}
-                className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 cursor-pointer hover:underline line-clamp-2 md:bg-white/80 md:backdrop-blur-sm md:rounded-md md:px-1 md:py-0.5 w-[95%]"
+                className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 cursor-pointer hover:underline line-clamp-1 md:bg-white/80 md:backdrop-blur-sm md:rounded-md md:px-1 md:py-0.5 w-[95%] relative z-10"
                 title={displayProduct.productName || displayProduct.name}>
                 {displayProduct.productName || displayProduct.name}
               </div>
@@ -797,11 +801,11 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
               {/* Product Thumbnail - Bottom Center, sized to container */}
               <div
                 ref={productImageRef}
-                className="flex-1 flex items-end justify-center w-full min-h-[50px] md:min-h-[80px]"
+                className="flex-1 flex items-end justify-center w-full min-h-[30px] md:min-h-[50px]"
                 >
                 <div
                   onClick={handleProductClick}
-                  className="w-16 h-20 md:w-28 md:h-28 rounded md:rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  className="w-12 h-12 md:w-20 md:h-20 rounded md:rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                   style={{ background: "transparent" }}>
                   {displayProduct.imageUrl ? (
                     <img
@@ -845,6 +849,64 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                 </div>
               </div>
             </div>
+            </div>
+
+            {/* Fast Food Box */}
+            <div className="promo-card mb-2 md:mb-4">
+              <div
+                onClick={() => {
+                  setActiveCategory("hotpink");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="block cursor-pointer"
+              >
+                <div
+                  className="rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg"
+                  style={{
+                    background: `radial-gradient(circle at center, rgba(255, 255, 255, 0.15), transparent 60%), linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`,
+                    height: "145px",
+                    minHeight: "145px",
+                  }}>
+                  {/* FAST FOOD Title */}
+                  <div className="text-center mb-1.5 md:mb-2" style={{ marginTop: "4px" }}>
+                    <div
+                      className="text-white font-black leading-tight flex flex-col items-center justify-center"
+                      style={{
+                        fontFamily: "sans-serif",
+                        textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8), 1px 1px 2px rgba(0, 0, 0, 0.9)",
+                        letterSpacing: "0.5px",
+                      }}>
+                      <div className="text-[9px] md:text-sm whitespace-nowrap">RESTAURANT &</div>
+                      <div className="text-[12px] md:text-lg whitespace-nowrap">FAST FOOD</div>
+                    </div>
+                  </div>
+
+                  {/* Price Banner */}
+                  <div className="flex flex-col items-center mb-0.5 md:mb-2 relative">
+                    <div className="bg-neutral-600 rounded px-1.5 md:px-2 inline-block relative z-10" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
+                      <span className="text-white text-[8px] md:text-[10px] font-medium line-through leading-none md:font-semibold">₹199</span>
+                    </div>
+                    <div className="bg-green-500 rounded px-2 md:px-3 inline-block relative -mt-0.5 md:-mt-1 md:shadow-md z-20" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
+                      <span className="text-white text-[9px] md:text-sm md:py-0.5 font-bold leading-none block">₹99</span>
+                    </div>
+                  </div>
+
+                  {/* Subtitle */}
+                  <div className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 md:bg-white/80 md:backdrop-blur-sm md:rounded-md md:px-1 md:py-0.5 w-[95%] line-clamp-1 relative z-10">
+                    Burger & Pizza
+                  </div>
+
+                  {/* Image */}
+                  <div className="flex-1 flex items-end justify-center w-full min-h-[30px] md:min-h-[50px]">
+                    <div className="w-12 h-12 md:w-20 md:h-20 rounded md:rounded-lg flex items-center justify-center overflow-hidden" style={{ background: "transparent" }}>
+                      <div className="w-full h-full bg-gradient-to-b from-orange-100 to-orange-50 flex items-center justify-center">
+                        <span className="text-3xl md:text-5xl">🍔</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Category Cards Grid - Right */}
@@ -865,7 +927,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                     }}>
 
                     {/* Green Badge - pill style, centered */}
-                    <div className="w-full flex justify-center pt-2 pb-1">
+                    <div className="w-full flex justify-center pt-1.5 pb-0.5">
                       <div
                         className="bg-green-600 text-white text-[9px] font-black px-3 py-[3px] rounded-full tracking-tight text-center shadow-sm"
                         style={{ letterSpacing: "0.3px" }}>
@@ -875,8 +937,8 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
 
                     {/* Category Title */}
                     <div
-                      className="text-neutral-900 font-black text-center text-[11px] px-1 mb-1.5"
-                      style={{ lineHeight: "1.2" }}>
+                      className="text-neutral-900 font-black text-center text-[10px] leading-tight px-1 mb-1 line-clamp-1"
+                      title={card.title}>
                       {card.title}
                     </div>
 

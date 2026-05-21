@@ -5,7 +5,6 @@ import HomeBannerCarousel from "./components/HomeBannerCarousel";
 import PromoStrip from "./components/PromoStrip";
 import LowestPricesEver from "./components/LowestPricesEver";
 import CategoryTileSection from "./components/CategoryTileSection";
-import FeaturedThisWeek from "./components/FeaturedThisWeek";
 import ProductCard from "./components/ProductCard";
 import { getHomeContent } from "../../services/api/customerHomeService";
 import { getHeaderCategoriesPublic } from "../../services/api/headerCategoryService";
@@ -317,7 +316,6 @@ export default function Home() {
                   />
                 </div>
 
-                <FeaturedThisWeek />
               </>
             )}
 
