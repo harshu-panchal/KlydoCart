@@ -16,6 +16,9 @@ router.post("/location", authenticate, customerController.updateLocation);
 // Credit wallet (for demo/testing)
 router.post("/wallet/credit", authenticate, customerController.creditWallet);
 
+// Get wallet transactions (protected route)
+router.get("/wallet/transactions", authenticate, customerController.getWalletTransactions);
+
 // Get customer location (protected route)
 router.get("/location", authenticate, customerController.getLocation);
 

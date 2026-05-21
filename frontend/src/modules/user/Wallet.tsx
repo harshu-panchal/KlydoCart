@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { getProfile, CustomerProfile, creditWallet } from "../../services/api/customerService";
+import { getProfile, CustomerProfile, creditWallet, getWalletTransactions, WalletTransaction } from "../../services/api/customerService";
 import { useAuth } from "../../context/AuthContext";
 import { useThemeContext } from "../../context/ThemeContext";
 
@@ -9,24 +9,29 @@ export default function Wallet() {
   const { currentTheme } = useThemeContext();
   const { user } = useAuth();
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndTransactions = async () => {
       try {
         const response = await getProfile();
         if (response.success) {
           setProfile(response.data);
         }
+        const transRes = await getWalletTransactions();
+        if (transRes.success) {
+          setTransactions(transRes.data);
+        }
       } catch (err) {
-        console.error("Failed to load wallet balance", err);
+        console.error("Failed to load wallet data", err);
       } finally {
         setLoading(false);
       }
     };
 
     if (user) {
-      fetchProfile();
+      fetchProfileAndTransactions();
     } else {
       setLoading(false);
       navigate("/login");
@@ -48,6 +53,11 @@ export default function Wallet() {
       if (response.success) {
         setProfile(prev => prev ? { ...prev, walletAmount: response.data.walletAmount } : null);
         alert(`₹${amount.toFixed(2)} added successfully!`);
+        // Refresh transactions list
+        const transRes = await getWalletTransactions();
+        if (transRes.success) {
+          setTransactions(transRes.data);
+        }
       }
     } catch (err) {
       console.error("Failed to add funds", err);
@@ -112,14 +122,47 @@ export default function Wallet() {
         </div>
         
         <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden divide-y divide-neutral-50">
-          {/* Empty State - Compact */}
-          <div className="p-10 flex flex-col items-center text-center">
-            <div className="w-12 h-12 bg-neutral-50 rounded-full flex items-center justify-center mb-3">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          {loading ? (
+            <div className="p-10 text-center text-xs font-bold text-neutral-400">Loading activity...</div>
+          ) : transactions.length === 0 ? (
+            /* Empty State - Compact */
+            <div className="p-10 flex flex-col items-center text-center">
+              <div className="w-12 h-12 bg-neutral-50 rounded-full flex items-center justify-center mb-3">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+              </div>
+              <p className="text-neutral-900 font-bold text-xs">No activity found</p>
+              <p className="text-neutral-400 text-[10px] mt-1">Transactions will appear here</p>
             </div>
-            <p className="text-neutral-900 font-bold text-xs">No activity found</p>
-            <p className="text-neutral-400 text-[10px] mt-1">Transactions will appear here</p>
-          </div>
+          ) : (
+            transactions.map((tx) => (
+              <div key={tx._id} className="p-4 flex items-center justify-between hover:bg-neutral-50/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                      tx.type === 'Credit' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                    }`}
+                  >
+                    {tx.type === 'Credit' ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-neutral-900 leading-normal">{tx.description}</p>
+                    <p className="text-[9px] text-neutral-400 font-semibold uppercase tracking-wider mt-0.5">
+                      {new Date(tx.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} • {tx.reference}
+                    </p>
+                  </div>
+                </div>
+                <div className={`text-sm font-black tracking-tight ${
+                  tx.type === 'Credit' ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {tx.type === 'Credit' ? '+' : '-'}₹{tx.amount.toFixed(2)}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

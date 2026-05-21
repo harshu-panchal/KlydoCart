@@ -11,6 +11,10 @@ interface Location {
     name?: string
 }
 
+const isValidLatLng = (loc?: Location | null): loc is Location => {
+    return !!(loc && typeof loc.lat === 'number' && typeof loc.lng === 'number' && !isNaN(loc.lat) && !isNaN(loc.lng) && loc.lat !== 0 && loc.lng !== 0);
+};
+
 interface GoogleMapsTrackingProps {
     storeLocation?: Location
     sellerLocations?: Location[]
@@ -99,16 +103,22 @@ export default function GoogleMapsTracking({
     const allSellers = storeLocation ? [storeLocation, ...sellerLocations] : sellerLocations;
 
     // Center will be updated dynamically based on deliveryLocation
-    const center = deliveryLocation || (allSellers.length > 0 ? {
-        lat: (allSellers[0].lat + customerLocation.lat) / 2,
-        lng: (allSellers[0].lng + customerLocation.lng) / 2
-    } : customerLocation)
+    const center = isValidLatLng(deliveryLocation)
+        ? deliveryLocation
+        : (allSellers.length > 0 && isValidLatLng(allSellers[0]) && isValidLatLng(customerLocation)
+            ? {
+                lat: (allSellers[0].lat + customerLocation.lat) / 2,
+                lng: (allSellers[0].lng + customerLocation.lng) / 2
+              }
+            : (isValidLatLng(customerLocation)
+                ? customerLocation
+                : { lat: 20.5937, lng: 78.9629 }));
 
     const path = [
         ...allSellers,
         ...(deliveryLocation ? [deliveryLocation] : []),
         customerLocation
-    ].filter(loc => loc && (loc.lat !== 0 || loc.lng !== 0))
+    ].filter(isValidLatLng);
 
     // Auto-center and fit bounds when location or route changes
     useEffect(() => {
@@ -118,29 +128,37 @@ export default function GoogleMapsTracking({
         let hasPoints = false;
 
         // Add delivery location (focus point)
-        if (deliveryLocation) {
+        if (isValidLatLng(deliveryLocation)) {
             bounds.extend(deliveryLocation);
             hasPoints = true;
         }
 
         // Add route points if visible
-        if (showRoute && routeOrigin && routeDestination) {
+        if (showRoute && isValidLatLng(routeOrigin) && isValidLatLng(routeDestination)) {
             bounds.extend(routeOrigin);
             bounds.extend(routeDestination);
-            routeWaypoints.forEach(wp => bounds.extend(wp));
+            routeWaypoints.forEach(wp => {
+                if (isValidLatLng(wp)) {
+                    bounds.extend(wp);
+                }
+            });
             hasPoints = true;
         } else {
             // Add other locations if route not showing
-            if (storeLocation) {
+            if (isValidLatLng(storeLocation)) {
                 bounds.extend(storeLocation);
                 hasPoints = true;
             }
             sellerLocations.forEach(s => {
-                bounds.extend(s);
-                hasPoints = true;
+                if (isValidLatLng(s)) {
+                    bounds.extend(s);
+                    hasPoints = true;
+                }
             });
-            bounds.extend(customerLocation);
-            hasPoints = true;
+            if (isValidLatLng(customerLocation)) {
+                bounds.extend(customerLocation);
+                hasPoints = true;
+            }
         }
 
         if (hasPoints) {
@@ -149,7 +167,7 @@ export default function GoogleMapsTracking({
             }
 
             // If in full screen or only have delivery location, focus on delivery boy
-            if (deliveryLocation && (isFullScreen || !showRoute)) {
+            if (isValidLatLng(deliveryLocation) && (isFullScreen || !showRoute)) {
                 mapRef.current.panTo(deliveryLocation);
                 if (!hasInitialBoundsFitted.current || isFullScreen) {
                     mapRef.current.setZoom(isFullScreen ? 17 : 15);
@@ -176,24 +194,44 @@ export default function GoogleMapsTracking({
         setUserHasInteracted(false);
         hasInitialBoundsFitted.current = false;
         if (mapRef.current) {
-            if (deliveryLocation && (isFullScreen || !showRoute)) {
+            if (isValidLatLng(deliveryLocation) && (isFullScreen || !showRoute)) {
                 mapRef.current.panTo(deliveryLocation);
                 mapRef.current.setZoom(isFullScreen ? 17 : 15);
                 hasInitialBoundsFitted.current = true;
             } else {
                 const bounds = new window.google.maps.LatLngBounds();
-                if (deliveryLocation) bounds.extend(deliveryLocation);
-                if (showRoute && routeOrigin && routeDestination) {
+                let hasPoints = false;
+                if (isValidLatLng(deliveryLocation)) {
+                    bounds.extend(deliveryLocation);
+                    hasPoints = true;
+                }
+                if (showRoute && isValidLatLng(routeOrigin) && isValidLatLng(routeDestination)) {
                     bounds.extend(routeOrigin);
                     bounds.extend(routeDestination);
-                    routeWaypoints.forEach(wp => bounds.extend(wp));
+                    routeWaypoints.forEach(wp => {
+                        if (isValidLatLng(wp)) bounds.extend(wp);
+                    });
+                    hasPoints = true;
                 } else {
-                    if (storeLocation) bounds.extend(storeLocation);
-                    sellerLocations.forEach(s => bounds.extend(s));
-                    bounds.extend(customerLocation);
+                    if (isValidLatLng(storeLocation)) {
+                        bounds.extend(storeLocation);
+                        hasPoints = true;
+                    }
+                    sellerLocations.forEach(s => {
+                        if (isValidLatLng(s)) {
+                            bounds.extend(s);
+                            hasPoints = true;
+                        }
+                    });
+                    if (isValidLatLng(customerLocation)) {
+                        bounds.extend(customerLocation);
+                        hasPoints = true;
+                    }
                 }
-                mapRef.current.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
-                hasInitialBoundsFitted.current = true;
+                if (hasPoints) {
+                    mapRef.current.fitBounds(bounds, { top: 50, bottom: 50, left: 50, right: 50 });
+                    hasInitialBoundsFitted.current = true;
+                }
             }
         }
     };
@@ -243,7 +281,7 @@ export default function GoogleMapsTracking({
         }
 
         // Validate origin and destination
-        if (!origin || !destination || !origin.lat || !origin.lng || !destination.lat || !destination.lng) {
+        if (!isValidLatLng(origin) || !isValidLatLng(destination)) {
             console.log('⚠️ Cannot calculate route: invalid origin or destination', { origin, destination })
             return
         }
@@ -289,10 +327,12 @@ export default function GoogleMapsTracking({
         }
 
         // Prepare waypoints
-        const googleWaypoints = waypoints.map(wp => ({
-            location: new window.google.maps.LatLng(wp.lat, wp.lng),
-            stopover: true
-        }));
+        const googleWaypoints = waypoints
+            .filter(isValidLatLng)
+            .map(wp => ({
+                location: new window.google.maps.LatLng(wp.lat, wp.lng),
+                stopover: true
+            }));
 
         // Calculate route
         directionsServiceRef.current.route(
@@ -387,7 +427,7 @@ export default function GoogleMapsTracking({
 
     // Animation Logic
     useEffect(() => {
-        if (!deliveryLocation) return;
+        if (!isValidLatLng(deliveryLocation)) return;
 
         // If no previous location, snap to current (initial load)
         if (!lastDeliveryLocationRef.current) {
@@ -576,7 +616,7 @@ export default function GoogleMapsTracking({
             >
                 {/* Customer Marker */}
                 {/* Customer Marker - Only show if valid location */}
-                {customerLocation && (customerLocation.lat !== 0 || customerLocation.lng !== 0) && (
+                {isValidLatLng(customerLocation) && (
                 <Marker
                     position={customerLocation}
                     icon={{
@@ -588,7 +628,7 @@ export default function GoogleMapsTracking({
                 )}
 
                 {/* Seller Markers */}
-                {allSellers.map((seller, index) => (
+                {allSellers.filter(isValidLatLng).map((seller, index) => (
                     <Marker
                         key={`seller-${index}`}
                         position={seller}
@@ -608,7 +648,7 @@ export default function GoogleMapsTracking({
                 ))}
 
                 {/* Delivery Partner Marker (Animated) */}
-                {animatedDeliveryLocation && (
+                {isValidLatLng(animatedDeliveryLocation) && (
                     <Marker
                         position={animatedDeliveryLocation}
                         icon={{

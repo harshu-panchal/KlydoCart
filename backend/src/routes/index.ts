@@ -17,6 +17,7 @@ import categoryRoutes from "./categoryRoutes";
 import orderRoutes from "./orderRoutes";
 import fcmTokenRoutes from "./fcmTokenRoutes";
 import returnRoutes from "./returnRoutes";
+import adminReturnRoutes from "./adminReturnRoutes";
 import reportRoutes from "./reportRoutes";
 import adminWithdrawalRoutes from "./adminWithdrawalRoutes";
 import deliveryWalletRoutes from "./deliveryWalletRoutes";
@@ -36,6 +37,7 @@ import customerTrackingRoutes from "../modules/customer/routes/trackingRoutes";
 import deliveryTrackingRoutes from "../modules/delivery/routes/trackingRoutes";
 import customerBannerRoutes from "./customerBannerRoutes";
 import stockNotificationRoutes from "../modules/customer/routes/stockNotificationRoutes";
+import customerReturnRoutes from "./customerReturnRoutes";
 import paymentRoutes from "./paymentRoutes";
 import publicRoutes from "./publicRoutes";
 import {
@@ -116,6 +118,7 @@ router.use("/customer/cart", customerCartRoutes);
 router.use("/customer/wishlist", wishlistRoutes);
 router.use("/customer/reviews", productReviewRoutes);
 router.use("/customer/stock-notifications", stockNotificationRoutes);
+router.use("/customer/returns", customerReturnRoutes);
 // General customer route (must be last to avoid intercepting specific routes)
 router.use("/customer", customerRoutes);
 
@@ -137,6 +140,7 @@ router.use("/public", publicRoutes);
 // Admin routes (protected, admin only)
 router.use("/admin", adminRoutes);
 router.use("/admin/sellers-manage", authenticate, requireUserType("Admin"), adminSellerManagementRoutes);
+router.use("/admin/returns", adminReturnRoutes);
 router.use("/admin", adminWithdrawalRoutes);
 
 // Upload routes (protected)

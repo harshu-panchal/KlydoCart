@@ -673,6 +673,9 @@ export const getOrderById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const userId = req.user!.userId;
+        
+        // Import Return model if not already imported
+        const Return = mongoose.model('Return');
 
         // Find order and ensure it belongs to the user
         const order = await Order.findOne({ _id: id, customer: userId })
@@ -696,6 +699,10 @@ export const getOrderById = async (req: Request, res: Response) => {
         const customer = await Customer.findById(userId).select('deliveryOtp');
         const deliveryOtp = customer?.deliveryOtp;
 
+        // Check for active return requests
+        const activeReturns = await Return.find({ order: id, status: { $nin: ["Rejected"] } });
+        const hasReturnRequest = activeReturns.length > 0;
+
         // Transform order to match frontend Order type
         const orderObj = order.toObject();
         const transformedOrder = {
@@ -715,7 +722,9 @@ export const getOrderById = async (req: Request, res: Response) => {
             // Include customer's permanent delivery OTP
             deliveryOtp,
             // Map deliveryBoy to deliveryPartner for frontend
-            deliveryPartner: orderObj.deliveryBoy
+            deliveryPartner: orderObj.deliveryBoy,
+            // Flag if a return request exists
+            hasReturnRequest
         };
 
         return res.status(200).json({

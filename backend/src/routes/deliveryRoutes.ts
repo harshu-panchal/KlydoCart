@@ -6,6 +6,7 @@ import { getProfile } from "../modules/delivery/controllers/deliveryAuthControll
 
 import * as deliveryProfileController from "../modules/delivery/controllers/deliveryProfileController";
 import * as deliveryNotificationController from "../modules/delivery/controllers/deliveryNotificationController";
+import * as deliveryReturnController from "../modules/delivery/controllers/deliveryReturnController";
 
 const router = Router();
 
@@ -44,6 +45,12 @@ router.post("/orders/:id/verify-delivery-otp", deliveryOrderController.verifyDel
 router.post("/orders/:id/check-seller-proximity", deliveryOrderController.checkSellerProximity);
 router.post("/orders/:id/confirm-seller-pickup", deliveryOrderController.confirmSellerPickup);
 router.post("/orders/:id/check-customer-proximity", deliveryOrderController.checkCustomerProximity);
+
+// Return Pickups
+router.get("/returns/assigned", deliveryReturnController.getAssignedReturns);
+router.post("/returns/:id/accept", deliveryReturnController.acceptReturnPickup);
+router.post("/returns/:id/pickup", deliveryReturnController.confirmReturnPickup);
+router.post("/returns/:id/dropoff", deliveryReturnController.confirmReturnDropoff);
 
 // Earnings
 router.get("/earnings", deliveryEarningController.getEarningsHistory);

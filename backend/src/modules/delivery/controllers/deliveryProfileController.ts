@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Delivery from "../../../models/Delivery";
-import { scanOrdersForDeliveryBoy } from "../../../services/orderNotificationService";
+import { scanOrdersForDeliveryBoy, scanReturnsForDeliveryBoy } from "../../../services/orderNotificationService";
 
 /**
  * Update Delivery Profile
@@ -98,6 +98,9 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
             // Background scan to not block response
             scanOrdersForDeliveryBoy(io, deliveryId as string).catch(err => 
                 console.error('Error scanning orders after going online:', err)
+            );
+            scanReturnsForDeliveryBoy(io, deliveryId as string).catch(err => 
+                console.error('Error scanning returns after going online:', err)
             );
         }
     }

@@ -260,3 +260,29 @@ export const creditWallet = asyncHandler(async (req: Request, res: Response) => 
     },
   });
 });
+
+/**
+ * Get customer wallet transactions history
+ */
+export const getWalletTransactions = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.userId;
+  const WalletTransaction = require("../../../models/WalletTransaction").default;
+
+  if (!userId || (req as any).user?.userType !== "Customer") {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized or not a customer",
+    });
+  }
+
+  const transactions = await WalletTransaction.find({
+    userId,
+    userType: 'CUSTOMER'
+  }).sort({ createdAt: -1 });
+
+  return res.status(200).json({
+    success: true,
+    message: "Wallet transactions retrieved successfully",
+    data: transactions
+  });
+});

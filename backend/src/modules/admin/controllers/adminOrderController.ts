@@ -5,6 +5,9 @@ import OrderItem from "../../../models/OrderItem";
 import Delivery from "../../../models/Delivery";
 import DeliveryAssignment from "../../../models/DeliveryAssignment";
 import Return from "../../../models/Return";
+import Customer from "../../../models/Customer";
+import WalletTransaction from "../../../models/WalletTransaction";
+import mongoose from "mongoose";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
 import { Server as SocketIOServer } from "socket.io";
 
@@ -377,6 +380,7 @@ export const getReturnRequests = asyncHandler(
       Return.find(query)
         .populate("order", "orderNumber")
         .populate("customer", "name email phone")
+        .populate("seller", "storeName")
         .populate({
           path: "orderItem",
           populate: {
@@ -403,6 +407,8 @@ export const getReturnRequests = asyncHandler(
       orderItemId: req.orderItem?._id, // Frontend displays this
       userId: req.customer?._id,
       userName: req.customer?.name || "Unknown",
+      sellerId: req.seller?._id,
+      sellerName: req.seller?.storeName || "Unknown Seller",
       // product info from orderItem
       productId: req.orderItem?.product?._id,
       productName: req.orderItem?.productName || "Unknown Product",
@@ -412,6 +418,9 @@ export const getReturnRequests = asyncHandler(
       total: req.quantity * (req.orderItem?.unitPrice || 0),
       reason: req.reason,
       status: req.status,
+      pickupStatus: req.pickupStatus,
+      pickupImages: req.pickupImages || [],
+      dropoffImages: req.dropoffImages || [],
       requestedAt: req.createdAt,
       processedAt: req.processedAt,
     }));
@@ -471,6 +480,7 @@ export const processReturnRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status, rejectionReason, refundAmount, adminNotes } = req.body;
+    const adminId = req.user?.userId;
 
     const validStatuses = ["Approved", "Rejected", "Processing", "Completed"];
     if (status && !validStatuses.includes(status)) {
@@ -480,45 +490,120 @@ export const processReturnRequest = asyncHandler(
       });
     }
 
-    const returnRequest = await Return.findById(id);
-    if (!returnRequest) {
-      return res.status(404).json({
-        success: false,
-        message: "Return request not found",
-      });
+    let session = null;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+    } catch (e) {
+      console.warn("MongoDB Transactions not supported or failed to start. Proceeding without transaction.");
+      session = null;
     }
 
-    const updateData: any = {
-      processedBy: req.user?.userId,
-      processedAt: new Date(),
-    };
+    try {
+      const returnRequest = session
+        ? await Return.findById(id).populate("orderItem").session(session)
+        : await Return.findById(id).populate("orderItem");
 
-    if (status) updateData.status = status;
+      if (!returnRequest) {
+        if (session) await session.abortTransaction();
+        return res.status(404).json({
+          success: false,
+          message: "Return request not found",
+        });
+      }
+      if (returnRequest.status === "Completed") {
+        if (session) await session.abortTransaction();
+        return res.status(400).json({ success: false, message: "Return is already completed and refunded" });
+      }
 
-    // Handle rejection reason (frontend sends 'adminNotes' for rejection reason)
-    if (status === "Rejected") {
-      if (rejectionReason) updateData.rejectionReason = rejectionReason;
-      else if (adminNotes) updateData.rejectionReason = adminNotes;
-    }
+      const updateData: any = {
+        processedBy: adminId,
+        processedAt: new Date(),
+      };
 
-    if (status === "Approved" && refundAmount) {
-      updateData.refundAmount = refundAmount;
-    }
+      if (status) updateData.status = status;
 
-    const updatedReturn = await Return.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    })
-      .populate("order")
-      .populate("orderItem")
-      .populate("customer", "name email phone");
+      // Handle rejection reason
+      if (status === "Rejected") {
+        if (rejectionReason) updateData.rejectionReason = rejectionReason;
+        else if (adminNotes) updateData.rejectionReason = adminNotes;
+      }
 
-    return res.status(200).json({
-      success: true,
-      message: `Return request ${status ? status.toLowerCase() : "updated"
+      let actualRefundAmount = 0;
+      if (status === "Approved" || status === "Completed") {
+        const orderItem = returnRequest.orderItem as any;
+        actualRefundAmount = refundAmount || (returnRequest.quantity * (orderItem.unitPrice || 0));
+        updateData.refundAmount = actualRefundAmount;
+      }
+
+      Object.assign(returnRequest, updateData);
+
+      if (session) {
+        await returnRequest.save({ session });
+      } else {
+        await returnRequest.save();
+      }
+
+      // Add to customer wallet ONLY if completed
+      if (status === "Completed" && actualRefundAmount > 0) {
+        const customer = session
+          ? await Customer.findById(returnRequest.customer).session(session)
+          : await Customer.findById(returnRequest.customer);
+
+        if (customer) {
+          customer.walletAmount = (customer.walletAmount || 0) + actualRefundAmount;
+          if (session) {
+            await customer.save({ session });
+          } else {
+            await customer.save();
+          }
+
+          const orderItem = returnRequest.orderItem as any;
+          const transaction = new WalletTransaction({
+            userId: customer._id,
+            userType: 'CUSTOMER',
+            amount: actualRefundAmount,
+            type: 'Credit',
+            description: `Refund for returned order item ${orderItem?.productName || ''}`,
+            status: 'Completed',
+            reference: `REF-${returnRequest._id}-${Date.now()}`,
+            relatedOrder: returnRequest.order
+          });
+
+          if (session) {
+            await transaction.save({ session });
+          } else {
+            await transaction.save();
+          }
+        }
+      }
+
+      if (session) {
+        await session.commitTransaction();
+      }
+
+      const updatedReturn = await Return.findById(id)
+        .populate("order")
+        .populate("orderItem")
+        .populate("customer", "name email phone");
+
+      return res.status(200).json({
+        success: true,
+        message: `Return request ${
+          status ? status.toLowerCase() : "updated"
         } successfully`,
-      data: updatedReturn,
-    });
+        data: updatedReturn,
+      });
+    } catch (error: any) {
+      if (session) await session.abortTransaction();
+      return res.status(500).json({
+        success: false,
+        message: "Failed to process return request",
+        error: error.message
+      });
+    } finally {
+      if (session) session.endSession();
+    }
   }
 );
 

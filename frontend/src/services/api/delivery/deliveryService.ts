@@ -266,3 +266,41 @@ export const markNotificationRead = async (id: string) => {
         throw handleApiError(error);
     }
 };
+
+// --- Return Pickups ---
+export const acceptReturnPickup = async (id: string) => {
+    try {
+        const response = await api.post(`${BASE_URL}/returns/${id}/accept`);
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
+export const getAssignedReturns = async () => {
+    try {
+        const response = await api.get(`${BASE_URL}/returns/assigned`);
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
+export const confirmReturnPickup = async (id: string, images: string[]) => {
+    try {
+        const response = await api.post(`${BASE_URL}/returns/${id}/pickup`, { images });
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+
+export const confirmReturnDropoff = async (id: string, images: string[]) => {
+    try {
+        const response = await api.post(`${BASE_URL}/returns/${id}/dropoff`, { images });
+        return response.data;
+    } catch (error) {
+        throw handleApiError(error);
+    }
+};
+

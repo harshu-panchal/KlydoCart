@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getReturnRequests, ReturnRequest, GetReturnRequestsParams } from '../../../services/api/returnService';
+import { getReturnRequests, updateReturnStatus, ReturnRequest, GetReturnRequestsParams } from '../../../services/api/returnService';
 
 export default function SellerReturnRequest() {
     const navigate = useNavigate();
@@ -15,50 +15,69 @@ export default function SellerReturnRequest() {
     const [currentPage, setCurrentPage] = useState(1);
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [selectedRequest, setSelectedRequest] = useState<ReturnRequest | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const fetchReturnRequests = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const params: GetReturnRequestsParams = {
+                page: currentPage,
+                limit: rowsPerPage,
+                sortBy: sortColumn || 'returnDate',
+                sortOrder: sortDirection,
+            };
+
+            // Parse date range
+            if (fromDate) params.dateFrom = fromDate;
+            if (toDate) params.dateTo = toDate;
+
+            // Add status filter
+            if (statusFilter !== 'All Status') {
+                params.status = statusFilter;
+            }
+
+            // Add search
+            const trimmedSearch = searchTerm.trim();
+            if (trimmedSearch) {
+                params.search = trimmedSearch;
+            }
+
+            const response = await getReturnRequests(params);
+            if (response.success && response.data) {
+                setReturnRequests(response.data);
+            } else {
+                setError(response.message || 'Failed to fetch return requests');
+            }
+        } catch (err: any) {
+            setError(err.response?.data?.message || err.message || 'Failed to fetch return requests');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Fetch return requests from API
     useEffect(() => {
-        const fetchReturnRequests = async () => {
-            setLoading(true);
-            setError('');
-            try {
-                const params: GetReturnRequestsParams = {
-                    page: currentPage,
-                    limit: rowsPerPage,
-                    sortBy: sortColumn || 'returnDate',
-                    sortOrder: sortDirection,
-                };
-
-                // Parse date range
-                if (fromDate) params.dateFrom = fromDate;
-                if (toDate) params.dateTo = toDate;
-
-                // Add status filter
-                if (statusFilter !== 'All Status') {
-                    params.status = statusFilter;
-                }
-
-                // Add search
-                const trimmedSearch = searchTerm.trim();
-                if (trimmedSearch) {
-                    params.search = trimmedSearch;
-                }
-
-                const response = await getReturnRequests(params);
-                if (response.success && response.data) {
-                    setReturnRequests(response.data);
-                } else {
-                    setError(response.message || 'Failed to fetch return requests');
-                }
-            } catch (err: any) {
-                setError(err.response?.data?.message || err.message || 'Failed to fetch return requests');
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchReturnRequests();
     }, [fromDate, toDate, statusFilter, searchTerm, currentPage, rowsPerPage, sortColumn, sortDirection]);
+
+    const handleUpdateStatus = async (id: string, status: 'Approved' | 'Rejected') => {
+        if (!window.confirm(`Are you sure you want to ${status.toLowerCase()} this return request?`)) return;
+        
+        try {
+            const response = await updateReturnStatus(id, { status });
+            if (response.success) {
+                alert(`Return request ${status.toLowerCase()} successfully.`);
+                fetchReturnRequests();
+            } else {
+                alert(response.message || `Failed to update status.`);
+            }
+        } catch (err: any) {
+            console.error('Error updating status:', err);
+            alert(err.response?.data?.message || err.message || 'Failed to update return status');
+        }
+    };
 
     // Client-side pagination (can be moved to backend later)
     const totalPages = Math.ceil(returnRequests.length / rowsPerPage);
@@ -372,14 +391,33 @@ export default function SellerReturnRequest() {
                                             <td className="p-4 border border-neutral-200 text-sm text-neutral-900">{request.status}</td>
                                             <td className="p-4 border border-neutral-200 text-sm text-neutral-900">{request.date}</td>
                                             <td className="p-4 border border-neutral-200 text-sm text-neutral-900">
-                                                <button
-                                                    onClick={() => {
-                                                        alert(`Return Request Details:\n\nOrder Item ID: ${request.orderItemId}\nProduct: ${request.product}\nVariant: ${request.variant}\nPrice: ₹${request.price.toFixed(2)}\nDiscounted Price: ₹${request.discPrice.toFixed(2)}\nQuantity: ${request.quantity}\nTotal: ₹${request.total.toFixed(2)}\nStatus: ${request.status}\nDate: ${request.date}`);
-                                                    }}
-                                                    className="text-green-600 hover:text-green-700 text-xs font-medium transition-colors"
-                                                >
-                                                    View
-                                                </button>
+                                                <div className="flex gap-2 items-center">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedRequest(request);
+                                                            setIsModalOpen(true);
+                                                        }}
+                                                        className="text-blue-600 hover:text-blue-700 text-xs font-medium transition-colors"
+                                                    >
+                                                        View
+                                                    </button>
+                                                    {request.status === 'Pending' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleUpdateStatus(request.id, 'Approved')}
+                                                                className="text-green-600 hover:text-green-700 text-xs font-medium transition-colors bg-green-50 px-2 py-1 rounded"
+                                                            >
+                                                                Approve
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleUpdateStatus(request.id, 'Rejected')}
+                                                                className="text-red-600 hover:text-red-700 text-xs font-medium transition-colors bg-red-50 px-2 py-1 rounded"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -425,6 +463,91 @@ export default function SellerReturnRequest() {
                     <span className="font-semibold text-teal-600">KlydoCart</span>
                 </p>
             </footer>
+            {/* Modal for viewing details */}
+            {isModalOpen && selectedRequest && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full flex flex-col max-h-[90vh]">
+                        <div className="flex justify-between items-center p-4 border-b">
+                            <h3 className="text-lg font-semibold text-neutral-900">Return Request Details</h3>
+                            <button onClick={() => setIsModalOpen(false)} className="text-neutral-400 hover:text-neutral-600 transition-colors">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="p-4 overflow-y-auto space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="text-xs text-neutral-500 font-medium">Order Item ID</p>
+                                    <p className="text-sm text-neutral-900 font-semibold truncate">{selectedRequest.orderItemId}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-neutral-500 font-medium">Date</p>
+                                    <p className="text-sm text-neutral-900 font-semibold">{selectedRequest.date}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-neutral-500 font-medium">Product</p>
+                                    <p className="text-sm text-neutral-900 font-semibold">{selectedRequest.product}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-neutral-500 font-medium">Variant</p>
+                                    <p className="text-sm text-neutral-900 font-semibold">{selectedRequest.variant}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-neutral-500 font-medium">Quantity</p>
+                                    <p className="text-sm text-neutral-900 font-semibold">{selectedRequest.quantity}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-neutral-500 font-medium">Status</p>
+                                    <p className="text-sm text-neutral-900 font-semibold">
+                                        <span className={`px-2 py-1 rounded text-xs ${
+                                            selectedRequest.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                                            selectedRequest.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+                                            selectedRequest.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-yellow-100 text-yellow-700'
+                                        }`}>
+                                            {selectedRequest.status}
+                                        </span>
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-neutral-500 font-medium">Unit Price</p>
+                                    <p className="text-sm text-neutral-900 font-semibold">₹{(selectedRequest.price || 0).toFixed(2)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-neutral-500 font-medium">Total Amount</p>
+                                    <p className="text-sm text-green-600 font-bold">₹{(selectedRequest.total || 0).toFixed(2)}</p>
+                                </div>
+                                <div className="col-span-2 border-t border-neutral-100 pt-3 space-y-2">
+                                    <div>
+                                        <p className="text-xs text-neutral-500 font-medium">Return Reason</p>
+                                        <p className="text-sm text-neutral-900 font-semibold bg-orange-50 text-orange-850 p-2.5 rounded-lg border border-orange-100 mt-1">
+                                            {selectedRequest.returnReason || 'Not Provided'}
+                                        </p>
+                                    </div>
+                                    {selectedRequest.returnDescription && (
+                                        <div>
+                                            <p className="text-xs text-neutral-500 font-medium">Additional Description</p>
+                                            <p className="text-sm text-neutral-700 bg-neutral-50 p-2.5 rounded-lg border border-neutral-200 mt-1 whitespace-pre-wrap">
+                                                {selectedRequest.returnDescription}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t bg-neutral-50 flex justify-end">
+                            <button
+                                onClick={() => setIsModalOpen(false)}
+                                className="px-4 py-2 bg-white border border-neutral-300 text-neutral-700 rounded hover:bg-neutral-50 transition-colors text-sm font-medium"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

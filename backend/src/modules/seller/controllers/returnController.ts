@@ -3,6 +3,7 @@ import { asyncHandler } from "../../../utils/asyncHandler";
 import Return from "../../../models/Return";
 // import Order from "../../../models/Order";
 import OrderItem from "../../../models/OrderItem";
+import { notifyDeliveryBoysOfNewReturn } from "../../../services/orderNotificationService";
 
 export const getReturnRequests = asyncHandler(
   async (req: Request, res: Response) => {
@@ -44,13 +45,19 @@ export const getReturnRequests = asyncHandler(
       const order = ret.order as any;
       return {
         id: ret._id,
-        productName: item?.productName || 'Unknown Product',
+        orderItemId: item?._id?.toString() || 'Unknown ID',
+        product: item?.productName || 'Unknown Product',
+        variant: 'N/A',
+        price: item?.unitPrice || 0,
+        discPrice: item?.unitPrice || 0,
+        quantity: ret.quantity || item?.quantity || 1,
+        total: (item?.unitPrice || 0) * (ret.quantity || item?.quantity || 1),
+        status: ret.status,
+        date: new Date(ret.createdAt).toLocaleDateString(),
         customerName: order?.customerName || 'Unknown Customer',
         orderId: order?.orderNumber || 'Unknown Order',
-        amount: item?.total || 0,
-        status: ret.status,
-        date: ret.createdAt,
         returnReason: ret.reason,
+        returnDescription: ret.description,
         image: item?.productImage
       };
     });
@@ -137,13 +144,24 @@ export const updateReturnStatus = asyncHandler(
       id,
       { status },
       { new: true }
-    );
+    ).populate('order').populate('orderItem').populate('seller');
 
     if (!returnRequest) {
       return res.status(404).json({
         success: false,
         message: "Return request not found"
       });
+    }
+
+    // If status is Approved, notify nearby delivery boys
+    if (status === "Approved") {
+      const io = req.app.get("io");
+      if (io) {
+        // Will implement notifyDeliveryBoysOfNewReturn in orderNotificationService
+        notifyDeliveryBoysOfNewReturn(io, returnRequest).catch(err => {
+            console.error("Failed to notify delivery boys of new return:", err);
+        });
+      }
     }
 
     return res.status(200).json({

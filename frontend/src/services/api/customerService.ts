@@ -56,3 +56,30 @@ export const creditWallet = async (amount: number): Promise<{ success: boolean; 
   return response.data;
 };
 
+export interface WalletTransaction {
+  _id: string;
+  userId: string;
+  userType: 'CUSTOMER';
+  amount: number;
+  type: 'Credit' | 'Debit';
+  description: string;
+  status: 'Completed' | 'Pending' | 'Failed';
+  reference: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetWalletTransactionsResponse {
+  success: boolean;
+  message: string;
+  data: WalletTransaction[];
+}
+
+/**
+ * Get customer wallet transactions history
+ */
+export const getWalletTransactions = async (): Promise<GetWalletTransactionsResponse> => {
+  const response = await api.get<GetWalletTransactionsResponse>('/customer/wallet/transactions');
+  return response.data;
+};
+

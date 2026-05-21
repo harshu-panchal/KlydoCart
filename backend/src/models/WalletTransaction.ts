@@ -1,8 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IWalletTransaction extends Document {
-    userId: mongoose.Types.ObjectId; // Generic user reference (seller or delivery boy)
-    userType: 'SELLER' | 'DELIVERY_BOY'; // Type of user
+    userId: mongoose.Types.ObjectId; // Generic user reference (seller, delivery boy, or customer)
+    userType: 'SELLER' | 'DELIVERY_BOY' | 'CUSTOMER'; // Type of user
     amount: number;
     type: 'Credit' | 'Debit';
     description: string;
@@ -23,7 +23,7 @@ const WalletTransactionSchema = new Schema<IWalletTransaction>(
         },
         userType: {
             type: String,
-            enum: ['SELLER', 'DELIVERY_BOY'],
+            enum: ['SELLER', 'DELIVERY_BOY', 'CUSTOMER'],
             required: [true, 'User type is required'],
         },
         amount: {
@@ -69,6 +69,6 @@ WalletTransactionSchema.index({ userId: 1, userType: 1 });
 WalletTransactionSchema.index({ createdAt: -1 });
 WalletTransactionSchema.index({ relatedOrder: 1 });
 
-const WalletTransaction = mongoose.model<IWalletTransaction>('WalletTransaction', WalletTransactionSchema);
+const WalletTransaction = mongoose.models.WalletTransaction || mongoose.model<IWalletTransaction>('WalletTransaction', WalletTransactionSchema);
 
 export default WalletTransaction;
