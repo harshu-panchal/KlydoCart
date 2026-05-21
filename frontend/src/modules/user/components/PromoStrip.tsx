@@ -735,11 +735,9 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
             {/* Crazy Deals Box */}
             <div className="promo-card">
             <div
-              className="rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg"
+              className="rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg h-[145px] min-h-[145px] md:h-[190px] md:min-h-[190px]"
               style={{
                 background: `radial-gradient(circle at center, rgba(255, 255, 255, 0.15), transparent 60%), linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`,
-                height: "145px",
-                minHeight: "145px",
               }}>
               {/* CRAZY DEALS - Two lines, bigger */}
               <div className="text-center mb-1.5 md:mb-2" style={{ marginTop: "4px" }}>
@@ -760,7 +758,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
               {/* Price Banners - Compact */}
               <div
                 ref={priceContainerRef}
-                className="flex flex-col items-center mb-0.5 md:mb-2 relative">
+                className="flex flex-col items-center mb-0.5 md:mb-2 relative z-30">
                 {/* Original Price - Darker Gray, Smaller Banner */}
                 <div
                   className="bg-neutral-600 rounded px-1.5 md:px-2 inline-block relative z-10"
@@ -789,11 +787,10 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                 </div>
               </div>
 
-              {/* Product Name - Compact - Clickable */}
               <div
                 ref={productNameRef}
                 onClick={handleProductClick}
-                className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 cursor-pointer hover:underline line-clamp-1 md:bg-white/80 md:backdrop-blur-sm md:rounded-md md:px-1 md:py-0.5 w-[95%] relative z-10"
+                className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 cursor-pointer hover:underline line-clamp-1 w-[95%] relative z-10"
                 title={displayProduct.productName || displayProduct.name}>
                 {displayProduct.productName || displayProduct.name}
               </div>
@@ -861,11 +858,9 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                 className="block cursor-pointer"
               >
                 <div
-                  className="rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg"
+                  className="rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg h-[145px] min-h-[145px] md:h-[190px] md:min-h-[190px]"
                   style={{
                     background: `radial-gradient(circle at center, rgba(255, 255, 255, 0.15), transparent 60%), linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`,
-                    height: "145px",
-                    minHeight: "145px",
                   }}>
                   {/* FAST FOOD Title */}
                   <div className="text-center mb-1.5 md:mb-2" style={{ marginTop: "4px" }}>
@@ -882,26 +877,27 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                   </div>
 
                   {/* Price Banner */}
-                  <div className="flex flex-col items-center mb-0.5 md:mb-2 relative">
+                  <div className="flex flex-col items-center mb-0.5 md:mb-2 relative z-30">
                     <div className="bg-neutral-600 rounded px-1.5 md:px-2 inline-block relative z-10" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
                       <span className="text-white text-[8px] md:text-[10px] font-medium line-through leading-none md:font-semibold">₹199</span>
                     </div>
-                    <div className="bg-green-500 rounded px-2 md:px-3 inline-block relative -mt-0.5 md:-mt-1 md:shadow-md z-20" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
+                    <div className="bg-green-500 rounded px-2 md:px-3 inline-block relative -mt-0.5 md:-mt-1 md:shadow-md z-30" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
                       <span className="text-white text-[9px] md:text-sm md:py-0.5 font-bold leading-none block">₹99</span>
                     </div>
                   </div>
 
-                  {/* Subtitle */}
-                  <div className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 md:bg-white/80 md:backdrop-blur-sm md:rounded-md md:px-1 md:py-0.5 w-[95%] line-clamp-1 relative z-10">
+                  <div className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 w-[95%] line-clamp-1 relative z-10">
                     Burger & Pizza
                   </div>
 
                   {/* Image */}
-                  <div className="flex-1 flex items-end justify-center w-full min-h-[30px] md:min-h-[50px]">
-                    <div className="w-12 h-12 md:w-20 md:h-20 rounded md:rounded-lg flex items-center justify-center overflow-hidden" style={{ background: "transparent" }}>
-                      <div className="w-full h-full bg-gradient-to-b from-orange-100 to-orange-50 flex items-center justify-center">
-                        <span className="text-3xl md:text-5xl">🍔</span>
-                      </div>
+                  <div className="flex-1 flex items-end justify-center w-full min-h-[30px] md:min-h-[50px] mt-1">
+                    <div className="w-12 h-12 md:w-20 md:h-20 rounded md:rounded-lg flex items-center justify-center overflow-hidden bg-white shadow-sm">
+                      <img 
+                        src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" 
+                        alt="Fast Food" 
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   </div>
                 </div>
