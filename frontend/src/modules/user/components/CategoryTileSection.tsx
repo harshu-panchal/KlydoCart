@@ -21,6 +21,7 @@ interface CategoryTileSectionProps {
   tiles: CategoryTile[];
   columns?: 2 | 3 | 4 | 6 | 8; // Support all column options
   showProductCount?: boolean; // Show product count only for bestsellers
+  moreLink?: string; // Link for "More" button
 }
 
 export default function CategoryTileSection({
@@ -28,6 +29,7 @@ export default function CategoryTileSection({
   tiles,
   columns = 4,
   showProductCount = false,
+  moreLink,
 }: CategoryTileSectionProps) {
   const navigate = useNavigate();
 
@@ -87,15 +89,30 @@ export default function CategoryTileSection({
 
   return (
     <div className="mb-6 md:mb-8 mt-0 overflow-visible">
-      <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-2 md:mb-6 px-4 md:px-6 lg:px-8 tracking-tight capitalize">
-        {title}
-      </h2>
+      <div className="flex items-center justify-between mb-2 md:mb-6 px-4 md:px-6 lg:px-8">
+        <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 tracking-tight capitalize">
+          {title}
+        </h2>
+        {moreLink && (
+          <Link
+            to={moreLink}
+            className="text-xs md:text-sm font-semibold text-green-600 hover:text-green-700 transition-colors bg-green-50 hover:bg-green-100 px-3 py-1.5 md:px-4 md:py-2 rounded-full flex items-center gap-1"
+          >
+            More
+            <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        )}
+      </div>
       <div className="px-4 md:px-6 lg:px-8 overflow-visible">
         <div className="overflow-visible">
           <div className={`${
             showProductCount 
               ? `grid ${gridCols} ${gapClass}` 
-              : `grid grid-cols-3 sm:grid-cols-4 md:${gridCols} ${gapClass}`
+              : columns === 3
+                ? `grid grid-cols-3 ${gapClass}`
+                : `grid grid-cols-3 sm:grid-cols-4 md:${gridCols} ${gapClass}`
           } overflow-visible auto-rows-fr`}>
           {tiles.map((tile) => {
             const images =
@@ -150,7 +167,7 @@ export default function CategoryTileSection({
                     }`}>
                   {/* Image - Single image for non-bestsellers, 2x2 grid for bestsellers */}
                   <div
-                    className={`w-full rounded-lg overflow-hidden flex items-center justify-center ${showProductCount ? "h-32 md:h-32 lg:h-36 xl:h-40 mb-2 md:mb-1.5" : "aspect-square"
+                    className={`w-full rounded-lg overflow-hidden flex items-center justify-center ${showProductCount ? "h-32 md:h-32 lg:h-36 xl:h-40 mb-2 md:mb-1.5" : "aspect-square md:aspect-auto md:h-40 lg:h-48 xl:h-56"
                       } ${tile.bgColor || "bg-cyan-50"}`}>
                     {hasImages ? (
                       showProductCount ? (

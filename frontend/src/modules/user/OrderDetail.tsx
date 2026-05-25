@@ -773,7 +773,7 @@ export default function OrderDetail() {
       handleRefresh();
     } catch (error: any) {
       console.error("Error submitting return:", error);
-      alert(error.message || "Failed to submit return request");
+      alert(error.response?.data?.message || error.message || "Failed to submit return request");
     }
   };
 

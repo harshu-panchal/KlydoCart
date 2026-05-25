@@ -375,8 +375,9 @@ export default function Home() {
                       key={section.id}
                       title={section.title}
                       tiles={section.data || []}
-                      columns={columnCount as 2 | 3 | 4 | 6 | 8}
+                      columns={section.title?.toLowerCase() === 'top categories' ? 3 : (columnCount as 2 | 3 | 4 | 6 | 8)}
                       showProductCount={false}
+                      moreLink={section.title?.toLowerCase() === 'top categories' ? '/categories' : undefined}
                     />
                   );
                 })}

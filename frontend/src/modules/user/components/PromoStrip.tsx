@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, useEffect, useCallback } from "react";
+import { useLayoutEffect, useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { gsap } from "gsap";
 import { Link, useNavigate } from "react-router-dom";
 import { getTheme } from "../../../utils/themes";
@@ -63,6 +63,20 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
   const priceContainerRef = useRef<HTMLDivElement>(null);
   const productNameRef = useRef<HTMLDivElement>(null);
   const productImageRef = useRef<HTMLDivElement>(null);
+
+  // Fast Food Box state and refs
+  const [currentFastFoodIndex, setCurrentFastFoodIndex] = useState(0);
+  const fastFoodPriceRef = useRef<HTMLDivElement>(null);
+  const fastFoodNameRef = useRef<HTMLDivElement>(null);
+  const fastFoodImageRef = useRef<HTMLDivElement>(null);
+  
+  const fastFoodItems = useMemo(() => [
+    { name: "Burger & Pizza", price: 99, originalPrice: 199, image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" },
+    { name: "Crispy Fries", price: 49, originalPrice: 99, image: "https://images.unsplash.com/photo-1576107232684-1279f390859f?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" },
+    { name: "Chicken Wings", price: 149, originalPrice: 249, image: "https://images.unsplash.com/photo-1608039829572-78524f79c4c7?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" },
+    { name: "Pasta Bowl", price: 129, originalPrice: 199, image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" }
+  ], []);
+
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
 
@@ -489,6 +503,56 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
     };
   }, [currentProductIndex]);
 
+  // Fast food rotation animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentFastFoodIndex((prev) => (prev + 1) % fastFoodItems.length);
+    }, 3500); // slightly different interval so they don't animate at the exact same time
+
+    return () => clearInterval(interval);
+  }, [fastFoodItems.length]);
+
+  // Animate fast food change
+  useEffect(() => {
+    const elements = [
+      fastFoodPriceRef.current,
+      fastFoodNameRef.current,
+      fastFoodImageRef.current,
+    ];
+    if (elements.some((el) => !el)) return;
+
+    const tween = gsap.to(elements, {
+      opacity: 0,
+      x: -30,
+      duration: 0.3,
+      ease: "power2.in",
+      onComplete: () => {
+        const currentElements = [
+          fastFoodPriceRef.current,
+          fastFoodNameRef.current,
+          fastFoodImageRef.current,
+        ];
+        if (currentElements.some((el) => !el)) return;
+
+        gsap.set(currentElements, {
+          x: 30,
+          opacity: 0,
+        });
+
+        gsap.to(currentElements, {
+          opacity: 1,
+          x: 0,
+          duration: 0.4,
+          ease: "power2.out",
+        });
+      },
+    });
+
+    return () => {
+      tween.kill();
+    };
+  }, [currentFastFoodIndex]);
+
   const currentProduct = featuredProducts.length > 0 ? featuredProducts[currentProductIndex] : null;
 
   // Show minimal loading state - render faster
@@ -877,25 +941,25 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                   </div>
 
                   {/* Price Banner */}
-                  <div className="flex flex-col items-center mb-0.5 md:mb-2 relative z-30">
+                  <div ref={fastFoodPriceRef} className="flex flex-col items-center mb-0.5 md:mb-2 relative z-30">
                     <div className="bg-neutral-600 rounded px-1.5 md:px-2 inline-block relative z-10" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
-                      <span className="text-white text-[8px] md:text-[10px] font-medium line-through leading-none md:font-semibold">₹199</span>
+                      <span className="text-white text-[8px] md:text-[10px] font-medium line-through leading-none md:font-semibold">₹{fastFoodItems[currentFastFoodIndex].originalPrice}</span>
                     </div>
                     <div className="bg-green-500 rounded px-2 md:px-3 inline-block relative -mt-0.5 md:-mt-1 md:shadow-md z-30" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
-                      <span className="text-white text-[9px] md:text-sm md:py-0.5 font-bold leading-none block">₹99</span>
+                      <span className="text-white text-[9px] md:text-sm md:py-0.5 font-bold leading-none block">₹{fastFoodItems[currentFastFoodIndex].price}</span>
                     </div>
                   </div>
 
-                  <div className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 w-[95%] line-clamp-1 relative z-10">
-                    Burger & Pizza
+                  <div ref={fastFoodNameRef} className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 w-[95%] line-clamp-1 relative z-10" title={fastFoodItems[currentFastFoodIndex].name}>
+                    {fastFoodItems[currentFastFoodIndex].name}
                   </div>
 
                   {/* Image */}
-                  <div className="flex-1 flex items-end justify-center w-full min-h-[30px] md:min-h-[50px] mt-1">
+                  <div ref={fastFoodImageRef} className="flex-1 flex items-end justify-center w-full min-h-[30px] md:min-h-[50px] mt-1">
                     <div className="w-12 h-12 md:w-20 md:h-20 rounded md:rounded-lg flex items-center justify-center overflow-hidden bg-white shadow-sm">
                       <img 
-                        src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" 
-                        alt="Fast Food" 
+                        src={fastFoodItems[currentFastFoodIndex].image}
+                        alt={fastFoodItems[currentFastFoodIndex].name}
                         className="w-full h-full object-cover"
                       />
                     </div>

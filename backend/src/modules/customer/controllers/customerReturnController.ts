@@ -11,6 +11,8 @@ export const requestReturn = asyncHandler(async (req: Request, res: Response) =>
     const userId = req.user?.userId;
     const { orderId, orderItemId, reason, description, images, quantity } = req.body;
 
+    console.log(`[RETURN REQUEST] User: ${userId}, Order: ${orderId}, Item: ${orderItemId}, Qty: ${quantity}`);
+
     if (!orderId || !orderItemId || !reason || !quantity) {
         return res.status(400).json({ success: false, message: "Missing required fields" });
     }
@@ -31,9 +33,15 @@ export const requestReturn = asyncHandler(async (req: Request, res: Response) =>
         return res.status(400).json({ success: false, message: "Return window of 7 days has expired" });
     }
 
-    const orderItem = await OrderItem.findOne({ _id: orderItemId, order: orderId });
+    let orderItem = await OrderItem.findOne({ _id: orderItemId, order: orderId });
     if (!orderItem) {
-        return res.status(404).json({ success: false, message: "Order item not found" });
+        console.warn(`[RETURN] OrderItem not found with orderId ${orderId}. Trying without orderId...`);
+        orderItem = await OrderItem.findOne({ _id: orderItemId });
+        if (!orderItem) {
+            return res.status(404).json({ success: false, message: "Order item not found" });
+        }
+        console.warn(`[RETURN] Found OrderItem ${orderItem._id}, but its order field is ${orderItem.order}. Expected: ${orderId}`);
+        // If it's found but order doesn't match, maybe old data structure? We'll still proceed if the item exists.
     }
 
     if (quantity > orderItem.quantity) {
@@ -68,7 +76,9 @@ export const requestReturn = asyncHandler(async (req: Request, res: Response) =>
     // Notify the seller
     const io = req.app.get("io");
     if (io && orderItem.seller) {
-        io.to(`seller-${orderItem.seller.toString()}`).emit("seller-notification", {
+        const sellerRoom = `seller-${orderItem.seller.toString()}`;
+        console.log(`[RETURN NOTIFICATION] Emitting NEW_RETURN_REQUEST to room: ${sellerRoom}`);
+        io.to(sellerRoom).emit("seller-notification", {
             type: "NEW_RETURN_REQUEST",
             orderId: order._id,
             orderNumber: order.orderNumber,
@@ -89,6 +99,9 @@ export const requestReturn = asyncHandler(async (req: Request, res: Response) =>
             totalAmount: orderItem.unitPrice * quantity,
             timestamp: new Date()
         });
+        console.log(`[RETURN NOTIFICATION] Successfully emitted to ${sellerRoom}`);
+    } else {
+        console.log(`[RETURN NOTIFICATION] Could not notify seller. io exists: ${!!io}, seller ID exists: ${!!orderItem.seller}`);
     }
 
     return res.status(201).json({

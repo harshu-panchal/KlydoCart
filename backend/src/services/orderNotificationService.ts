@@ -658,50 +658,69 @@ export async function scanOrdersForDeliveryBoy(io: SocketIOServer, deliveryBoyId
             if (state.acceptedBy) continue;
             if (state.rejectedDeliveryBoys.has(normalizedId)) continue;
 
-            // If they were already notified, they'll get it via the socket join logic in socketService.ts
-            // But if they WEREN'T notified because they were offline, we should check eligibility now
-            if (!state.notifiedDeliveryBoys.has(normalizedId)) {
+            // Fetch full order to check eligibility
+            const order = await Order.findById(orderId).populate({
+                path: 'items',
+                populate: { path: 'seller' }
+            }).lean();
+
+            const orderDataObj: any = order;
+            if (!orderDataObj || ['Delivered', 'Cancelled', 'Rejected', 'Returned'].includes(orderDataObj.status as string)) {
+                continue;
+            }
+
+            // Check if they are eligible (either previously notified or currently near the seller)
+            let isEligible = false;
+
+            if (state.notifiedDeliveryBoys.has(normalizedId)) {
+                isEligible = true;
+            } else {
                 try {
-                    const order = await Order.findById(orderId).populate({
-                        path: 'items',
-                        populate: { path: 'seller' }
-                    }).lean();
-
-                    const orderDataObj: any = order;
-                    if (!orderDataObj || ['Delivered', 'Cancelled', 'Rejected', 'Returned'].includes(orderDataObj.status as string)) {
-                        continue;
-                    }
-
-                    // Check if they are near any seller for this order
                     const nearbyBoys = await findDeliveryBoysNearSellerLocations(order);
-                    const isNearby = nearbyBoys.some(id => id.toString() === normalizedId);
-
-                    if (isNearby) {
-                        console.log(`🎯 Delivery boy ${normalizedId} is eligible for order ${orderId}. Notifying now.`);
+                    isEligible = nearbyBoys.some(id => id.toString() === normalizedId);
+                    if (isEligible) {
                         state.notifiedDeliveryBoys.add(normalizedId);
-
-                        const orderData = {
-                            orderId: orderDataObj._id.toString(),
-                            orderNumber: orderDataObj.orderNumber,
-                            customerName: (order as any).customerName,
-                            customerPhone: (order as any).customerPhone,
-                            deliveryAddress: {
-                                address: (order as any).deliveryAddress?.address,
-                                city: (order as any).deliveryAddress?.city,
-                                state: (order as any).deliveryAddress?.state,
-                                pincode: (order as any).deliveryAddress?.pincode,
-                            },
-                            total: (order as any).total,
-                            subtotal: (order as any).subtotal,
-                            shipping: (order as any).shipping,
-                            createdAt: (order as any).createdAt,
-                        };
-
-                        io.to(`delivery-${normalizedId}`).emit('new-order', orderData);
                     }
                 } catch (err) {
-                    console.error(`Error scanning order ${orderId} for boy ${normalizedId}:`, err);
+                    console.error(`Error checking location for delivery boy ${normalizedId}:`, err);
                 }
+            }
+
+            if (isEligible) {
+                try {
+                    console.log(`🎯 Delivery boy ${normalizedId} is eligible for order ${orderId}. Emitting notification.`);
+                    
+                    let pickupLocationText = 'Multiple Sellers';
+                    if (orderDataObj.items && orderDataObj.items.length === 1 && orderDataObj.items[0].seller) {
+                        const seller = orderDataObj.items[0].seller;
+                        pickupLocationText = `${seller.storeName || 'Seller'}, ${seller.city || ''}`;
+                    }
+
+                    const orderData = {
+                        orderId: orderDataObj._id.toString(),
+                        orderNumber: orderDataObj.orderNumber,
+                        customerName: orderDataObj.customerName,
+                        customerPhone: orderDataObj.customerPhone,
+                        deliveryAddress: {
+                            address: orderDataObj.deliveryAddress?.address,
+                            city: orderDataObj.deliveryAddress?.city,
+                            state: orderDataObj.deliveryAddress?.state,
+                            pincode: orderDataObj.deliveryAddress?.pincode,
+                        },
+                        total: orderDataObj.total,
+                        subtotal: orderDataObj.subtotal,
+                        shipping: orderDataObj.shipping,
+                        pickupLocation: pickupLocationText,
+                        createdAt: orderDataObj.createdAt,
+                        timestamp: new Date()
+                    };
+
+                    io.to(`delivery-${normalizedId}`).emit('new-order', orderData);
+                } catch (err) {
+                    console.error(`Error emitting order ${orderId} for delivery boy ${normalizedId}:`, err);
+                }
+            } else {
+                console.log(`⏩ Delivery boy ${normalizedId} is not eligible for order ${orderId}`);
             }
         }
     } catch (dbError) {
@@ -935,7 +954,11 @@ export async function scanReturnsForDeliveryBoy(io: SocketIOServer, deliveryBoyI
             if (state.acceptedBy) continue;
             if (state.rejectedDeliveryBoys.has(normalizedId)) continue;
 
-            if (!state.notifiedDeliveryBoys.has(normalizedId)) {
+            let isEligible = false;
+
+            if (state.notifiedDeliveryBoys.has(normalizedId)) {
+                isEligible = true;
+            } else {
                 try {
                     const sellerId = returnRequest.seller?._id || returnRequest.seller;
                     const seller = await Seller.findById(sellerId).lean() as any;
@@ -963,33 +986,44 @@ export async function scanReturnsForDeliveryBoy(io: SocketIOServer, deliveryBoyI
                         }
                     }
 
-                    if (!lat || !lng) continue;
-
-                    const radius = seller.serviceRadiusKm || 10;
-                    const nearbyBoys = await findDeliveryBoysNearLocation(lat, lng, radius);
-                    const isNearby = nearbyBoys.some(b => b.deliveryBoyId.toString() === normalizedId);
-
-                    if (isNearby) {
-                        console.log(`🎯 Delivery boy ${normalizedId} is eligible for return pickup ${returnId}. Notifying now.`);
+                    if (lat && lng) {
+                        const radius = seller.serviceRadiusKm || 10;
+                        const nearbyBoys = await findDeliveryBoysNearLocation(lat, lng, radius);
+                        isEligible = nearbyBoys.some(b => b.deliveryBoyId.toString() === normalizedId);
+                    }
+                    
+                    if (isEligible) {
                         state.notifiedDeliveryBoys.add(normalizedId);
-
-                        const returnData = {
-                            returnId,
-                            orderId: orderId.toString(),
-                            reason: returnRequest.reason,
-                            quantity: returnRequest.quantity,
-                            storeName: seller.storeName,
-                            pickupAddress: seller.address,
-                            customerName: order.customerName || 'Customer',
-                            customerPhone: order.customerPhone || '',
-                            customerAddress: returnRequest.pickupAddress ? `${returnRequest.pickupAddress.address}, ${returnRequest.pickupAddress.city}` : ''
-                        };
-
-                        io.to(`delivery-${normalizedId}`).emit('NEW_RETURN_PICKUP', returnData);
                     }
                 } catch (err) {
-                    console.error(`Error scanning return ${returnId} for boy ${normalizedId}:`, err);
+                    console.error(`Error checking location for delivery boy ${normalizedId}:`, err);
                 }
+            }
+
+            if (isEligible) {
+                try {
+                    console.log(`🎯 Delivery boy ${normalizedId} is eligible for return pickup ${returnId}. Emitting notification.`);
+                    
+                    const sellerId = returnRequest.seller?._id || returnRequest.seller;
+                    const seller = await Seller.findById(sellerId).lean() as any;
+                    const orderId = returnRequest.order?._id || returnRequest.order;
+
+                    const returnData = {
+                        returnId,
+                        orderId: orderId.toString(),
+                        reason: returnRequest.reason,
+                        quantity: returnRequest.quantity,
+                        storeName: seller?.storeName || 'Seller',
+                        pickupAddress: seller?.address || '',
+                        timestamp: new Date()
+                    };
+
+                    io.to(`delivery-${normalizedId}`).emit('new-return-pickup', returnData);
+                } catch (err) {
+                    console.error(`Error emitting return ${returnId} for delivery boy ${normalizedId}:`, err);
+                }
+            } else {
+                console.log(`⏩ Delivery boy ${normalizedId} is not eligible for return ${returnId}`);
             }
         }
     } catch (error) {
