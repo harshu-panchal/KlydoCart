@@ -251,6 +251,57 @@ export const assignDeliveryBoy = asyncHandler(
       .populate("deliveryBoy", "name mobile email")
       .populate("items");
 
+    // Send notifications to the assigned delivery boy
+    try {
+      const io: SocketIOServer = req.app.get("io");
+      if (io && updatedOrder) {
+        const orderData = {
+          orderId: updatedOrder._id.toString(),
+          orderNumber: updatedOrder.orderNumber,
+          customerName: updatedOrder.customerName,
+          customerPhone: updatedOrder.customerPhone,
+          deliveryAddress: {
+            address: updatedOrder.deliveryAddress.address,
+            city: updatedOrder.deliveryAddress.city,
+            state: updatedOrder.deliveryAddress.state,
+            pincode: updatedOrder.deliveryAddress.pincode,
+          },
+          total: updatedOrder.total,
+          subtotal: updatedOrder.subtotal,
+          shipping: updatedOrder.shipping,
+          createdAt: updatedOrder.createdAt,
+        };
+        io.to(`delivery-${deliveryBoyId}`).emit("new-order", orderData);
+        console.log(`📡 Emitted new-order socket event to delivery-${deliveryBoyId} for admin assigned order`);
+      }
+
+      // Send FCM push notifications
+      const dbWithTokens = await Delivery.findById(deliveryBoyId).select("fcmTokens fcmTokenMobile");
+      if (dbWithTokens && updatedOrder) {
+        const { sendPushNotification } = await import("../../../services/firebaseAdmin");
+        const allTokens = [
+          ...(dbWithTokens.fcmTokens || []),
+          ...(dbWithTokens.fcmTokenMobile || [])
+        ];
+        if (allTokens.length > 0) {
+          const uniqueTokens = [...new Set(allTokens)];
+          await sendPushNotification(uniqueTokens, {
+            title: "🎁 New Order Assigned!",
+            body: `You have been assigned order #${updatedOrder.orderNumber} for ₹${updatedOrder.total}.`,
+            data: {
+              type: "NEW_ORDER",
+              orderId: updatedOrder._id.toString(),
+              orderNumber: updatedOrder.orderNumber?.toString() || "",
+              total: updatedOrder.total?.toString() || "",
+            }
+          });
+          console.log(`📱 Sent admin assignment FCM push notification to delivery boy: ${deliveryBoyId}`);
+        }
+      }
+    } catch (notifyError) {
+      console.error("⚠️ Error notifying delivery boy on admin assignment:", notifyError);
+    }
+
     return res.status(200).json({
       success: true,
       message: "Delivery boy assigned successfully",

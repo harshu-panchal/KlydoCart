@@ -135,10 +135,10 @@ export const getPendingOrders = asyncHandler(async (req: Request, res: Response)
     const deliveryPartner = await Delivery.findById(deliveryId).select('commissionRate');
     const COMMISSION_RATE = deliveryPartner?.commissionRate || 100;
 
-    // Pending statuses: Ready for pickup, Out for delivery, Picked Up, Assigned, In Transit
+    // Pending statuses: Processed (assigned), Shipped, Out for Delivery, On the way
     const orders = await Order.find({
         deliveryBoy: deliveryId,
-        status: { $in: ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"] },
+        status: { $in: ["Processed", "Shipped", "Out for Delivery", "On the way"] },
         $or: [
             { createdAt: { $gte: todayStart, $lte: todayEnd } },
             { updatedAt: { $gte: todayStart, $lte: todayEnd } }

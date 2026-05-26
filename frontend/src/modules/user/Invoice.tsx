@@ -162,14 +162,14 @@ export default function Invoice() {
       </div>
 
       {/* Invoice Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8 print:py-4">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-8 print:py-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow-sm print:shadow-none p-8 print:p-6">
+          className="bg-white rounded-lg shadow-sm print:shadow-none p-4 sm:p-8 print:p-6">
           {/* Invoice Header */}
           <div className="border-b border-gray-200 pb-6 mb-6">
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
                   KlydoCart
@@ -179,9 +179,9 @@ export default function Invoice() {
                 </p>
                 <p className="text-gray-600 mt-1">Invoice</p>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right w-full sm:w-auto">
                 <p className="text-sm text-gray-600 mb-1">Invoice Number</p>
-                <p className="text-lg font-semibold text-gray-900">
+                <p className="text-lg font-semibold text-gray-900 break-all">
                   {order.id?.split("-").slice(-1)[0] || order.id || "N/A"}
                 </p>
                 <p className="text-sm text-gray-600 mt-3 mb-1">Date</p>
@@ -220,7 +220,7 @@ export default function Invoice() {
                 Order Information
               </h2>
               <div className="text-gray-700 space-y-1">
-                <p>
+                <p className="break-all">
                   <span className="font-medium">Order ID:</span>{" "}
                   {order.id || "N/A"}
                 </p>
@@ -241,8 +241,8 @@ export default function Invoice() {
           </div>
 
           {/* Order Items Table */}
-          <div className="mb-8">
-            <table className="w-full">
+          <div className="mb-8 overflow-x-auto">
+            <table className="w-full min-w-[600px] md:min-w-full">
               <thead>
                 <tr className="border-b-2 border-gray-200">
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900">

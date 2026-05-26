@@ -85,7 +85,7 @@ const Icons = {
     )
 };
 
-type DeliveryOrderStatus = 'Pending' | 'Ready for pickup' | 'Picked up' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned' | 'Assigned' | 'Picked Up' | 'Completed';
+type DeliveryOrderStatus = 'Pending' | 'Ready for pickup' | 'Picked up' | 'Out for Delivery' | 'Delivered' | 'Cancelled' | 'Returned' | 'Assigned' | 'Picked Up' | 'Completed' | 'Processed' | 'Shipped' | 'On the way';
 
 export default function DeliveryOrderDetail() {
     const { id } = useParams();
@@ -592,7 +592,7 @@ export default function DeliveryOrderDetail() {
     const isReturn = order?.isReturn === true;
     const statusFlow: DeliveryOrderStatus[] = isReturn
         ? ['Assigned', 'Picked Up', 'Completed']
-        : ['Pending', 'Ready for pickup', 'Picked up', 'Out for Delivery', 'Delivered'];
+        : ['Processed', 'Out for Delivery', 'Delivered'];
 
     let currentStatusIndex = statusFlow.indexOf(order.status as DeliveryOrderStatus);
     // Handle cases where status might not be in the flow (e.g. Cancelled)
@@ -629,11 +629,11 @@ export default function DeliveryOrderDetail() {
     const nextStatus = getNextStatus();
     const isMapVisible = isReturn 
         ? (order.status !== 'Completed') 
-        : (order.status === 'Out for Delivery' || order.status === 'Picked up' || (sellerLocations.length > 0 && order.status !== 'Delivered'));
-    const showSellerLocations = !isReturn && sellerLocations.length > 0 && order.status !== 'Picked up' && order.status !== 'Out for Delivery' && order.status !== 'Delivered';
+        : (order.status === 'Out for Delivery' || order.status === 'Processed' || (sellerLocations.length > 0 && order.status !== 'Delivered'));
+    const showSellerLocations = !isReturn && sellerLocations.length > 0 && order.status !== 'Out for Delivery' && order.status !== 'Delivered';
     const showCustomerLocation = isReturn
         ? (order.status === 'Assigned')
-        : (order.status === 'Picked up' || order.status === 'Out for Delivery');
+        : (order.status === 'Out for Delivery');
 
     // Check if we have valid customer coordinates
     const customerLat = order.deliveryAddress?.latitude || order.address?.latitude;
@@ -656,12 +656,13 @@ export default function DeliveryOrderDetail() {
                 </span>
 
                 <div className="ml-auto">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
-                        order.status === 'Picked up' ? 'bg-indigo-100 text-indigo-700' :
-                            order.status === 'Ready for pickup' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-orange-100 text-orange-700'
-                        }`}>
-                        {order.status}
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        order.status === 'Delivered' || order.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                        order.status === 'Out for Delivery' || order.status === 'Picked up' || order.status === 'Picked Up' ? 'bg-indigo-100 text-indigo-700' :
+                        order.status === 'Processed' || order.status === 'Assigned' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-orange-100 text-orange-700'
+                    }`}>
+                        {order.status === 'Processed' ? 'Preparing' : order.status}
                     </span>
                 </div>
             </div>
@@ -881,7 +882,7 @@ export default function DeliveryOrderDetail() {
                             <div className="flex justify-between text-[10px] text-neutral-500 font-medium mt-2">
                                 {statusFlow.map((step, idx) => (
                                     <span key={idx} className={`text-center flex-1 transition-colors ${idx === currentStatusIndex ? 'text-blue-600 font-bold' : ''}`}>
-                                        {step === 'Ready for pickup' ? 'Ready' : step}
+                                        {step === 'Processed' ? 'Preparing' : step}
                                     </span>
                                 ))}
                             </div>
@@ -1163,7 +1164,7 @@ export default function DeliveryOrderDetail() {
 
             {/* Floating Glassmorphic Action Button Dock - Order Taken button or status update */}
             {/* Hide this button when order is "Out for Delivery" because OTP section is shown instead */}
-            {nextStatus && order.status !== 'Picked up' && order.status !== 'Out for Delivery' && !showOtpInput && !isReturn && (
+            {nextStatus && order.status !== 'Out for Delivery' && !showOtpInput && !isReturn && (
                 <div className="sticky bottom-[72px] z-30 mx-4 mb-4">
                     <button
                         onClick={() => handleStatusChange(nextStatus)}
@@ -1171,7 +1172,7 @@ export default function DeliveryOrderDetail() {
                         disabled={loading}
                     >
                         <span className="relative z-10">
-                            {loading ? 'Updating...' : nextStatus === 'Picked up' ? 'Order Taken' : `Mark as ${nextStatus}`}
+                            {loading ? 'Updating...' : nextStatus === 'Out for Delivery' ? 'Mark Out for Delivery' : `Mark as ${nextStatus}`}
                         </span>
                         {!loading && <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center relative z-10 group-hover:bg-white/30 transition-colors">
                             <Icons.ChevronLeft className="rotate-180" size={18} />

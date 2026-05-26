@@ -44,7 +44,7 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
     const allAssignedOrders = await Order.find({ deliveryBoy: objectId });
 
     const pendingOrders = allAssignedOrders.filter(order => 
-        ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"].includes(order.status) &&
+        ["Processed", "Shipped", "Out for Delivery", "On the way"].includes(order.status) &&
         (order.createdAt >= todayStart || order.updatedAt >= todayStart)
     ).length;
 
@@ -88,7 +88,7 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
     // Fetch list of Pending Orders for the "Today's Pending Order" section
     const pendingOrdersList = await Order.find({
         deliveryBoy: deliveryId,
-        status: { $in: ["Ready for pickup", "Out for Delivery", "Picked Up", "Assigned", "In Transit"] },
+        status: { $in: ["Processed", "Shipped", "Out for Delivery", "On the way"] },
         $or: [
             { createdAt: { $gte: todayStart, $lte: todayEnd } },
             { updatedAt: { $gte: todayStart, $lte: todayEnd } }
