@@ -381,24 +381,24 @@ export default function ProductCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ duration: 0.2 }}
-      className={`${categoryStyle ? 'bg-white' : 'bg-white'} rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-col relative border border-neutral-100`}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className={`group ${categoryStyle ? 'bg-white' : 'bg-white'} rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] transition-all duration-300 overflow-hidden flex flex-col relative border border-neutral-100`}
     >
       <div
         onClick={handleCardClick}
         className="cursor-pointer flex-1 flex flex-col"
       >
-        <div className={`w-full ${compact ? 'h-24 md:h-32' : categoryStyle ? 'h-32 md:h-40' : 'h-40 md:h-48'} bg-white flex items-center justify-center overflow-hidden relative border-b border-neutral-100`}>
+        <div className={`w-full ${compact ? 'h-20 md:h-28' : categoryStyle ? 'h-26 md:h-34' : 'h-36 md:h-44'} bg-white flex items-center justify-center overflow-hidden relative border-b border-neutral-50`}>
           {product.imageUrl || product.mainImage ? (
             <img
               ref={imageRef}
               src={product.imageUrl || product.mainImage}
               alt={product.name || product.productName || 'Product'}
-              className={`w-full h-full ${categoryStyle ? 'object-contain p-2' : 'object-cover'}`}
+              className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
               referrerPolicy="no-referrer"
               onError={(e) => {
                 // Hide broken image and show fallback
@@ -407,7 +407,7 @@ export default function ProductCard({
                 const parent = target.parentElement;
                 if (parent && !parent.querySelector('.fallback-icon')) {
                   const fallback = document.createElement('div');
-                  fallback.className = 'w-full h-full flex items-center justify-center bg-neutral-100 fallback-icon';
+                  fallback.className = 'w-full h-full flex items-center justify-center bg-neutral-50 fallback-icon';
                   fallback.innerHTML = `
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: #d1d5db">
                       <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
@@ -420,7 +420,7 @@ export default function ProductCard({
               }}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-neutral-100">
+            <div className="w-full h-full flex items-center justify-center bg-neutral-50">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-300">
                 <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
                 <path d="m3.3 7 8.7 5 8.7-5" />
@@ -430,15 +430,15 @@ export default function ProductCard({
           )}
 
           {categoryStyle && showBadge && discount > 0 && (
-            <div className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded">
-              {discount}% off
+            <div className="absolute top-0 left-0 z-10 bg-emerald-500 text-white text-[10px] font-extrabold px-3 py-1 rounded-br-2xl shadow-sm tracking-wider uppercase">
+              {discount}% OFF
             </div>
           )}
 
           {!categoryStyle && showBadge && (badgeText || discount > 0) && (
             <Badge
               variant="destructive"
-              className="absolute top-2 left-2 z-10 text-xs px-2 py-1"
+              className="absolute top-0 left-0 z-10 text-[10px] font-extrabold px-3 py-1 rounded-br-2xl rounded-tl-none shadow-sm tracking-wider bg-red-500 border-none uppercase"
             >
               {badgeText || `${discount}% OFF`}
             </Badge>
@@ -456,9 +456,9 @@ export default function ProductCard({
             
             if (isOutOfStock) {
               return (
-                <div className="absolute inset-0 z-20 bg-black/40 flex items-center justify-center backdrop-blur-sm">
-                  <div className="bg-white/95 px-3 py-1.5 rounded-lg shadow-lg">
-                    <p className="text-xs font-bold text-red-600 uppercase tracking-wide">Out of Stock</p>
+                <div className="absolute inset-0 z-20 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
+                  <div className="bg-white/95 px-3 py-1.5 rounded-full shadow-md">
+                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Out of Stock</p>
                   </div>
                 </div>
               );
@@ -466,7 +466,7 @@ export default function ProductCard({
             return null;
           })()}
 
-          <div className="absolute top-2 right-2 z-30 flex flex-col gap-2">
+          <div className="absolute top-2.5 right-2.5 z-30 flex flex-col gap-2 opacity-90 group-hover:opacity-100 transition-opacity">
             {/* Always show wishlist icon */}
             <button
               onClick={(e) => {
@@ -474,21 +474,21 @@ export default function ProductCard({
                 e.stopPropagation();
                 toggleWishlist(e);
               }}
-              className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-all shadow-md group/heart"
+              className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] group/heart"
               aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
             >
               <svg
-                width="18"
-                height="18"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill={isWishlisted ? "#ef4444" : "none"}
                 xmlns="http://www.w3.org/2000/svg"
-                className={`transition-colors ${isWishlisted ? "text-red-500" : "text-neutral-400 group-hover/heart:text-red-400"}`}
+                className={`transition-all duration-300 ${isWishlisted ? "text-red-500 scale-110" : "text-neutral-400 group-hover/heart:text-red-400"}`}
               >
                 <path
                   d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
@@ -498,21 +498,21 @@ export default function ProductCard({
             <div className="relative">
               <button
                 onClick={handleShare}
-                className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-all shadow-md group/share"
+                className="w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all shadow-[0_4px_12px_rgba(0,0,0,0.08)] group/share"
                 aria-label="Share product"
               >
                 <svg
-                  width="16"
-                  height="16"
+                  width="14"
+                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  className="text-neutral-400 group-hover/share:text-blue-500 transition-colors"
+                  className="text-neutral-400 group-hover/share:text-emerald-500 transition-colors"
                 >
                   <path
                     d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"
                     stroke="currentColor"
-                    strokeWidth="2"
+                    strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
@@ -545,52 +545,32 @@ export default function ProductCard({
           </div>
 
           {(product.variations?.length || 0) >= 2 && (
-            <div className="absolute bottom-2 left-2 z-10">
-              <span className="text-[10px] font-bold text-neutral-700 bg-white/95 backdrop-blur-sm px-2 py-1 rounded shadow-sm border border-neutral-200">
+            <div className="absolute bottom-2.5 left-2.5 z-10">
+              <span className="text-[10px] font-bold text-neutral-700 bg-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm border border-neutral-200/60">
                 {product.variations?.length} Options
               </span>
             </div>
           )}
         </div>
 
-        <div className={`${compact ? 'p-2 md:p-3' : categoryStyle ? 'px-2 md:px-2.5 pt-1.5 md:pt-2 pb-2 md:pb-2.5' : 'p-4 md:p-5'} flex-1 flex flex-col`}>
+        <div className={`${compact && !categoryStyle ? 'p-2.5' : categoryStyle ? 'p-0' : 'p-4 md:p-5'} flex-1 flex flex-col`}>
           {categoryStyle ? (
-            // Category Style Layout: Time -> Name -> Quantity -> [Price | ADD]
+            // Category Style Layout: Unit+ADD Banner -> Price -> Name
             <>
+              {/* Unit and ADD button row */}
+              <div className="bg-neutral-50/70 px-2.5 py-1 flex items-center justify-between border-b border-neutral-100 min-h-[32px]">
+                <span className="text-[11px] font-bold text-neutral-500">
+                  {product.variations?.[0]?.value || product.pack || '1 unit'}
+                </span>
 
-
-              {/* 2. Product Name */}
-              <h3 className="text-[13px] font-bold text-neutral-900 mb-0.5 line-clamp-2 leading-[1.3] min-h-[2.1rem] max-h-[2.1rem] overflow-hidden">
-                {product.name || product.productName || ''}
-              </h3>
-
-              {/* 3. Quantity / Weight */}
-              <p className="text-[11px] font-medium text-neutral-400 mb-1 leading-tight">
-                {product.variations?.[0]?.value || product.pack || '1 unit'}
-              </p>
-
-              {/* 4. Footer Row: Price and ADD Button */}
-              <div className="mt-auto flex flex-wrap items-center justify-between gap-y-1 gap-x-1.5">
-                {/* Price Information */}
-                <div className="flex flex-col">
-                  <span className="text-[13px] font-black text-neutral-900 leading-none">
-                    ₹{displayPrice.toLocaleString('en-IN')}
-                  </span>
-                  {mrp && mrp > displayPrice && (
-                    <span className="text-[10px] text-neutral-400 line-through leading-none mt-1">
-                      ₹{mrp.toLocaleString('en-IN')}
-                    </span>
-                  )}
-                </div>
-
-                {/* ADD Button Section */}
-                <div className="flex flex-col items-center flex-shrink-0 ml-auto">
+                {/* ADD / Quantity Counter Button */}
+                <div className="flex flex-col items-center flex-shrink-0">
                   {(() => {
                     const variantStock = (product as any)?.variations?.[0]?.stock;
                     const variantStatus = (product as any)?.variations?.[0]?.status;
                     const productStock = (product as any)?.stock;
                     const productStatus = (product as any)?.status;
-                    
+
                     const status = variantStatus !== undefined ? variantStatus : productStatus;
                     const isOutOfStock = status === 'Sold out';
 
@@ -602,13 +582,13 @@ export default function ProductCard({
                             handleNotifyMe(e);
                           }}
                           disabled={isNotifySubscribed}
-                          className={`min-w-[64px] h-7 px-2 border rounded-lg font-bold text-[10px] uppercase tracking-wide flex items-center justify-center cursor-pointer transition-colors ${
+                          className={`min-w-[64px] h-6 px-2 border rounded-full font-bold text-[10px] uppercase tracking-wider flex items-center justify-center cursor-pointer transition-all duration-300 ${
                             isNotifySubscribed
                               ? 'border-green-300 bg-green-50 text-green-600 cursor-not-allowed'
-                              : 'border-amber-500 bg-amber-50 text-amber-700 hover:bg-amber-100'
+                              : 'border-amber-500 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:shadow-sm'
                           }`}
                         >
-                          {isNotifySubscribed ? '🔔 Subscribed' : '🔔 Notify Me'}
+                          {isNotifySubscribed ? '🔔 Subscribed' : '🔔 Notify'}
                         </button>
                       );
                     }
@@ -629,37 +609,23 @@ export default function ProductCard({
                               handleAdd(e);
                             }
                           }}
-                          className={`min-w-[64px] h-7 px-2 border rounded-lg font-bold text-[11px] uppercase tracking-wide transition-all shadow-sm ${
+                          className={`min-w-[64px] h-6 px-2.5 border rounded-full font-bold text-[10px] uppercase tracking-wider transition-all duration-300 shadow-sm ${
                             product.isAvailable === false
                             ? 'border-amber-600 text-amber-600 bg-amber-50 hover:bg-amber-100'
-                            : 'border-green-600 text-green-600 bg-white hover:bg-green-50 active:scale-95'
+                            : 'border-emerald-600 text-emerald-600 bg-white hover:bg-emerald-600 hover:text-white active:scale-95'
                           }`}
                         >
                           {product.isAvailable === false ? 'NOTIFY' : 'ADD'}
                         </Button>
-                        {product.isAvailable === false && (
-                          <button
-                            onClick={(e) => {
-                               e.stopPropagation();
-                               toggleWishlist(e);
-                            }}
-                            className="mt-1 text-[9px] text-red-500 font-bold flex items-center gap-0.5 hover:underline"
-                          >
-                            <svg width="8" height="8" viewBox="0 0 24 24" fill={isWishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5">
-                               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                            </svg>
-                            {isWishlisted ? 'Wishlisted' : 'Wishlist'}
-                          </button>
-                        )}
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between bg-green-600 text-white rounded-lg h-7 px-1 min-w-[64px] shadow-sm">
+                      <div className="flex items-center justify-between bg-emerald-600 text-white rounded-full h-6 px-1 min-w-[64px] shadow-sm">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDecrease(e);
                           }}
-                          className="w-5 h-full flex items-center justify-center text-base font-bold hover:bg-green-700 rounded-l-lg transition-colors"
+                          className="w-5 h-full flex items-center justify-center text-xs font-bold hover:bg-emerald-700 rounded-l-full transition-colors"
                         >
                           −
                         </button>
@@ -671,33 +637,50 @@ export default function ProductCard({
                             e.stopPropagation();
                             handleIncrease(e);
                           }}
-                          className="w-5 h-full flex items-center justify-center text-base font-bold hover:bg-green-700 rounded-r-lg transition-colors"
+                          className="w-5 h-full flex items-center justify-center text-xs font-bold hover:bg-emerald-700 rounded-r-full transition-colors"
                         >
                           +
                         </button>
                       </div>
                     );
                   })()}
-                  
-                  {/* Options Text below ADD button */}
-                  {(product.variations?.length || 0) >= 2 && (
-                    <span className="text-[9px] text-neutral-400 mt-1 font-medium">
-                      {product.variations?.length} options
+                </div>
+              </div>
+
+              {/* Price & Name Details */}
+              <div className="p-2 flex-1 flex flex-col justify-between">
+                <div className="flex items-baseline gap-1 mb-0.5 flex-wrap">
+                  <span className="text-[14px] font-black text-neutral-900 leading-none">
+                    ₹{displayPrice.toLocaleString('en-IN')}
+                  </span>
+                  {mrp && mrp > displayPrice && (
+                    <span className="text-[10px] text-neutral-400 line-through leading-none font-medium">
+                      ₹{mrp.toLocaleString('en-IN')}
                     </span>
                   )}
                 </div>
+
+                <h3 className="text-[12px] font-semibold text-neutral-800 line-clamp-2 leading-[1.3] min-h-[2.1rem] max-h-[2.1rem] overflow-hidden mb-0.5 group-hover:text-emerald-700 transition-colors duration-200">
+                  {product.name || product.productName || ''}
+                </h3>
+
+                {(product.variations?.length || 0) >= 2 && (
+                  <span className="text-[9px] text-neutral-400 font-medium mt-auto">
+                    {product.variations?.length} options
+                  </span>
+                )}
               </div>
             </>
           ) : (
             // Non-category style layout (original)
             <>
               {!showPackBadge && (
-                <p className={`${compact ? 'text-[10px] md:text-xs' : 'text-xs md:text-sm'} text-neutral-500 mb-1`}>
+                <p className={`${compact ? 'text-[10px] md:text-xs' : 'text-xs md:text-sm'} font-semibold text-neutral-500 mb-1`}>
                     {product.variations?.[0]?.value || product.pack}
                 </p>
               )}
 
-              <h3 className={`${compact ? 'text-xs md:text-sm' : 'text-sm md:text-base'} font-semibold text-neutral-900 ${compact ? 'mb-1' : 'mb-2'} line-clamp-2 ${compact ? 'min-h-[2rem]' : 'min-h-[2.5rem]'}`}>
+              <h3 className={`${compact ? 'text-xs md:text-sm' : 'text-sm md:text-base'} font-bold text-neutral-800 ${compact ? 'mb-1' : 'mb-2'} line-clamp-2 ${compact ? 'min-h-[2rem]' : 'min-h-[2.5rem]'} group-hover:text-emerald-700 transition-colors duration-200`}>
                 {product.name || product.productName || ''}
               </h3>
 
@@ -712,27 +695,27 @@ export default function ProductCard({
               </div>
 
               {showStockInfo && (
-                <p className="text-xs text-green-600 mb-2 font-medium">
+                <p className="text-xs text-emerald-600 mb-2 font-semibold">
                   Fast delivery
                 </p>
               )}
 
               {showVegetarianIcon && (
-                <div className="flex items-center gap-1 mb-2">
-                  <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                   </div>
-                  <span className="text-xs text-neutral-600">Vegetarian</span>
+                  <span className="text-xs text-neutral-600 font-medium">Vegetarian</span>
                 </div>
               )}
 
               <div className="mt-auto mb-2">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-base font-bold text-neutral-900">
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-base font-black text-neutral-900">
                     ₹{displayPrice}
                   </span>
                   {mrp && mrp > displayPrice && (
-                    <span className="text-xs text-neutral-500 line-through">
+                    <span className="text-xs text-neutral-400 line-through font-medium">
                       ₹{mrp}
                     </span>
                   )}
@@ -765,10 +748,10 @@ export default function ProductCard({
                       handleNotifyMe(e);
                     }}
                     disabled={isNotifySubscribed}
-                    className={`w-full h-8 text-xs font-bold uppercase ${
+                    className={`w-full h-8 text-xs font-bold uppercase rounded-full tracking-wider transition-all duration-300 ${
                       isNotifySubscribed
                         ? 'border-green-300 text-green-600 bg-green-50 cursor-not-allowed'
-                        : 'border-amber-500 text-amber-700 bg-amber-50 hover:bg-amber-100'
+                        : 'border-amber-500 text-amber-700 bg-amber-50 hover:bg-amber-100 hover:shadow-sm'
                     }`}
                   >
                     {isNotifySubscribed ? '🔔 Subscribed' : '🔔 Notify Me'}
@@ -787,7 +770,7 @@ export default function ProductCard({
                         showToast('We will notify you when this product is available in your area!', 'info');
                         if (!isWishlisted) toggleWishlist(e);
                       }}
-                      className="w-full border-amber-600 text-amber-600 hover:bg-amber-50 h-8 text-xs font-bold uppercase"
+                      className="w-full border-amber-600 text-amber-600 hover:bg-amber-50 h-8 text-xs font-bold uppercase rounded-full tracking-wider transition-colors duration-300"
                     >
                       Notify Me
                     </Button>
@@ -797,26 +780,26 @@ export default function ProductCard({
                       variant="outline"
                       size="sm"
                       onClick={handleAdd}
-                      className="w-full border-green-600 text-green-600 hover:bg-green-50 h-8 text-xs font-semibold uppercase tracking-wide"
+                      className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-600 hover:text-white h-8 text-xs font-bold uppercase rounded-full tracking-wider transition-all duration-300 shadow-sm"
                     >
                       Add
                     </Button>
                   )}
-                  <div className="h-4 mt-1">
+                  <div className="h-2 mt-1">
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center gap-2 bg-white border border-green-600 rounded-full px-2 py-0.5 h-8">
+                <div className="flex items-center justify-between bg-emerald-600 text-white rounded-full px-2 py-0.5 h-8 shadow-sm">
                   <Button
                     variant="default"
                     size="icon"
                     onClick={handleDecrease}
-                    className="w-6 h-6 p-0 bg-transparent text-green-600 hover:bg-green-50 shadow-none"
+                    className="w-6 h-6 p-0 bg-transparent text-white hover:bg-emerald-700/50 shadow-none rounded-full"
                     aria-label="Decrease quantity"
                   >
                     −
                   </Button>
-                  <span className="text-xs font-bold text-green-600 min-w-[1.5rem] text-center">
+                  <span className="text-xs font-bold text-white min-w-[1.5rem] text-center">
                     {inCartQty}
                   </span>
                   <Button
@@ -824,8 +807,8 @@ export default function ProductCard({
                     size="icon"
                     disabled={product.isAvailable === false}
                     onClick={handleIncrease}
-                    className={`w-6 h-6 p-0 bg-transparent text-green-600 shadow-none ${
-                      product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : 'hover:bg-green-50'
+                    className={`w-6 h-6 p-0 bg-transparent text-white shadow-none rounded-full ${
+                      product.isAvailable === false ? 'opacity-30 cursor-not-allowed' : 'hover:bg-emerald-700/50'
                     }`}
                     aria-label="Increase quantity"
                   >

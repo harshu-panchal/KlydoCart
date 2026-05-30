@@ -605,13 +605,7 @@ export default function ProductDetail() {
                   </div>
                 </div>
                 
-                {/* Delivery Indicator */}
-                <div className="flex items-center gap-1 mb-6">
-                  <div className="bg-neutral-100 rounded-md p-1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-600"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                  </div>
-                  <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">17 MINS DELIVERY</span>
-                </div>
+
 
                 {/* Variant Selection (Blinkit Style) */}
                 {product.variations && product.variations.length > 0 && (
@@ -740,10 +734,7 @@ export default function ProductDetail() {
                       <img src={p.mainImage || p.imageUrl} className="w-full h-full object-contain" alt={p.name} />
                     </div>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1 mb-1">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-400"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                        <span className="text-[9px] font-bold text-neutral-400 uppercase">17 MINS</span>
-                      </div>
+
                       <h4 className="text-xs font-bold text-neutral-800 line-clamp-2 min-h-[32px]">{p.name || p.productName}</h4>
                       <p className="text-[10px] text-neutral-500">{p.pack || "Standard"}</p>
                       <div className="flex items-center justify-between mt-3">

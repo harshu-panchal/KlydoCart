@@ -20,7 +20,8 @@ type SortDirection = "asc" | "desc";
 export default function AdminManageCustomer() {
   const { isAuthenticated, token } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [dateRange, setDateRange] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [statusFilter, setStatusFilter] = useState<"Active" | "Inactive" | undefined>(
     undefined
   );
@@ -253,17 +254,28 @@ export default function AdminManageCustomer() {
           {/* Filters */}
           <div className="p-4 sm:p-6 border-b border-neutral-200 bg-neutral-50">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-xs font-medium text-neutral-700 mb-1">
-                  Date Range
+                  Registration Date Range
                 </label>
-                <input
-                  type="text"
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value)}
-                  placeholder="MM/DD/YYYY - MM/DD/YYYY"
-                  className="w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                    />
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-700 mb-1">

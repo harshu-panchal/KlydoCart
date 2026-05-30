@@ -123,7 +123,15 @@ export const getProducts = async (req: Request, res: Response) => {
         category as string,
         "Category"
       );
-      if (categoryId) query.category = categoryId;
+      if (categoryId) {
+        // Check if this category is actually a subcategory (has a parentId)
+        const catDoc = await Category.findById(categoryId).select("parentId").lean();
+        if (catDoc && catDoc.parentId) {
+          query.subcategory = categoryId;
+        } else {
+          query.category = categoryId;
+        }
+      }
     }
 
     if (subcategory) {

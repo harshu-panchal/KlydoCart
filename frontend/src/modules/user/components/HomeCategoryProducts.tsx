@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getProducts, getCategories, Category } from '../../../services/api/customerProductService';
 import { Product } from '../../../types/domain';
 import ProductCard from './ProductCard';
@@ -12,6 +13,7 @@ interface CategorySection {
     textColor: string;
     products: Product[];
     loading: boolean;
+    categoryId?: string;
 }
 
 export default function HomeCategoryProducts() {
@@ -79,6 +81,7 @@ export default function HomeCategoryProducts() {
                             if (prodRes.success && prodRes.data) {
                                 return {
                                     ...sec,
+                                    categoryId: targetCategory._id,
                                     products: prodRes.data as any,
                                     loading: false
                                 };
@@ -87,7 +90,7 @@ export default function HomeCategoryProducts() {
                             console.error(`Error fetching products for category: ${sec.title}`, e);
                         }
 
-                        return { ...sec, loading: false };
+                        return { ...sec, categoryId: targetCategory._id, loading: false };
                     })
                 );
 
@@ -112,23 +115,33 @@ export default function HomeCategoryProducts() {
                 return (
                     <div key={sec.title} className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
                         {/* Header Bar */}
-                        <div className={`flex items-center gap-2.5 px-4 py-3 border-l-4 ${sec.borderColor} ${sec.bgColor}`}>
-                            <span className="text-xl md:text-2xl">{sec.icon}</span>
-                            <h3 className={`text-base md:text-lg font-bold tracking-tight uppercase ${sec.textColor}`}>
-                                {sec.title}
-                            </h3>
+                        <div className={`flex items-center justify-between px-4 py-3 border-l-4 ${sec.borderColor} ${sec.bgColor}`}>
+                            <div className="flex items-center gap-2.5">
+                                <span className="text-xl md:text-2xl">{sec.icon}</span>
+                                <h3 className={`text-base md:text-lg font-bold tracking-tight uppercase ${sec.textColor}`}>
+                                    {sec.title}
+                                </h3>
+                            </div>
+                            {sec.categoryId && (
+                                <Link
+                                    to={`/category/${sec.categoryId}`}
+                                    className="text-xs md:text-sm font-bold text-green-700 hover:text-green-800 hover:underline flex items-center gap-0.5"
+                                >
+                                    + More
+                                </Link>
+                            )}
                         </div>
 
-                        {/* Product Grid */}
+                         {/* Product Grid */}
                         <div className="p-3 md:p-5">
                             {sec.loading ? (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 animate-pulse">
-                                    {[...Array(6)].map((_, i) => (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 md:gap-3 animate-pulse">
+                                    {[...Array(5)].map((_, i) => (
                                         <div key={i} className="aspect-[3/4] bg-neutral-100 rounded-lg"></div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 md:gap-3">
                                     {sec.products.map((product) => (
                                         <ProductCard
                                             key={product.id || product._id}

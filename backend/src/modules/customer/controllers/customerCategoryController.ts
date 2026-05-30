@@ -233,6 +233,49 @@ export const getCategoryById = async (req: Request, res: Response) => {
       });
     }
 
+    // Check if the found category is a subcategory (has parentId) under the recursive schema
+    if (category.parentId) {
+      console.log(`[getCategoryById] Requested category is a subcategory of: ${category.parentId}`);
+      const parentCategory = await Category.findOne({
+        _id: category.parentId,
+        status: "Active",
+      }).lean();
+
+      if (parentCategory) {
+        let parentCatId = parentCategory._id;
+        if (typeof parentCatId === 'string') {
+          try {
+            parentCatId = new mongoose.Types.ObjectId(parentCatId);
+          } catch (e) {
+            console.error("Failed to cast parent ID to ObjectId:", e);
+          }
+        }
+
+        const subcategories = await Category.find({
+          parentId: { $in: [parentCatId, parentCatId.toString()] },
+          status: "Active"
+        })
+          .select("name image order slug icon")
+          .sort({
+            order: 1,
+          });
+
+        const responseData = {
+          category: parentCategory,
+          subcategories,
+          currentSubcategory: category,
+        };
+
+        // Cache for 10 minutes
+        cache.set(cacheKey, responseData, 10 * 60 * 1000);
+
+        return res.status(200).json({
+          success: true,
+          data: responseData,
+        });
+      }
+    }
+
     console.log(
       `[getCategoryById] Found category: ${category.name} (${category._id})`
     );
