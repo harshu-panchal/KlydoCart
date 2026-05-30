@@ -40,42 +40,9 @@ function calculateDistance(
     return R * c;
 }
 
-/**
- * Check if a delivery boy has any active order or return request
- */
 export async function isDeliveryBoyBusy(deliveryBoyId: string | mongoose.Types.ObjectId): Promise<boolean> {
-    try {
-        const id = new mongoose.Types.ObjectId(deliveryBoyId.toString());
-
-        // 1. Check for active orders (Assigned, Picked Up, In Transit)
-        const activeOrder = await Order.findOne({
-            deliveryBoy: id,
-            deliveryBoyStatus: { $in: ['Assigned', 'Picked Up', 'In Transit'] },
-            status: { $nin: ['Delivered', 'Cancelled', 'Rejected', 'Returned'] }
-        });
-
-        if (activeOrder) {
-            console.log(`ℹ️ Delivery boy ${id} has active order ${activeOrder._id} with delivery status: ${activeOrder.deliveryBoyStatus}`);
-            return true;
-        }
-
-        // 2. Check for active return requests (Assigned, Picked Up)
-        const activeReturn = await Return.findOne({
-            deliveryBoy: id,
-            pickupStatus: { $in: ['Assigned', 'Picked Up'] },
-            status: { $nin: ['Completed', 'Rejected'] }
-        });
-
-        if (activeReturn) {
-            console.log(`ℹ️ Delivery boy ${id} has active return request ${activeReturn._id} with pickup status: ${activeReturn.pickupStatus}`);
-            return true;
-        }
-
-        return false;
-    } catch (error) {
-        console.error(`Error checking if delivery boy ${deliveryBoyId} is busy:`, error);
-        return false;
-    }
+    // Disabled busy check to ensure delivery boys always receive notifications and can handle queued/multiple orders
+    return false;
 }
 
 /**
@@ -116,7 +83,7 @@ export async function findDeliveryBoysNearLocation(
             // NOTE: Removed status:'Active' filter — any online delivery boy is eligible.
             const deliveryBoysWithLocation = await Delivery.find({
                 isOnline: true,
-                "location.coordinates": {
+                location: {
                     $near: {
                         $geometry: {
                             type: "Point",
@@ -287,36 +254,8 @@ export async function notifyDeliveryBoysOfNewOrder(
 
         console.log(`✅ Found ${nearbyDeliveryBoyIds.length} available delivery boys:`, nearbyDeliveryBoyIds.map(id => id.toString()));
 
-        // --- FILTER BUSY DELIVERY BOYS ---
-        // Check if any of these delivery boys already have an active order or return request
-        const busyOrderDeliveryBoys = await Order.find({
-            deliveryBoy: { $in: nearbyDeliveryBoyIds },
-            deliveryBoyStatus: { $in: ['Assigned', 'Picked Up', 'In Transit'] },
-            status: { $nin: ['Delivered', 'Cancelled', 'Rejected', 'Returned'] }
-        }).distinct('deliveryBoy');
-
-        const busyReturnDeliveryBoys = await Return.find({
-            deliveryBoy: { $in: nearbyDeliveryBoyIds },
-            pickupStatus: { $in: ['Assigned', 'Picked Up'] }
-        }).distinct('deliveryBoy');
-
-        const busyIdsSet = new Set([
-            ...busyOrderDeliveryBoys.map(id => id.toString()),
-            ...busyReturnDeliveryBoys.map(id => id.toString())
-        ]);
-
-        if (busyIdsSet.size > 0) {
-            const originalCount = nearbyDeliveryBoyIds.length;
-            nearbyDeliveryBoyIds = nearbyDeliveryBoyIds.filter(id => !busyIdsSet.has(id.toString()));
-
-            console.log(`ℹ️ Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Available: ${nearbyDeliveryBoyIds.length}`);
-
-            if (nearbyDeliveryBoyIds.length === 0) {
-                console.log('⚠️ All nearby delivery boys are currently busy with other orders or return requests.');
-                return;
-            }
-        }
-        // ---------------------------------
+        // --- FILTER BUSY DELIVERY BOYS (Bypassed) ---
+        console.log(`ℹ️ Busy filtering bypassed. Available: ${nearbyDeliveryBoyIds.length}`);
 
         // Prepare order data for notification
         const orderData = {
@@ -341,19 +280,21 @@ export async function notifyDeliveryBoysOfNewOrder(
         const notifiedIds = new Set<string>();
         const disconnectedIds: string[] = [];
 
-        // Only add delivery boys who are actually connected to the notification room
+        // Notify all eligible delivery boys via their individual rooms
         for (const id of nearbyDeliveryBoyIds) {
             const idString = id.toString().trim();
             const roomName = `delivery-${idString}`;
-            const room = io.sockets.adapter.rooms.get(roomName);
+            
+            // Always emit - Socket.io will handle sending to active sockets in the room
+            io.to(roomName).emit('new-order', orderData);
+            notifiedIds.add(idString);
 
+            const room = io.sockets.adapter.rooms.get(roomName);
             if (room && room.size > 0) {
-                notifiedIds.add(idString);
-                io.to(roomName).emit('new-order', orderData);
                 console.log(`📤 [SUCCESS] Emitted new-order to connected delivery boy room: ${roomName}. Room size: ${room.size}`);
             } else {
                 disconnectedIds.push(idString);
-                console.log(`⏩ [SKIPPED] Skipping disconnected delivery boy: ${idString}. Room exists: ${!!room}, Size: ${room?.size || 0}`);
+                console.log(`📤 Emitted new-order to room: ${roomName} (offline/disconnected at the moment)`);
             }
         }
 
@@ -367,12 +308,6 @@ export async function notifyDeliveryBoysOfNewOrder(
             rejectedDeliveryBoys: new Set(),
             acceptedBy: null,
         });
-
-        if (notifiedIds.size === 0) {
-            console.log(`⚠️ No connected delivery boys found to notify right now. ${disconnectedIds.length} delivery boys are offline.`);
-            console.log(`💡 Notification state saved for order ${orderId}. Delivery boys will receive it when they connect.`);
-            return;
-        }
 
         // Only notify individual active delivery boys, not the general room
         // This prevents offline delivery boys from receiving notifications
@@ -804,34 +739,8 @@ export async function notifyDeliveryBoysOfNewReturn(io: SocketIOServer, returnRe
 
         let nearbyDeliveryBoyIds = nearbyBoys.map(b => b.deliveryBoyId);
 
-        // --- FILTER BUSY DELIVERY BOYS FOR RETURN ---
-        const busyOrderDeliveryBoys = await Order.find({
-            deliveryBoy: { $in: nearbyDeliveryBoyIds },
-            deliveryBoyStatus: { $in: ['Assigned', 'Picked Up', 'In Transit'] },
-            status: { $nin: ['Delivered', 'Cancelled', 'Rejected', 'Returned'] }
-        }).distinct('deliveryBoy');
-
-        const busyReturnDeliveryBoys = await Return.find({
-            deliveryBoy: { $in: nearbyDeliveryBoyIds },
-            pickupStatus: { $in: ['Assigned', 'Picked Up'] }
-        }).distinct('deliveryBoy');
-
-        const busyIdsSet = new Set([
-            ...busyOrderDeliveryBoys.map(id => id.toString()),
-            ...busyReturnDeliveryBoys.map(id => id.toString())
-        ]);
-
-        if (busyIdsSet.size > 0) {
-            const originalCount = nearbyDeliveryBoyIds.length;
-            nearbyDeliveryBoyIds = nearbyDeliveryBoyIds.filter(id => !busyIdsSet.has(id.toString()));
-            console.log(`ℹ️ [Return] Filtered out ${originalCount - nearbyDeliveryBoyIds.length} busy delivery boys. Available: ${nearbyDeliveryBoyIds.length}`);
-            
-            if (nearbyDeliveryBoyIds.length === 0) {
-                console.log('⚠️ All nearby delivery boys are currently busy with other orders or return requests. No one to notify for return.');
-                return;
-            }
-        }
-        // --------------------------------------------
+        // --- FILTER BUSY DELIVERY BOYS FOR RETURN (Bypassed) ---
+        console.log(`ℹ️ [Return] Busy filtering bypassed. Available: ${nearbyDeliveryBoyIds.length}`);
 
         const customerName = order.customerName || 'Customer';
         const customerPhone = order.customerPhone || '';
@@ -855,12 +764,13 @@ export async function notifyDeliveryBoysOfNewReturn(io: SocketIOServer, returnRe
         for (const id of nearbyDeliveryBoyIds) {
             const idString = id.toString().trim();
             const roomName = `delivery-${idString}`;
-            const room = io.sockets.adapter.rooms.get(roomName);
+            
+            // Always emit - Socket.io will handle sending to active sockets in the room
+            io.to(roomName).emit('NEW_RETURN_PICKUP', returnData);
+            notifiedIds.add(idString);
 
-            if (room && room.size > 0) {
-                notifiedIds.add(idString);
-                io.to(roomName).emit('NEW_RETURN_PICKUP', returnData);
-            } else {
+            const room = io.sockets.adapter.rooms.get(roomName);
+            if (!room || room.size === 0) {
                 disconnectedIds.push(idString);
             }
         }

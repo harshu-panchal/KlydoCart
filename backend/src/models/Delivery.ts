@@ -268,7 +268,6 @@ const DeliverySchema = new Schema<IDelivery>(
       },
       coordinates: {
         type: [Number], // [longitude, latitude]
-        index: "2dsphere",
       },
     },
     balance: {
@@ -326,6 +325,8 @@ DeliverySchema.methods.comparePassword = async function (
 ): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };
+
+DeliverySchema.index({ location: '2dsphere' });
 
 const Delivery = mongoose.model<IDelivery>('Delivery', DeliverySchema);
 

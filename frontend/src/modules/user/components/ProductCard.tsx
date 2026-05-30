@@ -392,7 +392,7 @@ export default function ProductCard({
         onClick={handleCardClick}
         className="cursor-pointer flex-1 flex flex-col"
       >
-        <div className={`w-full ${compact ? 'h-32 md:h-40' : categoryStyle ? 'h-32 md:h-40' : 'h-40 md:h-48'} bg-white flex items-center justify-center overflow-hidden relative border-b border-neutral-100`}>
+        <div className={`w-full ${compact ? 'h-24 md:h-32' : categoryStyle ? 'h-32 md:h-40' : 'h-40 md:h-48'} bg-white flex items-center justify-center overflow-hidden relative border-b border-neutral-100`}>
           {product.imageUrl || product.mainImage ? (
             <img
               ref={imageRef}
@@ -557,13 +557,7 @@ export default function ProductCard({
           {categoryStyle ? (
             // Category Style Layout: Time -> Name -> Quantity -> [Price | ADD]
             <>
-              {/* 1. Delivery Time */}
-              <p className="text-[10px] font-bold text-amber-600 mb-1 flex items-center gap-1 leading-tight uppercase tracking-wide">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                  <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.1.8-1.2-4.5-2.7V7z" />
-                </svg>
-                <span>16 MINS</span>
-              </p>
+
 
               {/* 2. Product Name */}
               <h3 className="text-[13px] font-bold text-neutral-900 mb-0.5 line-clamp-2 leading-[1.3] min-h-[2.1rem] max-h-[2.1rem] overflow-hidden">

@@ -90,10 +90,10 @@ export const createProduct = asyncHandler(
       }
     }
 
-    // 6. Set product status - Products now require approval
+    // 6. Set product status - Products are directly published/active
     newProductData.publish = true; // Still allow sellers to set publish: true, but status handles visibility
-    newProductData.status = "Pending";
-    newProductData.requiresApproval = true;
+    newProductData.status = "Active";
+    newProductData.requiresApproval = false;
 
     // Set default values for other required fields if not provided
     if (!newProductData.popular) newProductData.popular = false;

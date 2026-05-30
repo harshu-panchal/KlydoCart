@@ -5,6 +5,7 @@ import { DeliveryNotificationData, ReturnNotificationData } from '../services/ap
 import { acceptOrder, rejectOrder } from '../services/api/delivery/deliveryOrderNotificationService';
 import { acceptReturnPickup } from '../services/api/delivery/deliveryService';
 import { getSocketBaseURL } from '../services/api/config';
+import { useDeliveryStatus } from '../modules/delivery/context/DeliveryStatusContext';
 
 interface NotificationState {
     currentNotification: DeliveryNotificationData | null;
@@ -18,6 +19,7 @@ const INITIAL_RECONNECT_DELAY = 2000;
 
 export const useDeliveryOrderNotifications = () => {
     const { isAuthenticated, user } = useAuth();
+    const { currentLocation } = useDeliveryStatus();
     const [state, setState] = useState<NotificationState>({
         currentNotification: null,
         notificationQueue: [],
@@ -277,6 +279,16 @@ export const useDeliveryOrderNotifications = () => {
             socketRef.current = null;
         }
     }, []);
+
+    // Emit live location whenever it changes
+    useEffect(() => {
+        if (state.isConnected && socketRef.current && currentLocation && currentLocation.latitude && currentLocation.longitude) {
+            socketRef.current.emit('update-delivery-boy-location', {
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude,
+            });
+        }
+    }, [currentLocation, state.isConnected]);
 
     const handleAccept = useCallback(async (orderId: string, navigate?: (path: string) => void) => {
         const isReturn = state.currentNotification?.isReturn === true;

@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { handleOrderAcceptance, handleOrderRejection, scanOrdersForDeliveryBoy, scanReturnsForDeliveryBoy } from '../services/orderNotificationService';
 import Order from '../models/Order';
 import DeliveryTracking from '../models/DeliveryTracking';
+import Delivery from '../models/Delivery';
 
 // In-memory cache for order destinations (lat, lng) to avoid DB reads on every update
 // Key: orderId, Value: { latitude, longitude }
@@ -211,7 +212,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
             console.log(`🔔 Delivery boy ${normalizedDeliveryBoyId} joined notifications room`);
 
             // Only join personal room (not general room) to prevent duplicate notifications
-            socket.join(`delivery-${normalizedDeliveryBoyId}`);
+            await socket.join(`delivery-${normalizedDeliveryBoyId}`);
 
             console.log(`✅ Delivery boy ${normalizedDeliveryBoyId} joined room: delivery-${normalizedDeliveryBoyId}`);
 
@@ -252,6 +253,28 @@ export const initializeSocket = (httpServer: HttpServer) => {
             } catch (error) {
                 console.error('❌ Error in reject-order handler:', error);
                 socket.emit('reject-order-response', { success: false, message: 'Internal server error', allRejected: false });
+            }
+        });
+
+        // Handle general delivery location update (for finding nearby orders)
+        socket.on('update-delivery-boy-location', async (data: { latitude: number; longitude: number }) => {
+            const latitude = Number(data.latitude);
+            const longitude = Number(data.longitude);
+            const deliveryBoyId = (socket as any).user?.userId;
+
+            if (!deliveryBoyId || isNaN(latitude) || isNaN(longitude)) {
+                return;
+            }
+
+            try {
+                await Delivery.findByIdAndUpdate(deliveryBoyId, {
+                    location: {
+                        type: 'Point',
+                        coordinates: [longitude, latitude]
+                    }
+                });
+            } catch (error) {
+                console.error(`❌ Error updating location for delivery boy ${deliveryBoyId}:`, error);
             }
         });
 
