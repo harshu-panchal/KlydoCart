@@ -11,6 +11,7 @@ export interface HeaderCategory {
     image?: string;
     status: 'Published' | 'Unpublished';
     order?: number;
+    showInHome?: boolean;
 }
 
 export const getHeaderCategoriesPublic = async (skipLoader = false): Promise<HeaderCategory[]> => {

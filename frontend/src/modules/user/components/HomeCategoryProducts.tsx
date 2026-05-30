@@ -1,109 +1,220 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { getProducts, getCategories, Category } from '../../../services/api/customerProductService';
+import { useEffect, useState, useCallback } from 'react';
+import { getProducts } from '../../../services/api/customerProductService';
+import { getHeaderCategoriesPublic, HeaderCategory } from '../../../services/api/headerCategoryService';
 import { Product } from '../../../types/domain';
 import ProductCard from './ProductCard';
 import { useLocation } from '../../../hooks/useLocation';
+import { getIconByName } from '../../../utils/iconLibrary';
+
+const PAGE_SIZE = 6;
 
 interface CategorySection {
     title: string;
-    icon: string;
+    icon?: string;
+    iconName?: string;
+    image?: string;
     bgColor: string;
     borderColor: string;
     textColor: string;
     products: Product[];
     loading: boolean;
-    categoryId?: string;
+    loadingMore: boolean;
+    headerCategoryId: string;
+    page: number;
+    hasMore: boolean;
 }
 
 export default function HomeCategoryProducts() {
     const { location } = useLocation();
-    const [sections, setSections] = useState<CategorySection[]>([
-        { title: 'Vegetables', icon: '🥬', bgColor: 'bg-green-50', borderColor: 'border-green-500', textColor: 'text-green-800', products: [], loading: true },
-        { title: 'Fruits', icon: '🍎', bgColor: 'bg-amber-50', borderColor: 'border-amber-500', textColor: 'text-amber-800', products: [], loading: true },
-        { title: 'Restaurant Food', icon: '🍲', bgColor: 'bg-purple-50', borderColor: 'border-purple-500', textColor: 'text-purple-800', products: [], loading: true },
-        { title: 'Fast Food', icon: '🍔', bgColor: 'bg-orange-50', borderColor: 'border-orange-500', textColor: 'text-orange-800', products: [], loading: true },
-        { title: 'Non Veg', icon: '🍗', bgColor: 'bg-rose-50', borderColor: 'border-rose-500', textColor: 'text-rose-800', products: [], loading: true },
-        { title: 'Cake', icon: '🎂', bgColor: 'bg-pink-50', borderColor: 'border-pink-500', textColor: 'text-pink-800', products: [], loading: true },
-        { title: 'Wedding & Bridal', icon: '👰', bgColor: 'bg-teal-50', borderColor: 'border-teal-500', textColor: 'text-teal-800', products: [], loading: true }
-    ]);
+    const [sections, setSections] = useState<CategorySection[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const themeColorMap: Record<string, { bgColor: string, borderColor: string, textColor: string }> = {
+        all: { bgColor: 'bg-green-50', borderColor: 'border-green-500', textColor: 'text-green-800' },
+        wedding: { bgColor: 'bg-red-50', borderColor: 'border-red-500', textColor: 'text-red-800' },
+        winter: { bgColor: 'bg-sky-50', borderColor: 'border-sky-500', textColor: 'text-sky-800' },
+        electronics: { bgColor: 'bg-yellow-50', borderColor: 'border-yellow-500', textColor: 'text-yellow-800' },
+        beauty: { bgColor: 'bg-pink-50', borderColor: 'border-pink-500', textColor: 'text-pink-800' },
+        grocery: { bgColor: 'bg-emerald-50', borderColor: 'border-emerald-500', textColor: 'text-emerald-800' },
+        fashion: { bgColor: 'bg-purple-50', borderColor: 'border-purple-500', textColor: 'text-purple-800' },
+        sports: { bgColor: 'bg-blue-50', borderColor: 'border-blue-500', textColor: 'text-blue-800' },
+        orange: { bgColor: 'bg-orange-50', borderColor: 'border-orange-500', textColor: 'text-orange-800' },
+        violet: { bgColor: 'bg-violet-50', borderColor: 'border-violet-500', textColor: 'text-violet-800' },
+        teal: { bgColor: 'bg-teal-50', borderColor: 'border-teal-500', textColor: 'text-teal-800' },
+        dark: { bgColor: 'bg-neutral-50', borderColor: 'border-neutral-500', textColor: 'text-neutral-800' },
+        hotpink: { bgColor: 'bg-pink-50', borderColor: 'border-pink-500', textColor: 'text-pink-800' },
+        gold: { bgColor: 'bg-amber-50', borderColor: 'border-amber-500', textColor: 'text-amber-800' }
+    };
 
     useEffect(() => {
-        const fetchCategoryProducts = async () => {
+        const fetchHeaderCategoryProducts = async () => {
             try {
-                // Fetch all categories
-                const catRes = await getCategories();
-                if (!catRes.success || !catRes.data) return;
+                const headerCats = await getHeaderCategoriesPublic();
+                if (!headerCats || headerCats.length === 0) {
+                    setLoading(false);
+                    return;
+                }
 
-                const allCategories = catRes.data;
+                const visibleCats = headerCats.filter((cat: HeaderCategory) => cat.showInHome === true);
+                if (visibleCats.length === 0) {
+                    setSections([]);
+                    setLoading(false);
+                    return;
+                }
 
-                // Match categories based on keywords
-                const matchCategory = (keywords: string[]): Category | undefined => {
-                    return allCategories.find(c => 
-                        keywords.some(keyword => c.name.toLowerCase().includes(keyword))
-                    );
-                };
+                const initialSections: CategorySection[] = visibleCats.map((cat: HeaderCategory) => {
+                    const colors = themeColorMap[cat.slug] || {
+                        bgColor: 'bg-neutral-50',
+                        borderColor: 'border-neutral-300',
+                        textColor: 'text-neutral-700'
+                    };
 
-                const matchedCategories = {
-                    'Vegetables': matchCategory(['fresh vegetables', 'vegetables', 'vegtable']),
-                    'Fruits': matchCategory(['fresh fruits']),
-                    'Restaurant Food': matchCategory(['ready food', 'restaurant', 'biryani']),
-                    'Fast Food': matchCategory(['fast food']),
-                    'Non Veg': matchCategory(['chicken, meat & fish', 'chicken-meat-and-fish', 'non veg', 'non-veg']),
-                    'Cake': matchCategory(['cakes']),
-                    'Wedding & Bridal': matchCategory(['bridal wear', 'wedding & bridal', 'wedding'])
-                };
+                    return {
+                        title: cat.name,
+                        iconName: cat.iconName,
+                        image: cat.image,
+                        bgColor: colors.bgColor,
+                        borderColor: colors.borderColor,
+                        textColor: colors.textColor,
+                        products: [],
+                        loading: true,
+                        loadingMore: false,
+                        headerCategoryId: cat._id,
+                        page: 1,
+                        hasMore: false,
+                    };
+                });
 
-                // Fetch products for each matched category
+                setSections(initialSections);
+                setLoading(false);
+
+                // Fetch first page of products for each section in parallel
                 const updatedSections = await Promise.all(
-                    sections.map(async (sec) => {
-                        const targetCategory = matchedCategories[sec.title as keyof typeof matchedCategories];
-                        if (!targetCategory) {
-                            return { ...sec, loading: false };
-                        }
-
+                    initialSections.map(async (sec) => {
                         try {
                             const queryParams: any = {
                                 latitude: location?.latitude,
                                 longitude: location?.longitude,
-                                limit: 6 // Show top 6 products per category
+                                limit: PAGE_SIZE,
+                                page: 1,
+                                headerCategoryId: sec.headerCategoryId
                             };
-
-                            // If the category has a parentId, query as subcategory for correct backend lookup
-                            if (targetCategory.parentId) {
-                                queryParams.subcategory = targetCategory._id;
-                            } else {
-                                queryParams.category = targetCategory._id;
-                            }
 
                             const prodRes = await getProducts(queryParams);
 
                             if (prodRes.success && prodRes.data) {
+                                const fetched = prodRes.data.length;
+                                const total = prodRes.pagination?.total ?? 0;
+                                // hasMore: either pagination says there's more, or we got a full page
+                                const hasMore = total > PAGE_SIZE || fetched >= PAGE_SIZE;
                                 return {
                                     ...sec,
-                                    categoryId: targetCategory._id,
                                     products: prodRes.data as any,
-                                    loading: false
+                                    loading: false,
+                                    hasMore,
                                 };
                             }
                         } catch (e) {
-                            console.error(`Error fetching products for category: ${sec.title}`, e);
+                            console.error(`Error fetching products for header category: ${sec.title}`, e);
                         }
-
-                        return { ...sec, categoryId: targetCategory._id, loading: false };
+                        return { ...sec, loading: false };
                     })
                 );
 
                 setSections(updatedSections);
             } catch (error) {
-                console.error('Error fetching categories or products:', error);
+                console.error('Error fetching dynamic header category products:', error);
+                setLoading(false);
             }
         };
 
-        fetchCategoryProducts();
+        fetchHeaderCategoryProducts();
     }, [location?.latitude, location?.longitude]);
 
-    // Render nothing if all sections are loading and have no products
+    // Load more products for a specific section
+    const handleLoadMore = useCallback(async (headerCategoryId: string) => {
+        setSections(prev =>
+            prev.map(sec =>
+                sec.headerCategoryId === headerCategoryId
+                    ? { ...sec, loadingMore: true }
+                    : sec
+            )
+        );
+
+        const sec = sections.find(s => s.headerCategoryId === headerCategoryId);
+        if (!sec) return;
+
+        const nextPage = sec.page + 1;
+
+        try {
+            const queryParams: any = {
+                latitude: location?.latitude,
+                longitude: location?.longitude,
+                limit: PAGE_SIZE,
+                page: nextPage,
+                headerCategoryId,
+            };
+
+            const prodRes = await getProducts(queryParams);
+
+            if (prodRes.success && prodRes.data) {
+                const newProducts = prodRes.data as any[];
+                const total = prodRes.pagination?.total ?? 0;
+                // No more products if we got fewer than a full page
+                const hasMore = newProducts.length >= PAGE_SIZE
+                    ? (total > 0 ? (sec.products.length + newProducts.length) < total : true)
+                    : false;
+                setSections(prev =>
+                    prev.map(s =>
+                        s.headerCategoryId === headerCategoryId
+                            ? {
+                                ...s,
+                                products: [...s.products, ...newProducts],
+                                page: nextPage,
+                                loadingMore: false,
+                                hasMore,
+                            }
+                            : s
+                    )
+                );
+            } else {
+                setSections(prev =>
+                    prev.map(s =>
+                        s.headerCategoryId === headerCategoryId
+                            ? { ...s, loadingMore: false, hasMore: false }
+                            : s
+                    )
+                );
+            }
+        } catch (e) {
+            console.error('Error loading more products:', e);
+            setSections(prev =>
+                prev.map(s =>
+                    s.headerCategoryId === headerCategoryId
+                        ? { ...s, loadingMore: false }
+                        : s
+                )
+            );
+        }
+    }, [sections, location?.latitude, location?.longitude]);
+
+    if (loading) {
+        return (
+            <div className="space-y-6 md:space-y-8 px-4 md:px-6 lg:px-8 pb-10">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden animate-pulse">
+                        <div className="h-12 bg-neutral-100 w-full"></div>
+                        <div className="p-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            {[...Array(6)].map((_, j) => (
+                                <div key={j} className="aspect-[3/4] bg-neutral-50 rounded-lg"></div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
     const hasAnyProducts = sections.some(sec => sec.products.length > 0);
     if (!hasAnyProducts && sections.every(sec => !sec.loading)) return null;
 
@@ -113,30 +224,28 @@ export default function HomeCategoryProducts() {
                 if (!sec.loading && sec.products.length === 0) return null;
 
                 return (
-                    <div key={sec.title} className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
-                        {/* Header Bar */}
-                        <div className={`flex items-center justify-between px-4 py-3 border-l-4 ${sec.borderColor} ${sec.bgColor}`}>
+                    <div key={sec.headerCategoryId} className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                        {/* Header Bar — title + icon only, no More button here */}
+                        <div className={`flex items-center px-4 py-3 border-l-4 ${sec.borderColor} ${sec.bgColor}`}>
                             <div className="flex items-center gap-2.5">
-                                <span className="text-xl md:text-2xl">{sec.icon}</span>
+                                <span className={`w-6 h-6 flex items-center justify-center ${sec.textColor}`}>
+                                    {sec.image ? (
+                                        <img src={sec.image} alt={sec.title} className="w-full h-full object-cover rounded-full" />
+                                    ) : (
+                                        sec.iconName ? getIconByName(sec.iconName) : '📦'
+                                    )}
+                                </span>
                                 <h3 className={`text-base md:text-lg font-bold tracking-tight uppercase ${sec.textColor}`}>
                                     {sec.title}
                                 </h3>
                             </div>
-                            {sec.categoryId && (
-                                <Link
-                                    to={`/category/${sec.categoryId}`}
-                                    className="text-xs md:text-sm font-bold text-green-700 hover:text-green-800 hover:underline flex items-center gap-0.5"
-                                >
-                                    + More
-                                </Link>
-                            )}
                         </div>
 
-                         {/* Product Grid */}
+                        {/* Product Grid */}
                         <div className="p-3 md:p-5">
                             {sec.loading ? (
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 md:gap-3 animate-pulse">
-                                    {[...Array(5)].map((_, i) => (
+                                    {[...Array(6)].map((_, i) => (
                                         <div key={i} className="aspect-[3/4] bg-neutral-100 rounded-lg"></div>
                                     ))}
                                 </div>
@@ -155,7 +264,49 @@ export default function HomeCategoryProducts() {
                                     ))}
                                 </div>
                             )}
+
+                            {/* Loading More Skeleton */}
+                            {sec.loadingMore && (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 md:gap-3 mt-3 animate-pulse">
+                                    {[...Array(6)].map((_, i) => (
+                                        <div key={i} className="aspect-[3/4] bg-neutral-100 rounded-lg"></div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
+
+                        {/* More Button — always visible at the BOTTOM of the section */}
+                        {!sec.loading && (
+                            <div className={`flex items-center justify-center px-4 py-3 border-t border-neutral-100 ${sec.bgColor}`}>
+                                <button
+                                    onClick={() => sec.hasMore && !sec.loadingMore && handleLoadMore(sec.headerCategoryId)}
+                                    disabled={sec.loadingMore || !sec.hasMore}
+                                    className={`
+                                        flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-full
+                                        border transition-all duration-200
+                                        ${sec.hasMore
+                                            ? `${sec.borderColor} ${sec.textColor} bg-white hover:shadow-sm active:scale-95 cursor-pointer`
+                                            : 'border-neutral-200 text-neutral-400 bg-white cursor-not-allowed'
+                                        }
+                                        disabled:opacity-60
+                                    `}
+                                >
+                                    {sec.loadingMore ? (
+                                        <>
+                                            <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                            </svg>
+                                            Loading...
+                                        </>
+                                    ) : sec.hasMore ? (
+                                        <span>+ More</span>
+                                    ) : (
+                                        <span>No More</span>
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 );
             })}

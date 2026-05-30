@@ -48,12 +48,13 @@ export const createHeaderCategory = async (req: Request, res: Response) => {
       image,
       status,
       order,
+      showInHome,
     } = req.body;
 
     if (slug === "all") {
       return res
-        .status(400)
-        .json({ message: " 'all' is a reserved theme/slug and cannot be used" });
+         .status(400)
+         .json({ message: " 'all' is a reserved theme/slug and cannot be used" });
     }
 
     // Check if category with same name or slug exists
@@ -80,6 +81,7 @@ export const createHeaderCategory = async (req: Request, res: Response) => {
       image,
       status,
       order,
+      showInHome: showInHome !== undefined ? showInHome : false,
     });
 
     return res.status(201).json(category);
@@ -103,6 +105,7 @@ export const updateHeaderCategory = async (req: Request, res: Response) => {
       image,
       status,
       order,
+      showInHome,
     } = req.body;
     const category = await HeaderCategory.findById(req.params.id);
 
@@ -140,6 +143,9 @@ export const updateHeaderCategory = async (req: Request, res: Response) => {
       category.image = image; // Allow updating/clearing image
       category.status = status || category.status;
       category.order = order !== undefined ? order : category.order;
+      if (showInHome !== undefined) {
+        category.showInHome = showInHome;
+      }
 
       const updatedCategory = await category.save();
       return res.json(updatedCategory);

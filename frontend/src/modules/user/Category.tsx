@@ -530,6 +530,7 @@ export default function CategoryPage() {
           {/* Products Grid */}
           {categoryProducts.length > 0 ? (
             <div className="px-2 md:px-6 lg:px-8 py-4 md:py-6">
+              <h2 className="text-sm md:text-base font-bold text-neutral-800 mb-3 px-1">All Products</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
                 {categoryProducts.map((product) => (
                   <ProductCard

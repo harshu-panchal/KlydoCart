@@ -935,6 +935,7 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
     seller,
     status,
     publish,
+    headerCategoryId,
   } = req.query;
 
   const query: any = {};
@@ -949,6 +950,14 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   if (subcategory) query.subcategory = subcategory;
   if (brand) query.brand = brand;
   if (seller) query.seller = seller;
+
+  if (headerCategoryId) {
+    if (headerCategoryId === "null") {
+      query.headerCategoryId = null;
+    } else {
+      query.headerCategoryId = headerCategoryId;
+    }
+  }
 
   // Filter by status if provided (e.g., to find products needing approval)
   if (status) {

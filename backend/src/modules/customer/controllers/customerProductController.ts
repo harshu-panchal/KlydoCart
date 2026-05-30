@@ -11,6 +11,7 @@ export const getProducts = async (req: Request, res: Response) => {
     const {
       category,
       subcategory,
+      headerCategoryId,
       search,
       page = 1,
       limit = 20,
@@ -32,6 +33,10 @@ export const getProducts = async (req: Request, res: Response) => {
         { isShopByStoreOnly: { $exists: false } },
       ],
     };
+
+    if (headerCategoryId) {
+      query.headerCategoryId = headerCategoryId;
+    }
 
     // Location: get nearby seller IDs to mark products as available vs "Coming Soon"
     const userLat = latitude ? parseFloat(latitude as string) : null;

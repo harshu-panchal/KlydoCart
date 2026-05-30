@@ -163,6 +163,9 @@ const AdminCategory = lazy(() => import("./modules/admin/pages/AdminCategory"));
 const AdminHeaderCategory = lazy(
   () => import("./modules/admin/pages/AdminHeaderCategory"),
 );
+const AdminHeaderProducts = lazy(
+  () => import("./modules/admin/pages/AdminHeaderProducts"),
+);
 const AdminSubCategory = lazy(
   () => import("./modules/admin/pages/AdminSubCategory"),
 );
@@ -546,6 +549,10 @@ function AppContent() {
                                     <Route
                                       path="category/header"
                                       element={<AdminHeaderCategory />}
+                                    />
+                                    <Route
+                                      path="category/products"
+                                      element={<AdminHeaderProducts />}
                                     />
                                     <Route
                                       path="subcategory"

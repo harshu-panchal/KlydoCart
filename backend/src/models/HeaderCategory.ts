@@ -9,6 +9,7 @@ export interface IHeaderCategory extends Document {
     relatedCategory?: string; // Links to a product category
     order: number;
     status: 'Published' | 'Unpublished';
+    showInHome?: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -23,6 +24,7 @@ const HeaderCategorySchema: Schema = new Schema(
         relatedCategory: { type: String, required: false },
         order: { type: Number, default: 0 },
         status: { type: String, enum: ['Published', 'Unpublished'], default: 'Published' },
+        showInHome: { type: Boolean, default: false },
     },
     { timestamps: true }
 );

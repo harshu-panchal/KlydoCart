@@ -438,6 +438,13 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+                
+                <div className="mt-8 md:mt-10 px-4 md:px-6 lg:px-8">
+                  <h2 className="text-xl md:text-3xl font-semibold text-neutral-900 tracking-tight">
+                    All Products
+                  </h2>
+                </div>
+                
                 <HomeCategoryProducts />
               </>
             )}

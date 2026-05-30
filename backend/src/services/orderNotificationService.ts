@@ -40,7 +40,7 @@ function calculateDistance(
     return R * c;
 }
 
-export async function isDeliveryBoyBusy(deliveryBoyId: string | mongoose.Types.ObjectId): Promise<boolean> {
+export async function isDeliveryBoyBusy(_deliveryBoyId: string | mongoose.Types.ObjectId): Promise<boolean> {
     // Disabled busy check to ensure delivery boys always receive notifications and can handle queued/multiple orders
     return false;
 }

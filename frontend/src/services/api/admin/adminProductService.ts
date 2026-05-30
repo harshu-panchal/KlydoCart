@@ -203,6 +203,7 @@ export interface GetProductsParams {
   seller?: string;
   status?: "Active" | "Inactive" | "Pending" | "Rejected";
   publish?: boolean;
+  headerCategoryId?: string;
 }
 
 export interface BulkImportProductsData {
