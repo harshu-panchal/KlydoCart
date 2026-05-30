@@ -343,9 +343,9 @@ export default function Account() {
 
         <div className="px-4 mt-4 mb-4">
           <div className="grid grid-cols-2 gap-2.5">
-            <button onClick={() => navigate("/orders")} className="bg-white rounded-lg border border-neutral-200 p-3 text-center outline-none">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 text-neutral-700"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <div className="text-[10px] font-semibold text-neutral-900">Your orders</div>
+            <button onClick={() => navigate("/wishlist")} className="bg-white rounded-lg border border-neutral-200 p-3 text-center outline-none">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 text-neutral-700"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <div className="text-[10px] font-semibold text-neutral-900">Your Wishlist</div>
             </button>
             <button onClick={() => navigate("/faq")} className="bg-white rounded-lg border border-neutral-200 p-3 text-center outline-none">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-1.5 text-neutral-700"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -359,7 +359,7 @@ export default function Account() {
           <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden divide-y divide-neutral-100">
             {[
               { label: 'Address Book', path: '/address-book', icon: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /> },
-              { label: 'Your Wishlist', path: '/wishlist', icon: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /> },
+              { label: 'Your Orders', path: '/orders', icon: <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /> },
               { label: 'GST Details', action: () => setShowGstModal(true), icon: <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2L14 8L20 8" /> },
               { label: 'My Wallet', path: '/wallet', icon: <path d="M20 12V8H4v4m16 0v4H4v-4m16 0h2a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-2h-2z" /> },
               { label: 'About Us', path: '/about-us', icon: <><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></> },
@@ -439,10 +439,10 @@ export default function Account() {
             <div className="flex-1 min-w-0">
               <div className="hidden md:grid grid-cols-4 gap-4 mb-6">
                  {[
-                   { label: 'Orders', icon: <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" />, path: '/orders', color: 'bg-indigo-50 text-indigo-600', sub: 'Past & Present' },
+                   { label: 'Wishlist', icon: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />, path: '/wishlist', color: 'bg-rose-50 text-rose-600', sub: 'Saved Items' },
                    { label: 'Wallet', icon: <path d="M20 12V8H4v4m16 0v4H4v-4m16 0h2a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-2h-2z" />, path: '/wallet', color: 'bg-teal-50 text-teal-600', sub: `Balance: ₹${(profile?.walletAmount ?? 0).toFixed(2)}` },
                    { label: 'Support', icon: <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />, path: '/faq', color: 'bg-emerald-50 text-emerald-600', sub: 'Help Center' },
-                   { label: 'Wishlist', icon: <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />, path: '/wishlist', color: 'bg-rose-50 text-rose-600', sub: 'Saved Items' },
+                   { label: 'Orders', icon: <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" />, path: '/orders', color: 'bg-indigo-50 text-indigo-600', sub: 'Past & Present' },
                  ].map((item, i) => (
                    <button 
                      key={i}
