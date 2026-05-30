@@ -79,7 +79,7 @@ export default function HomeCategoryProducts() {
                             if (prodRes.success && prodRes.data) {
                                 return {
                                     ...sec,
-                                    products: prodRes.data,
+                                    products: prodRes.data as any,
                                     loading: false
                                 };
                             }
