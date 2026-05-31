@@ -386,7 +386,7 @@ export default function ProductCard({
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className={`group ${categoryStyle ? 'bg-white' : 'bg-white'} rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] transition-all duration-300 overflow-hidden flex flex-col relative border border-neutral-100`}
+      className={`group ${categoryStyle ? 'bg-white' : 'bg-white'} rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] transition-all duration-300 overflow-hidden flex flex-col relative border border-neutral-100`}
     >
       <div
         onClick={handleCardClick}
@@ -430,7 +430,7 @@ export default function ProductCard({
           )}
 
           {categoryStyle && showBadge && discount > 0 && (
-            <div className="absolute top-0 left-0 z-10 bg-emerald-500 text-white text-[10px] font-extrabold px-3 py-1 rounded-br-2xl shadow-sm tracking-wider uppercase">
+            <div className="absolute top-0 left-0 z-10 bg-emerald-500 text-white text-[10px] font-extrabold px-3 py-1 rounded-br-lg shadow-sm tracking-wider uppercase">
               {discount}% OFF
             </div>
           )}
@@ -438,7 +438,7 @@ export default function ProductCard({
           {!categoryStyle && showBadge && (badgeText || discount > 0) && (
             <Badge
               variant="destructive"
-              className="absolute top-0 left-0 z-10 text-[10px] font-extrabold px-3 py-1 rounded-br-2xl rounded-tl-none shadow-sm tracking-wider bg-red-500 border-none uppercase"
+              className="absolute top-0 left-0 z-10 text-[10px] font-extrabold px-3 py-1 rounded-br-lg rounded-tl-none shadow-sm tracking-wider bg-red-500 border-none uppercase"
             >
               {badgeText || `${discount}% OFF`}
             </Badge>
@@ -648,7 +648,7 @@ export default function ProductCard({
               </div>
 
               {/* Price & Name Details */}
-              <div className="p-2 flex-1 flex flex-col justify-between">
+              <div className="px-2 pt-1 pb-1.5 flex-1 flex flex-col justify-start">
                 <div className="flex items-baseline gap-1 mb-0.5 flex-wrap">
                   <span className="text-[14px] font-black text-neutral-900 leading-none">
                     ₹{displayPrice.toLocaleString('en-IN')}
@@ -660,7 +660,7 @@ export default function ProductCard({
                   )}
                 </div>
 
-                <h3 className="text-[12px] font-semibold text-neutral-800 line-clamp-2 leading-[1.3] min-h-[2.1rem] max-h-[2.1rem] overflow-hidden mb-0.5 group-hover:text-emerald-700 transition-colors duration-200">
+                <h3 className="text-[12px] font-semibold text-neutral-800 line-clamp-2 leading-[1.3] overflow-hidden mb-0 group-hover:text-emerald-700 transition-colors duration-200">
                   {product.name || product.productName || ''}
                 </h3>
 

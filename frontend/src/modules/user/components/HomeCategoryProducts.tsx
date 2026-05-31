@@ -200,11 +200,11 @@ export default function HomeCategoryProducts() {
 
     if (loading) {
         return (
-            <div className="space-y-6 md:space-y-8 px-4 md:px-6 lg:px-8 pb-10">
+            <div className="space-y-4 md:space-y-6 px-3 md:px-6 lg:px-8 pb-8">
                 {[...Array(3)].map((_, i) => (
-                    <div key={i} className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden animate-pulse">
-                        <div className="h-12 bg-neutral-100 w-full"></div>
-                        <div className="p-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    <div key={i} className="bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden animate-pulse">
+                        <div className="h-10 bg-neutral-100 w-full"></div>
+                        <div className="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                             {[...Array(6)].map((_, j) => (
                                 <div key={j} className="aspect-[3/4] bg-neutral-50 rounded-lg"></div>
                             ))}
@@ -219,38 +219,42 @@ export default function HomeCategoryProducts() {
     if (!hasAnyProducts && sections.every(sec => !sec.loading)) return null;
 
     return (
-        <div className="space-y-6 md:space-y-8 px-4 md:px-6 lg:px-8 pb-10">
+        <div className="space-y-4 md:space-y-6 px-3 md:px-6 lg:px-8 pb-8">
             {sections.map((sec) => {
                 if (!sec.loading && sec.products.length === 0) return null;
 
+                // Extract color name from border class (e.g. 'border-green-500' -> 'bg-green-500')
+                const accentBgClass = sec.borderColor.replace('border-', 'bg-');
+
                 return (
-                    <div key={sec.headerCategoryId} className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
-                        {/* Header Bar — title + icon only, no More button here */}
-                        <div className={`flex items-center px-4 py-3 border-l-4 ${sec.borderColor} ${sec.bgColor}`}>
-                            <div className="flex items-center gap-2.5">
-                                <span className={`w-6 h-6 flex items-center justify-center ${sec.textColor}`}>
+                    <div key={sec.headerCategoryId} className="bg-white rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-black/[0.03] overflow-hidden">
+                        {/* Header Bar */}
+                        <div className={`flex items-center py-2.5 pr-4 relative ${sec.bgColor}`}>
+                            <div className={`absolute left-0 w-1.5 h-6 rounded-r-md ${accentBgClass}`}></div>
+                            <div className="flex items-center gap-2 pl-3.5">
+                                <span className={`w-5 h-5 flex items-center justify-center ${sec.textColor}`}>
                                     {sec.image ? (
                                         <img src={sec.image} alt={sec.title} className="w-full h-full object-cover rounded-full" />
                                     ) : (
                                         sec.iconName ? getIconByName(sec.iconName) : '📦'
                                     )}
                                 </span>
-                                <h3 className={`text-base md:text-lg font-bold tracking-tight uppercase ${sec.textColor}`}>
+                                <h3 className={`text-[15px] md:text-base font-extrabold tracking-wide uppercase ${sec.textColor}`}>
                                     {sec.title}
                                 </h3>
                             </div>
                         </div>
 
                         {/* Product Grid */}
-                        <div className="p-3 md:p-5">
+                        <div className="p-2 md:p-4">
                             {sec.loading ? (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 md:gap-3 animate-pulse">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3 animate-pulse">
                                     {[...Array(6)].map((_, i) => (
                                         <div key={i} className="aspect-[3/4] bg-neutral-100 rounded-lg"></div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 md:gap-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3">
                                     {sec.products.map((product) => (
                                         <ProductCard
                                             key={product.id || product._id}
@@ -267,7 +271,7 @@ export default function HomeCategoryProducts() {
 
                             {/* Loading More Skeleton */}
                             {sec.loadingMore && (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 md:gap-3 mt-3 animate-pulse">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3 mt-2 animate-pulse">
                                     {[...Array(6)].map((_, i) => (
                                         <div key={i} className="aspect-[3/4] bg-neutral-100 rounded-lg"></div>
                                     ))}
@@ -277,18 +281,18 @@ export default function HomeCategoryProducts() {
 
                         {/* More Button — always visible at the BOTTOM of the section */}
                         {!sec.loading && (
-                            <div className={`flex items-center justify-center px-4 py-3 border-t border-neutral-100 ${sec.bgColor}`}>
+                            <div className="flex items-center justify-end px-3 py-2 md:py-2.5 bg-white">
                                 <button
                                     onClick={() => sec.hasMore && !sec.loadingMore && handleLoadMore(sec.headerCategoryId)}
                                     disabled={sec.loadingMore || !sec.hasMore}
                                     className={`
-                                        flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-full
-                                        border transition-all duration-200
+                                        flex items-center justify-center gap-1.5 text-[11px] md:text-xs font-bold px-6 py-1.5 rounded-full
+                                        transition-all duration-200 shadow-[0_1px_4px_rgba(0,0,0,0.03)]
                                         ${sec.hasMore
-                                            ? `${sec.borderColor} ${sec.textColor} bg-white hover:shadow-sm active:scale-95 cursor-pointer`
-                                            : 'border-neutral-200 text-neutral-400 bg-white cursor-not-allowed'
+                                            ? `bg-white ${sec.textColor} hover:shadow-md active:scale-95 cursor-pointer border border-transparent`
+                                            : 'bg-white/80 text-neutral-400 cursor-not-allowed border border-transparent'
                                         }
-                                        disabled:opacity-60
+                                        disabled:opacity-80
                                     `}
                                 >
                                     {sec.loadingMore ? (
