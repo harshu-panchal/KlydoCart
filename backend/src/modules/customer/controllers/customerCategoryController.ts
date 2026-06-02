@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
 import Product from "../../../models/Product";
+import HeaderCategory from "../../../models/HeaderCategory";
 import mongoose from "mongoose";
 import { cache } from "../../../utils/cache";
 
@@ -199,6 +200,41 @@ export const getCategoryById = async (req: Request, res: Response) => {
     }
 
     if (!category) {
+      // Check if it's a HeaderCategory
+      const headerCategory = await HeaderCategory.findOne({
+        $or: [
+          ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: id }] : []),
+          { slug: { $regex: new RegExp(`^${id}$`, "i") } }
+        ],
+        status: "Published"
+      }).lean();
+
+      if (headerCategory) {
+        const subcategories = await Category.find({
+          headerCategoryId: headerCategory._id,
+          status: "Active"
+        })
+          .select("name image order slug icon")
+          .sort({ order: 1 })
+          .lean();
+
+        const responseData = {
+          category: {
+            ...headerCategory,
+            isHeaderCategory: true
+          },
+          subcategories,
+          currentSubcategory: null,
+        };
+
+        cache.set(cacheKey, responseData, 10 * 60 * 1000);
+
+        return res.status(200).json({
+          success: true,
+          data: responseData,
+        });
+      }
+
       // Check if it's a subcategory
       if (mongoose.Types.ObjectId.isValid(id)) {
         const subcategory = await SubCategory.findById(id).lean();

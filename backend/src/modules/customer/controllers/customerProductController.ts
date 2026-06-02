@@ -35,7 +35,18 @@ export const getProducts = async (req: Request, res: Response) => {
     };
 
     if (headerCategoryId) {
-      query.headerCategoryId = headerCategoryId;
+      // Find all categories that belong to this header category
+      const categoriesInHeader = await Category.find({ headerCategoryId }).select('_id').lean();
+      const categoryIds = categoriesInHeader.map(c => c._id);
+      
+      if (categoryIds.length > 0) {
+        query.$or = [
+          { headerCategoryId },
+          { category: { $in: categoryIds } }
+        ];
+      } else {
+        query.headerCategoryId = headerCategoryId;
+      }
     }
 
     // Location: get nearby seller IDs to mark products as available vs "Coming Soon"
@@ -108,15 +119,15 @@ export const getProducts = async (req: Request, res: Response) => {
 
       // Special handling for Category and "and" -> "&"
       if (modelName === "Category" && value.includes("and")) {
-         const withAmpersand = value.replace(/-and-/g, " & ").replace(/-/g, " ");
-         item = await model
-           .findOne({
-             ...baseQuery,
-             name: { $regex: new RegExp(`^${withAmpersand}$`, "i") },
-           })
-           .select("_id")
-           .lean();
-         if (item) return item._id;
+        const withAmpersand = value.replace(/-and-/g, " & ").replace(/-/g, " ");
+        item = await model
+          .findOne({
+            ...baseQuery,
+            name: { $regex: new RegExp(`^${withAmpersand}$`, "i") },
+          })
+          .select("_id")
+          .lean();
+        if (item) return item._id;
       }
 
       return null;

@@ -123,9 +123,20 @@ export default function CategoryPage() {
         // However, for fetching products, the backend getProducts handles 'category' (parent)
         // and 'subcategory' separately.
 
-        const params: any = { category: category?._id || id };
-        if (selectedSubcategory !== "all") {
-          params.subcategory = selectedSubcategory;
+        const params: any = {};
+        
+        if (category?.isHeaderCategory) {
+          if (selectedSubcategory !== "all") {
+            // In a HeaderCategory view, 'subcategories' are actually Categories
+            params.category = selectedSubcategory;
+          } else {
+            params.headerCategoryId = category._id;
+          }
+        } else {
+          params.category = category?._id || id;
+          if (selectedSubcategory !== "all") {
+            params.subcategory = selectedSubcategory;
+          }
         }
         // Include user location for seller service radius filtering
         if (userLocation?.latitude && userLocation?.longitude) {
@@ -155,10 +166,10 @@ export default function CategoryPage() {
       }
     };
 
-    if (id) {
+    if (id && !categoryLoading) {
       fetchProducts();
     }
-  }, [id, selectedSubcategory, category?._id, userLocation]);
+  }, [id, selectedSubcategory, category?._id, userLocation, categoryLoading]);
 
   // Client-side filtering and sorting logic
   const categoryProducts = useMemo(() => {

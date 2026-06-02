@@ -40,6 +40,9 @@ export default function Home() {
   });
 
   const [products, setProducts] = useState<any[]>([]);
+  const [headerCategories, setHeaderCategories] = useState<any[]>([]);
+  const [activeTabProducts, setActiveTabProducts] = useState<any[]>([]);
+  const [loadingTabProducts, setLoadingTabProducts] = useState(false);
   
   // Search state synced with URL
   const [searchParams, setSearchParams] = useSearchParams();
@@ -132,6 +135,40 @@ export default function Home() {
 
     preloadHeaderCategories();
   }, [location?.latitude, location?.longitude, activeTab]);
+
+  useEffect(() => {
+    getHeaderCategoriesPublic(true).then(setHeaderCategories).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'all') return;
+    
+    const fetchTabProducts = async () => {
+      setLoadingTabProducts(true);
+      try {
+        const cat = headerCategories.find(c => c.slug === activeTab);
+        if (cat) {
+          const res = await getProducts({ 
+            headerCategoryId: cat._id, 
+            limit: 20,
+            latitude: location?.latitude,
+            longitude: location?.longitude
+          });
+          if (res.success && res.data) {
+             setActiveTabProducts(res.data as any);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load tab products", e);
+      } finally {
+        setLoadingTabProducts(false);
+      }
+    };
+    
+    if (headerCategories.length > 0) {
+      fetchTabProducts();
+    }
+  }, [activeTab, headerCategories, location?.latitude, location?.longitude]);
 
   // Search effect
   useEffect(() => {
@@ -372,14 +409,15 @@ export default function Home() {
                   }
 
                   return (
-                    <CategoryTileSection
-                      key={section.id}
-                      title={section.title}
-                      tiles={section.data || []}
-                      columns={section.title?.toLowerCase() === 'top categories' ? 3 : (columnCount as 2 | 3 | 4 | 6 | 8)}
-                      showProductCount={false}
-                      moreLink={section.title?.toLowerCase() === 'top categories' ? '/categories' : undefined}
-                    />
+                    <div key={section.id} className="mt-6 md:mt-8">
+                      <CategoryTileSection
+                        title={section.title}
+                        tiles={section.data || []}
+                        columns={section.title?.toLowerCase() === 'top categories' ? 3 : (columnCount as 2 | 3 | 4 | 6 | 8)}
+                        showProductCount={false}
+                        moreLink={section.title?.toLowerCase() === 'top categories' ? '/categories' : undefined}
+                      />
+                    </div>
                   );
                 })}
               </>
@@ -450,8 +488,43 @@ export default function Home() {
             )}
           </>
         )}
-      </div>
-      </>
+            
+            {/* Products for specific category tab */}
+            {activeTab !== "all" && (
+              <div className="mt-8 md:mt-10 px-4 md:px-6 lg:px-8 pb-8">
+                <h2 className="text-xl md:text-3xl font-semibold text-neutral-900 tracking-tight mb-6">
+                  All Products
+                </h2>
+                
+                {loadingTabProducts ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 animate-pulse">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="aspect-[3/4] bg-neutral-100 rounded-lg"></div>
+                    ))}
+                  </div>
+                ) : activeTabProducts.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                    {activeTabProducts.map((product) => (
+                      <ProductCard
+                        key={product.id || product._id}
+                        product={product}
+                        categoryStyle={true}
+                        showBadge={true}
+                        showPackBadge={false}
+                        showStockInfo={false}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-10 text-center text-neutral-500 bg-white rounded-xl border border-neutral-100">
+                    <p>No products found in this category yet.</p>
+                  </div>
+                )}
+              </div>
+            )}
+            
+          </div>
+        </>
       )}
     </div>
   );

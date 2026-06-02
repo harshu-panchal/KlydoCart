@@ -35,6 +35,16 @@ export default function StorePage() {
                     setShopData(storeResponse.shop || null);
 
                     // Try to fetch category details to get subcategories
+                    const applyFallbackSubcategories = () => {
+                        const uniqueSubs = Array.from(new Set(storeResponse.data?.map((p: any) => p.subcategory?.name).filter(Boolean)));
+                        if (uniqueSubs.length > 0) {
+                            setSubcategories([
+                                { _id: "all", id: "all", name: "All", icon: "📦" },
+                                ...uniqueSubs.map(name => ({ _id: name, id: name, name: name as string, icon: "🏷️" }))
+                            ]);
+                        }
+                    };
+
                     try {
                         // Use the slug or categoryId if available in shopData
                         const catId = storeResponse.shop?.categoryId || slug;
@@ -52,17 +62,12 @@ export default function StorePage() {
                                 ...subs
                             ]);
                         } else {
-                            // If no subcategories from API, group products by subcategory name if possible
-                            const uniqueSubs = Array.from(new Set(storeResponse.data?.map((p: any) => p.subcategory?.name).filter(Boolean)));
-                            if (uniqueSubs.length > 0) {
-                                setSubcategories([
-                                    { _id: "all", id: "all", name: "All", icon: "📦" },
-                                    ...uniqueSubs.map(name => ({ _id: name, id: name, name, icon: "🏷️" }))
-                                ]);
-                            }
+                            applyFallbackSubcategories();
                         }
                     } catch (catError) {
-                        console.error('Failed to fetch category details for store:', catError);
+                        // If 404, the store is not tied to a specific category id, which is normal.
+                        // The browser will log the 404 network request, but we don't need to log a custom error.
+                        applyFallbackSubcategories();
                     }
                 } else {
                     setProducts([]);

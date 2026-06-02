@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getOrders, Order, GetOrdersParams } from '../../../services/api/orderService';
 import { useSellerSocket, SellerNotification } from '../hooks/useSellerSocket';
 
@@ -14,13 +14,22 @@ export default function SellerOrders() {
   const [error, setError] = useState<string>('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [status, setStatus] = useState('All Status');
+  const [searchParams] = useSearchParams();
+  const [status, setStatus] = useState(searchParams.get('status') || 'All Status');
   const [entriesPerPage, setEntriesPerPage] = useState('10');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [sortField, setSortField] = useState<SortField | null>(null);
+
+  // Sync status with URL query params
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    if (statusParam) {
+      setStatus(statusParam);
+    }
+  }, [searchParams]);
 
   // Debounce search query
   useEffect(() => {

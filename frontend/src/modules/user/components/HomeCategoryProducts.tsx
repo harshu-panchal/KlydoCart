@@ -5,6 +5,8 @@ import { Product } from '../../../types/domain';
 import ProductCard from './ProductCard';
 import { useLocation } from '../../../hooks/useLocation';
 import { getIconByName } from '../../../utils/iconLibrary';
+import { useToast } from '../../../context/ToastContext';
+import { useNavigate } from 'react-router-dom';
 
 const PAGE_SIZE = 6;
 
@@ -22,10 +24,13 @@ interface CategorySection {
     headerCategoryId: string;
     page: number;
     hasMore: boolean;
+    slug: string;
 }
 
 export default function HomeCategoryProducts() {
     const { location } = useLocation();
+    const { showToast } = useToast();
+    const navigate = useNavigate();
     const [sections, setSections] = useState<CategorySection[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -82,6 +87,7 @@ export default function HomeCategoryProducts() {
                         headerCategoryId: cat._id,
                         page: 1,
                         hasMore: false,
+                        slug: cat.slug,
                     };
                 });
 
@@ -229,20 +235,45 @@ export default function HomeCategoryProducts() {
                 return (
                     <div key={sec.headerCategoryId} className="bg-white rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-black/[0.03] overflow-hidden">
                         {/* Header Bar */}
-                        <div className={`flex items-center py-2.5 pr-4 relative ${sec.bgColor}`}>
-                            <div className={`absolute left-0 w-1.5 h-6 rounded-r-md ${accentBgClass}`}></div>
-                            <div className="flex items-center gap-2 pl-3.5">
-                                <span className={`w-5 h-5 flex items-center justify-center ${sec.textColor}`}>
-                                    {sec.image ? (
-                                        <img src={sec.image} alt={sec.title} className="w-full h-full object-cover rounded-full" />
-                                    ) : (
-                                        sec.iconName ? getIconByName(sec.iconName) : '📦'
-                                    )}
-                                </span>
-                                <h3 className={`text-[15px] md:text-base font-extrabold tracking-wide uppercase ${sec.textColor}`}>
-                                    {sec.title}
-                                </h3>
+                        <div className={`flex items-center justify-between py-2.5 pr-4 relative ${sec.bgColor}`}>
+                            <div 
+                                className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => navigate(`/category/${sec.slug}`)}
+                            >
+                                <div className={`absolute left-0 w-1.5 h-6 rounded-r-md ${accentBgClass}`}></div>
+                                <div className="flex items-center gap-2 pl-3.5">
+                                    <span className={`w-5 h-5 flex items-center justify-center ${sec.textColor}`}>
+                                        {sec.image ? (
+                                            <img src={sec.image} alt={sec.title} className="w-full h-full object-cover rounded-full" />
+                                        ) : (
+                                            sec.iconName ? getIconByName(sec.iconName) : '📦'
+                                        )}
+                                    </span>
+                                    <h3 className={`text-[15px] md:text-base font-extrabold tracking-wide uppercase ${sec.textColor}`}>
+                                        {sec.title}
+                                    </h3>
+                                </div>
                             </div>
+                            
+                            <button
+                                onClick={() => {
+                                    if (sec.loadingMore) return;
+                                    if (sec.hasMore) {
+                                        handleLoadMore(sec.headerCategoryId);
+                                    } else {
+                                        showToast('More products coming soon', 'success');
+                                    }
+                                }}
+                                disabled={sec.loadingMore}
+                                className="text-[12px] md:text-[14px] font-bold text-green-600 hover:text-green-700 transition-colors flex items-center justify-center gap-1 bg-transparent border-none p-0 disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {sec.loadingMore ? (
+                                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                    </svg>
+                                ) : '+more'}
+                            </button>
                         </div>
 
                         {/* Product Grid */}
