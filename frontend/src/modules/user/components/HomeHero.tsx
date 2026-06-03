@@ -66,7 +66,21 @@ export default function HomeHero({
       try {
         const cats = await getHeaderCategoriesPublic();
         if (cats && cats.length > 0) {
-          const mapped = cats
+          const desiredOrder = ["fruits", "fast food", "restaurant & food", "vagitable", "cake", "wedding"];
+          
+          const sortedCats = [...cats].sort((a, b) => {
+            const nameA = (a.name || '').toLowerCase().trim();
+            const nameB = (b.name || '').toLowerCase().trim();
+            const indexA = desiredOrder.indexOf(nameA);
+            const indexB = desiredOrder.indexOf(nameB);
+            
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return 0;
+          });
+
+          const mapped = sortedCats
             .filter(c => c.slug !== "all")
             .map((c) => ({
               id: c.slug,
@@ -103,21 +117,22 @@ export default function HomeHero({
   const [scrollProgress, setScrollProgress] = useState(0);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
-  // Format location display text - only show if user has provided location
   const locationDisplayText = useMemo(() => {
     if (userLocation?.address) {
-      // Use the full address if available
+      const parts = userLocation.address.split(',').map(p => p.trim());
+      if (parts.length >= 2) {
+        if (parts[0].toLowerCase() === parts[1].toLowerCase()) {
+          return parts[0];
+        }
+        return `${parts[0]}, ${parts[1]}`;
+      }
       return userLocation.address;
     }
-    // Fallback to city, state format if available
-    if (userLocation?.city && userLocation?.state) {
-      return `${userLocation.city}, ${userLocation.state}`;
-    }
-    // Fallback to city only
+    
     if (userLocation?.city) {
-      return userLocation.city;
+      return userLocation.state ? `${userLocation.city}, ${userLocation.state}` : userLocation.city;
     }
-    // No default - return empty string if no location provided
+    
     return "";
   }, [userLocation]);
 
@@ -383,7 +398,10 @@ export default function HomeHero({
                 KLYDO CART
               </h1>
               {locationDisplayText && (
-                <div className="text-neutral-800 text-[10px] md:text-xs flex items-center gap-1 mt-1 opacity-90">
+                <div 
+                  className="text-neutral-800 text-[10px] md:text-xs flex items-center gap-1 mt-1 opacity-90 cursor-pointer hover:opacity-100 transition-opacity"
+                  onClick={() => window.dispatchEvent(new Event('open-location-modal'))}
+                >
                   <span className="line-clamp-1" title={locationDisplayText}>
                     {locationDisplayText}
                   </span>

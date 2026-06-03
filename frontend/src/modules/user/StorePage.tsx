@@ -16,6 +16,8 @@ export default function StorePage() {
     const [loading, setLoading] = useState(true);
     const [subcategories, setSubcategories] = useState<any[]>([]);
     const [selectedSubcategory, setSelectedSubcategory] = useState("all");
+    const [showSearch, setShowSearch] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -88,13 +90,26 @@ export default function StorePage() {
     const storeName = shopData?.name || (slug ? slug.charAt(0).toUpperCase() + slug.slice(1).replace('-', ' ') : 'Store');
 
     const filteredProducts = useMemo(() => {
-        if (selectedSubcategory === "all") return products;
-        return products.filter(p => 
-            (p.subcategory?._id === selectedSubcategory) || 
-            (p.subcategory?.id === selectedSubcategory) ||
-            (p.subcategory?.name === selectedSubcategory)
-        );
-    }, [products, selectedSubcategory]);
+        let result = products;
+        
+        if (selectedSubcategory !== "all") {
+            result = result.filter(p => 
+                (p.subcategory?._id === selectedSubcategory) || 
+                (p.subcategory?.id === selectedSubcategory) ||
+                (p.subcategory?.name === selectedSubcategory)
+            );
+        }
+        
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            result = result.filter(p => 
+                (p.name || p.productName || '').toLowerCase().includes(query) ||
+                (p.description || '').toLowerCase().includes(query)
+            );
+        }
+        
+        return result;
+    }, [products, selectedSubcategory, searchQuery]);
 
     const [bannerImage, setBannerImage] = useState<string | null>(null);
     const [imageError, setImageError] = useState(false);
@@ -175,41 +190,109 @@ export default function StorePage() {
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col overflow-hidden bg-neutral-50/30">
                 {/* Header Overlay */}
-                <div className="bg-white border-b border-neutral-100 px-4 md:px-8 py-3 md:py-4 flex items-center justify-between sticky top-0 z-20">
-                    <div className="flex items-center gap-3 md:gap-4">
+                <div className="bg-white border-b border-neutral-100 px-4 md:px-8 py-3 md:py-4 sticky top-0 z-20">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="w-9 h-9 flex items-center justify-center rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors shrink-0"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M15 18L9 12L15 6" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                            <h1 className="text-base md:text-xl font-bold text-neutral-900 line-clamp-1">{storeName}</h1>
+                        </div>
+
+                        {/* Search Input - Desktop */}
+                        <div className="hidden md:block relative max-w-md w-full">
+                            <input 
+                                type="text"
+                                placeholder={`Search in ${storeName}...`}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition-all"
+                            />
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
+                                    <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                </svg>
+                            </div>
+                            {searchQuery && (
+                                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Search Toggle - Mobile */}
                         <button
-                            onClick={() => navigate(-1)}
-                            className="w-9 h-9 flex items-center justify-center rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                            onClick={() => {
+                                setShowSearch(!showSearch);
+                                if (showSearch) setSearchQuery("");
+                            }}
+                            className="md:hidden w-9 h-9 flex items-center justify-center rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors shrink-0"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <path d="M15 18L9 12L15 6" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                {showSearch ? (
+                                    <path d="M18 6L6 18M6 6l12 12" stroke="#000000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                ) : (
+                                    <>
+                                        <circle cx="11" cy="11" r="8" stroke="#000000" strokeWidth="2" />
+                                        <path d="m21 21-4.35-4.35" stroke="#000000" strokeWidth="2" strokeLinecap="round" />
+                                    </>
+                                )}
                             </svg>
                         </button>
-                        <h1 className="text-base md:text-xl font-bold text-neutral-900">{storeName}</h1>
                     </div>
-                    <button
-                        onClick={() => navigate('/search')}
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors"
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                            <circle cx="11" cy="11" r="8" stroke="#000000" strokeWidth="2" />
-                            <path d="m21 21-4.35-4.35" stroke="#000000" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                    </button>
+
+                    {/* Search Input - Mobile Dropdown */}
+                    {showSearch && (
+                        <div className="mt-3 md:hidden relative">
+                            <input 
+                                type="text"
+                                placeholder={`Search in ${storeName}...`}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                autoFocus
+                                className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition-all shadow-sm"
+                            />
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
+                                    <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                </svg>
+                            </div>
+                            {searchQuery && (
+                                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto scrollbar-hide">
                     {/* Store Banner - Optional if available */}
                     {bannerImage && !imageError && (
-                        <div className="relative w-full aspect-[4/1] md:aspect-[5/1] overflow-hidden mb-4">
-                            <img src={bannerImage} alt={storeName} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-neutral-50/50 to-transparent" />
+                        <div className="w-full h-[140px] md:h-[200px] relative overflow-hidden bg-neutral-100 border-b border-neutral-200">
+                            <img 
+                                src={bannerImage} 
+                                alt={storeName} 
+                                className="w-full h-full object-cover object-center" 
+                            />
                         </div>
                     )}
 
                     {/* Products Grid */}
                     <div className="px-4 py-4 md:px-8 md:py-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg md:text-xl font-bold text-neutral-800">
+                                All {storeName} products
+                            </h2>
+                        </div>
                         {filteredProducts.length > 0 ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
                                 {filteredProducts.map((product) => (

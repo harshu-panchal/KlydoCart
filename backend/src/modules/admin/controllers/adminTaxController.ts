@@ -87,14 +87,7 @@ export const createTax = asyncHandler(async (req: Request, res: Response) => {
         });
     }
 
-    // Check if tax with same name already exists
-    const existingTax = await Tax.findOne({ name });
-    if (existingTax) {
-        return res.status(409).json({
-            success: false,
-            message: "Tax with this name already exists",
-        });
-    }
+
 
     const tax = await Tax.create({
         name,
@@ -124,15 +117,7 @@ export const updateTax = asyncHandler(async (req: Request, res: Response) => {
         });
     }
 
-    // Check if name is being changed and if it conflicts with another tax
-    if (name && name !== tax.name) {
-        const existingTax = await Tax.findOne({ name, _id: { $ne: id } });
-        if (existingTax) {
-            return res.status(409).json({
-                success: false,
-                message: "Tax with this name already exists",
-            });
-        }
+    if (name) {
         tax.name = name;
     }
 

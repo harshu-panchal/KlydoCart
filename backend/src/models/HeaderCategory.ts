@@ -20,7 +20,7 @@ const HeaderCategorySchema: Schema = new Schema(
         iconLibrary: { type: String, required: true },
         iconName: { type: String, required: true },
         image: { type: String, required: false },
-        slug: { type: String, required: true, unique: true },
+        slug: { type: String, required: true },
         relatedCategory: { type: String, required: false },
         order: { type: Number, default: 0 },
         status: { type: String, enum: ['Published', 'Unpublished'], default: 'Published' },

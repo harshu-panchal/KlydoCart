@@ -57,19 +57,13 @@ export const createHeaderCategory = async (req: Request, res: Response) => {
          .json({ message: " 'all' is a reserved theme/slug and cannot be used" });
     }
 
-    // Check if category with same name or slug exists
-    const categoryExists = await HeaderCategory.findOne({ 
-      $or: [
-        { name: name.trim() },
-        { slug: slug }
-      ]
-    });
+    // Check if category with same name exists
+    const categoryExists = await HeaderCategory.findOne({ name: name.trim() });
 
     if (categoryExists) {
-      const field = categoryExists.name === name.trim() ? "Name" : "Theme/Slug";
       return res
         .status(400)
-        .json({ message: `Header category with this ${field} already exists` });
+        .json({ message: `Header category with this name already exists` });
     }
 
     const category = await HeaderCategory.create({
@@ -120,18 +114,12 @@ export const updateHeaderCategory = async (req: Request, res: Response) => {
         }
       }
 
-      // Check if slug is being updated and if it's already taken
+      // Check if slug is being updated and if it's 'all'
       if (slug && slug !== category.slug) {
         if (slug === "all") {
           return res
             .status(400)
             .json({ message: " 'all' is a reserved theme/slug and cannot be used" });
-        }
-        const slugExists = await HeaderCategory.findOne({ slug });
-        if (slugExists) {
-          return res
-            .status(400)
-            .json({ message: "Theme/Slug already used by another category" });
         }
       }
 

@@ -293,6 +293,7 @@ export default function SellerDashboard() {
       </div>
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <DashboardCard icon={ordersIcon} title="Orders" value={stats.totalOrders} accentColor="#8b5cf6" onClick={() => navigate('/seller/orders')} />
         <DashboardCard icon={categoryIcon} title="Total Category" value={stats.totalCategory} accentColor="#eab308" onClick={() => navigate('/seller/category')} />
         <DashboardCard icon={subcategoryIcon} title="Total Subcategory" value={stats.totalSubcategory} accentColor="#ec4899" onClick={() => navigate('/seller/subcategory')} />
         <DashboardCard icon={productIcon} title="Total Product" value={stats.totalProduct} accentColor="#f97316" onClick={() => navigate('/seller/product/list')} />

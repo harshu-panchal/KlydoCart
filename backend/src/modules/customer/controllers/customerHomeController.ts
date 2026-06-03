@@ -711,8 +711,6 @@ export const getStoreProducts = async (req: Request, res: Response) => {
     let query: any = {
       status: "Active",
       publish: true,
-      // Only show shop-by-store-only products in shop by store section
-      isShopByStoreOnly: true,
     };
 
     console.log(`[getStoreProducts] Looking for shop with storeId: ${storeId}`);
@@ -779,45 +777,33 @@ export const getStoreProducts = async (req: Request, res: Response) => {
         `[getStoreProducts] Shop has ${productIds.length} products assigned`,
       );
 
-      // Get shop ID for filtering
       const shopId = (shop as any)._id;
 
-      // If shop has specific products assigned, use those
+      // Build conditions for finding products for this shop
+      const orConditions: any[] = [];
+
+      // 1. Products assigned to this shop by seller
+      orConditions.push({ shopId: shopId });
+
+      // 2. Products explicitly assigned by admin
       if (productIds.length > 0) {
-        query._id = { $in: productIds };
-        // Also filter by shopId to ensure products belong to this shop
-        query.shopId = shopId;
-        console.log(
-          `[getStoreProducts] Filtering by product IDs: ${productIds.length} products and shopId: ${shopId}`,
-        );
+        orConditions.push({ _id: { $in: productIds } });
       }
-      // Otherwise, filter by shopId and category/subcategory
-      else {
-        // Filter by shopId to show only products assigned to this shop
-        query.shopId = shopId;
-        console.log(`[getStoreProducts] Filtering by shopId: ${shopId}`);
 
-        if (shop.category) {
-          const categoryId =
-            (shop.category as any)._id || (shop.category as any);
-          query.category = categoryId;
-          console.log(
-            `[getStoreProducts] Also filtering by category: ${categoryId}`,
-          );
-
-          // If subcategory is also specified, filter by both
-          if (shop.subCategory) {
-            const subCategoryId =
-              (shop.subCategory as any)._id || (shop.subCategory as any);
-            query.$or = [
-              { category: categoryId, shopId: shopId },
-              { subcategory: subCategoryId, shopId: shopId },
-            ];
-            console.log(
-              `[getStoreProducts] Also filtering by subcategory: ${subCategoryId}`,
-            );
-          }
+      // 3. Products matching shop's category/subcategory
+      if (shop.category) {
+        const categoryId = (shop.category as any)._id || (shop.category as any);
+        if (shop.subCategory) {
+          const subCategoryId = (shop.subCategory as any)._id || (shop.subCategory as any);
+          orConditions.push({ category: categoryId, subcategory: subCategoryId });
+        } else {
+          orConditions.push({ category: categoryId });
         }
+      }
+
+      // Combine conditions
+      if (orConditions.length > 0) {
+        query.$or = orConditions;
       }
     } else {
       // Fallback: try to match by category name (legacy support)

@@ -86,9 +86,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
     }
   };
 
-
-
-
+  // Listen for global event to open location modal
+  useEffect(() => {
+    const handleOpenLocationModal = () => {
+      setShowLocationChangeModal(true);
+    };
+    window.addEventListener('open-location-modal', handleOpenLocationModal);
+    return () => {
+      window.removeEventListener('open-location-modal', handleOpenLocationModal);
+    };
+  }, []);
   // Reset scroll position when navigating to any page (smooth, no flash)
   useEffect(() => {
     // Use requestAnimationFrame to prevent visual flash
@@ -156,9 +163,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     style={{ color: currentTheme.headerTextColor }}
                   >
                     <span className="line-clamp-1 font-medium" title={userLocation.address || userLocation.city}>
-                      {userLocation.address 
-                        ? userLocation.address.length > 35 ? `${userLocation.address.substring(0, 35)}...` : userLocation.address 
-                        : (userLocation.city ? `${userLocation.city}${userLocation.state ? `, ${userLocation.state}` : ''}` : '')}
+                      {(() => {
+                        if (userLocation.address) {
+                          const parts = userLocation.address.split(',').map(p => p.trim());
+                          if (parts.length >= 2) {
+                            if (parts[0].toLowerCase() === parts[1].toLowerCase()) {
+                              return parts[0];
+                            }
+                            return `${parts[0]}, ${parts[1]}`;
+                          }
+                          return userLocation.address;
+                        }
+                        if (userLocation.city) {
+                          return userLocation.state ? `${userLocation.city}, ${userLocation.state}` : userLocation.city;
+                        }
+                        return '';
+                      })()}
                     </span>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                       <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -313,22 +333,28 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Sticky Header - Show on search page and other non-home pages, excluding account page */}
           {(showHeader || isSearchPage) && (
             <header className="sticky top-0 z-50 bg-white shadow-sm md:shadow-md md:top-[60px]">
-              {/* Delivery info line */}
-              <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-green-50 text-xs text-green-700 text-center">
-                Delivering in 10–15 mins
-              </div>
+
 
               {/* Location line - only show if user has provided location */}
               {userLocation && (userLocation.address || userLocation.city) && (
               <div className="px-4 py-2 flex items-center justify-between text-sm md:hidden">
-                  <span className="text-neutral-700 line-clamp-1" title={userLocation?.address || ''}>
-                  {userLocation?.address
-                    ? userLocation.address.length > 50
-                      ? `${userLocation.address.substring(0, 50)}...`
-                      : userLocation.address
-                    : userLocation?.city && userLocation?.state
-                      ? `${userLocation.city}, ${userLocation.state}`
-                        : userLocation?.city || ''}
+                  <span className="text-neutral-700 line-clamp-1" title={userLocation?.address || userLocation?.city || ''}>
+                  {(() => {
+                    if (userLocation?.address) {
+                      const parts = userLocation.address.split(',').map(p => p.trim());
+                      if (parts.length >= 2) {
+                        if (parts[0].toLowerCase() === parts[1].toLowerCase()) {
+                          return parts[0];
+                        }
+                        return `${parts[0]}, ${parts[1]}`;
+                      }
+                      return userLocation.address;
+                    }
+                    if (userLocation?.city) {
+                      return userLocation.state ? `${userLocation.city}, ${userLocation.state}` : userLocation.city;
+                    }
+                    return '';
+                  })()}
                 </span>
                 <button
                   onClick={() => setShowLocationChangeModal(true)}

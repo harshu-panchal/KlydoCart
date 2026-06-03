@@ -3,10 +3,12 @@ import { useAuth } from './AuthContext';
 import api from '../services/api/config';
 import { checkServiceArea } from '../services/api/customerHomeService';
 import { LocationContext, Location } from './locationContext.types';
+import { useJsApiLoader } from '@react-google-maps/api';
 
 // Geocoding result interface
 interface GeocodeResult {
   formatted_address: string;
+  area?: string;
   city?: string;
   state?: string;
   pincode?: string;
@@ -58,6 +60,13 @@ const cleanAddress = (address: string): string => {
 };
 
 export function LocationProvider({ children }: { children: ReactNode }) {
+  // Load Google Maps SDK globally
+  useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries: ['places'],
+  });
+
   const { isAuthenticated, user } = useAuth();
   const [location, setLocation] = useState<Location | null>(null);
   const [isLocationEnabled, setIsLocationEnabled] = useState(false);
@@ -268,6 +277,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
                 latitude,
                 longitude,
                 address: cleanedAddress,
+                area: address.area,
                 city: address.city,
                 state: address.state,
                 pincode: address.pincode,
@@ -382,7 +392,24 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const reverseGeocode = async (lat: number, lng: number, signal?: AbortSignal, skipCache: boolean = false): Promise<GeocodeResult> => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      console.warn('⚠️ Google Maps API key not found, using coordinates only');
+      console.warn('⚠️ Google Maps API key not found, using Nominatim fallback');
+      try {
+        const nomRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        if (nomRes.ok) {
+          const nomData = await nomRes.json();
+          if (nomData && nomData.display_name) {
+            return {
+              formatted_address: nomData.display_name,
+              area: nomData.address?.neighbourhood || nomData.address?.suburb || nomData.address?.residential || nomData.address?.city_district || '',
+              city: nomData.address?.city || nomData.address?.town || nomData.address?.village || '',
+              state: nomData.address?.state || '',
+              pincode: nomData.address?.postcode || ''
+            };
+          }
+        }
+      } catch (e) {
+        console.error('Nominatim fallback failed:', e);
+      }
       return { formatted_address: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
     }
 
@@ -401,6 +428,195 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       const cached = geocodeCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
         return cached.data;
+      }
+    }
+
+    // Try using Google Places Service first to find the closest establishment/place at coordinates (bypasses Geocoding API restriction)
+    if (window.google?.maps?.places?.PlacesService) {
+      try {
+        console.log('[LocationContext] Reverse geocoding using Google Places Service nearbySearch...');
+        const dummyDiv = document.createElement('div');
+        const service = new window.google.maps.places.PlacesService(dummyDiv);
+
+        // 1. Search for nearby places within 50 meters
+        const nearbyResults = await new Promise<any[]>((resolve, reject) => {
+          service.nearbySearch(
+            {
+              location: { lat, lng },
+              radius: 50,
+            },
+            (results, status) => {
+              if (status === 'OK' && results && results.length > 0) {
+                resolve(results);
+              } else {
+                reject(new Error(`nearbySearch failed: ${status}`));
+              }
+            }
+          );
+        });
+
+        // 2. Get details for the closest place
+        const bestPlace = nearbyResults[0];
+        const placeDetails = await new Promise<any>((resolve, reject) => {
+          service.getDetails(
+            {
+              placeId: bestPlace.place_id,
+              fields: ['name', 'formatted_address', 'address_components'],
+            },
+            (result, status) => {
+              if (status === 'OK' && result) {
+                resolve(result);
+              } else {
+                reject(new Error(`getDetails failed: ${status}`));
+              }
+            }
+          );
+        });
+
+        const addressComponents = placeDetails.address_components || [];
+        let city = '';
+        let state = '';
+        let pincode = '';
+        let area = '';
+
+        addressComponents.forEach((component: any) => {
+          const types = component.types || [];
+          if (!area) {
+            if (types.includes('neighborhood')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality_level_3')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality_level_2')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality_level_1')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality')) {
+              area = component.long_name || '';
+            } else if (types.includes('route')) {
+              area = component.long_name || '';
+            }
+          }
+          if (!city) {
+            if (types.includes('locality')) {
+              city = component.long_name || '';
+            } else if (types.includes('administrative_area_level_2')) {
+              city = component.long_name || '';
+            }
+          }
+          if (!state && types.includes('administrative_area_level_1')) {
+            state = component.long_name || '';
+          }
+          if (!pincode && types.includes('postal_code')) {
+            pincode = component.long_name || '';
+          }
+        });
+
+        // Include place name at the beginning of the formatted address
+        let rawAddress = placeDetails.formatted_address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        if (placeDetails.name && !rawAddress.toLowerCase().includes(placeDetails.name.toLowerCase())) {
+          rawAddress = `${placeDetails.name}, ${rawAddress}`;
+        }
+        
+        const cleanedAddress = cleanAddress(rawAddress);
+
+        const geocodeResult = {
+          formatted_address: cleanedAddress,
+          area: area || placeDetails.name || '',
+          city,
+          state,
+          pincode,
+        };
+
+        // Cache the result
+        geocodeCache.set(cacheKey, {
+          data: geocodeResult,
+          timestamp: Date.now(),
+        });
+
+        console.log('[LocationContext] Google Places Service geocoding success:', geocodeResult);
+        return geocodeResult;
+      } catch (placesError) {
+        console.warn('[LocationContext] Google Places Service geocoding failed, falling back to Geocoder:', placesError);
+      }
+    }
+
+    // Try using Google Maps JS SDK Geocoder next if loaded (bypasses HTTP referrer restrictions)
+    if (window.google?.maps?.Geocoder) {
+      try {
+        console.log('[LocationContext] Reverse geocoding using Google Maps JS SDK Geocoder...');
+        const results = await new Promise<any[]>((resolve, reject) => {
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === 'OK' && results && results.length > 0) {
+              resolve(results);
+            } else {
+              reject(new Error(`Google Geocoder JS SDK failed with status: ${status}`));
+            }
+          });
+        });
+
+        const result = results[0];
+        const addressComponents = result.address_components || [];
+        let city = '';
+        let state = '';
+        let pincode = '';
+        let area = '';
+
+        addressComponents.forEach((component: any) => {
+          const types = component.types || [];
+          if (!area) {
+            if (types.includes('neighborhood')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality_level_3')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality_level_2')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality_level_1')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality')) {
+              area = component.long_name || '';
+            } else if (types.includes('route')) {
+              area = component.long_name || '';
+            } else if (types.includes('political') && !types.includes('locality') && !types.includes('administrative_area_level_1') && !types.includes('administrative_area_level_2') && !types.includes('country')) {
+              area = component.long_name || '';
+            }
+          }
+          if (!city) {
+            if (types.includes('locality')) {
+              city = component.long_name || '';
+            } else if (types.includes('administrative_area_level_2')) {
+              city = component.long_name || '';
+            }
+          }
+          if (!state && types.includes('administrative_area_level_1')) {
+            state = component.long_name || '';
+          }
+          if (!pincode && types.includes('postal_code')) {
+            pincode = component.long_name || '';
+          }
+        });
+
+        const rawAddress = result.formatted_address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        const cleanedAddress = cleanAddress(rawAddress);
+
+        const geocodeResult = {
+          formatted_address: cleanedAddress,
+          area,
+          city,
+          state,
+          pincode,
+        };
+
+        // Cache the result
+        geocodeCache.set(cacheKey, {
+          data: geocodeResult,
+          timestamp: Date.now(),
+        });
+
+        console.log('[LocationContext] JS SDK geocoding success:', geocodeResult);
+        return geocodeResult;
+      } catch (sdkError) {
+        console.warn('[LocationContext] Google Maps JS SDK geocoding failed, falling back to HTTP fetch:', sdkError);
       }
     }
 
@@ -423,8 +639,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         const preciseLat = lat.toFixed(6);
         const preciseLng = lng.toFixed(6);
 
-        // Use more precise result types and location_type to get better address match
-        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${preciseLat},${preciseLng}&key=${apiKey}&result_type=street_address|premise|route|sublocality|locality|administrative_area_level_1|postal_code&location_type=ROOFTOP|RANGE_INTERPOLATED&language=en`;
+        // Use standard unrestricted geocoding URL to get all matching results including GEOMETRIC_CENTER and APPROXIMATE
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${preciseLat},${preciseLng}&key=${apiKey}&language=en`;
 
         const response = await fetch(geocodeUrl, {
           signal: signal || controller.signal,
@@ -451,26 +667,10 @@ export function LocationProvider({ children }: { children: ReactNode }) {
           return { formatted_address: `${lat}, ${lng}` };
         }
 
-        // Find the result that best matches the input coordinates
-        // Filter results and find the one closest to input coordinates
-        let bestResult = data.results[0];
-        let minDistance = Infinity;
-
-        for (const result of data.results) {
-          const resultLocation = result.geometry?.location;
-          if (resultLocation) {
-            const latDiff = Math.abs(resultLocation.lat - lat);
-            const lngDiff = Math.abs(resultLocation.lng - lng);
-            const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-
-            if (distance < minDistance) {
-              minDistance = distance;
-              bestResult = result;
-            }
-          }
-        }
-
-        const result = bestResult;
+        // Google Maps Geocoding API returns results in order of specificity, with the most specific address first.
+        // The distance-based centroid matching is flawed because city/locality centroids can be closer to the user
+        // than street-level centroids, causing the API to incorrectly pick city/state instead of the precise address.
+        const result = data.results[0];
         const addressComponents = result.address_components || [];
 
         // Verify the geocoded location matches input coordinates
@@ -493,16 +693,35 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         let city = '';
         let state = '';
         let pincode = '';
+        let area = '';
 
         // Improved address component parsing - prioritize more specific types
         addressComponents.forEach((component: { types?: string[]; long_name?: string; short_name?: string }) => {
           const types = component.types || [];
-          // City: prefer locality, then sublocality, then administrative_area_level_2
+          
+          // Area: prefer neighborhood, then sublocality levels, then route
+          if (!area) {
+            if (types.includes('neighborhood')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality_level_3')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality_level_2')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality_level_1')) {
+              area = component.long_name || '';
+            } else if (types.includes('sublocality')) {
+              area = component.long_name || '';
+            } else if (types.includes('route')) {
+              area = component.long_name || '';
+            } else if (types.includes('political') && !types.includes('locality') && !types.includes('administrative_area_level_1') && !types.includes('administrative_area_level_2') && !types.includes('country')) {
+              area = component.long_name || '';
+            }
+          }
+
+          // City: prefer locality, then administrative_area_level_2
           if (!city) {
             if (types.includes('locality')) {
               city = component.long_name || '';
-            } else if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
-              city = component.long_name || city;
             } else if (types.includes('administrative_area_level_2') && !city) {
               city = component.long_name || city;
             }
@@ -523,6 +742,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
         const geocodeResult = {
           formatted_address: cleanedAddress,
+          area,
           city,
           state,
           pincode,
@@ -564,6 +784,25 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
     // All retries failed
     console.error('Reverse geocoding failed after retries:', lastError);
+    // Try Nominatim fallback if Google Maps failed
+    try {
+      const nomRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      if (nomRes.ok) {
+        const nomData = await nomRes.json();
+        if (nomData && nomData.display_name) {
+          return {
+            formatted_address: nomData.display_name,
+            area: nomData.address?.neighbourhood || nomData.address?.suburb || nomData.address?.residential || nomData.address?.city_district || nomData.address?.county || '',
+            city: nomData.address?.city || nomData.address?.town || nomData.address?.village || '',
+            state: nomData.address?.state || '',
+            pincode: nomData.address?.postcode || ''
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Nominatim fallback failed after Google failure:', e);
+    }
+    
     return { formatted_address: `${lat}, ${lng}` };
   };
 
@@ -598,6 +837,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       geocodeCache.set(cacheKey, {
         data: {
           formatted_address: newLocation.address,
+          area: newLocation.area,
           city: newLocation.city,
           state: newLocation.state,
           pincode: newLocation.pincode,

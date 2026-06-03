@@ -15,7 +15,6 @@ const taxSchema = new Schema<ITax>(
             type: String,
             required: [true, "Tax name is required"],
             trim: true,
-            unique: true,
         },
         percentage: {
             type: Number,

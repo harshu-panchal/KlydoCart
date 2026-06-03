@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getHeaderCategoriesAdmin, HeaderCategory, updateHeaderCategory } from '../../../services/api/headerCategoryService';
-import { getProducts, bulkUpdateProducts, getCategories, Category } from '../../../services/api/admin/adminProductService';
+import { getProducts, bulkUpdateProducts, getCategories, Category, deleteProduct } from '../../../services/api/admin/adminProductService';
 import { getIconByName } from '../../../utils/iconLibrary';
 
 export default function AdminHeaderProducts() {
@@ -489,26 +489,49 @@ export default function AdminHeaderProducts() {
                       <td className="p-3 text-xs text-neutral-500">{p.category?.name || 'N/A'}</td>
                       <td className="p-3 text-xs font-semibold text-neutral-700">₹{p.price}</td>
                       <td className="p-3">
-                        <button
-                          onClick={async () => {
-                            if (window.confirm('Remove product from this header category?')) {
-                              const res = await bulkUpdateProducts({ productIds: [p._id], updateData: { headerCategoryId: null } as any });
-                              if (res.success) {
-                                setCategoriesCountMap(prev => ({
-                                  ...prev,
-                                  [selectedHeaderId]: Math.max(0, (prev[selectedHeaderId] || 0) - 1)
-                                }));
-                                fetchAssignedProducts();
-                                fetchUnassignedProducts();
+                        <div className="flex gap-1">
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('Remove product from this header category?')) {
+                                const res = await bulkUpdateProducts({ productIds: [p._id], updateData: { headerCategoryId: null } as any });
+                                if (res.success) {
+                                  setCategoriesCountMap(prev => ({
+                                    ...prev,
+                                    [selectedHeaderId]: Math.max(0, (prev[selectedHeaderId] || 0) - 1)
+                                  }));
+                                  fetchAssignedProducts();
+                                  fetchUnassignedProducts();
+                                }
                               }
-                            }
-                          }}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                            }}
+                            className="text-orange-500 hover:text-orange-700 hover:bg-orange-50 p-1.5 rounded transition"
+                            title="Remove from category"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('Are you sure you want to completely DELETE this product from the store? This action cannot be undone.')) {
+                                const res = await deleteProduct(p._id);
+                                if (res.success) {
+                                  setCategoriesCountMap(prev => ({
+                                    ...prev,
+                                    [selectedHeaderId]: Math.max(0, (prev[selectedHeaderId] || 0) - 1)
+                                  }));
+                                  fetchAssignedProducts();
+                                }
+                              }
+                            }}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition"
+                            title="Delete permanently"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -637,26 +660,44 @@ export default function AdminHeaderProducts() {
                       <td className="p-3 text-xs text-neutral-500">{p.category?.name || 'N/A'}</td>
                       <td className="p-3 text-xs font-semibold text-neutral-700">₹{p.price}</td>
                       <td className="p-3">
-                        <button
-                          onClick={async () => {
-                            if (!selectedHeaderId) return alert('Please select a header category first');
-                            const res = await bulkUpdateProducts({ productIds: [p._id], updateData: { headerCategoryId: selectedHeaderId } as any });
-                            if (res.success) {
-                              setCategoriesCountMap(prev => ({
-                                ...prev,
-                                [selectedHeaderId]: (prev[selectedHeaderId] || 0) + 1
-                              }));
-                              fetchAssignedProducts();
-                              fetchUnassignedProducts();
-                            }
-                          }}
-                          className="text-teal-600 hover:text-teal-800 hover:bg-teal-50 p-1.5 rounded transition"
-                          title="Assign to selected category"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={async () => {
+                              if (!selectedHeaderId) return alert('Please select a header category first');
+                              const res = await bulkUpdateProducts({ productIds: [p._id], updateData: { headerCategoryId: selectedHeaderId } as any });
+                              if (res.success) {
+                                setCategoriesCountMap(prev => ({
+                                  ...prev,
+                                  [selectedHeaderId]: (prev[selectedHeaderId] || 0) + 1
+                                }));
+                                fetchAssignedProducts();
+                                fetchUnassignedProducts();
+                              }
+                            }}
+                            className="text-teal-600 hover:text-teal-800 hover:bg-teal-50 p-1.5 rounded transition"
+                            title="Assign to selected category"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('Are you sure you want to completely DELETE this product from the store? This action cannot be undone.')) {
+                                const res = await deleteProduct(p._id);
+                                if (res.success) {
+                                  fetchUnassignedProducts();
+                                }
+                              }
+                            }}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition"
+                            title="Delete permanently"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

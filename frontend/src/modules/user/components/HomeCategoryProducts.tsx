@@ -67,6 +67,19 @@ export default function HomeCategoryProducts() {
                     return;
                 }
 
+                const desiredOrder = ["fruits", "fast food", "restaurant & food", "vagitable", "cake", "wedding"];
+                visibleCats.sort((a, b) => {
+                    const nameA = (a.name || '').toLowerCase().trim();
+                    const nameB = (b.name || '').toLowerCase().trim();
+                    const indexA = desiredOrder.indexOf(nameA);
+                    const indexB = desiredOrder.indexOf(nameB);
+                    
+                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                    if (indexA !== -1) return -1;
+                    if (indexB !== -1) return 1;
+                    return 0;
+                });
+
                 const initialSections: CategorySection[] = visibleCats.map((cat: HeaderCategory) => {
                     const colors = themeColorMap[cat.slug] || {
                         bgColor: 'bg-neutral-50',

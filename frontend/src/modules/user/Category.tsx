@@ -125,12 +125,12 @@ export default function CategoryPage() {
 
         const params: any = {};
         
-        if (category?.isHeaderCategory) {
+        if ((category as any)?.isHeaderCategory) {
           if (selectedSubcategory !== "all") {
             // In a HeaderCategory view, 'subcategories' are actually Categories
             params.category = selectedSubcategory;
           } else {
-            params.headerCategoryId = category._id;
+            params.headerCategoryId = category?._id;
           }
         } else {
           params.category = category?._id || id;
