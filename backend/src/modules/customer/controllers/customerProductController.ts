@@ -56,6 +56,7 @@ export const getProducts = async (req: Request, res: Response) => {
     let nearbySellerIds: mongoose.Types.ObjectId[] = [];
     if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
       nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+      query.seller = { $in: nearbySellerIds };
     }
 
     // If no location provided, return empty (location required to see products)

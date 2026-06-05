@@ -100,9 +100,8 @@ async function fetchSectionData(
         ],
       };
 
-      // Do NOT filter out-of-range products here (user wants to see them with Notify Me)
-      if (nearbySellerIds && nearbySellerIds.length > 0) {
-        // query.seller = { $in: nearbySellerIds };
+      if (nearbySellerIds) {
+        query.seller = { $in: nearbySellerIds };
       }
 
       if (categories && categories.length > 0) {
@@ -848,7 +847,9 @@ export const getStoreProducts = async (req: Request, res: Response) => {
         `[getStoreProducts] Found ${nearbySellerIds.length} sellers within range`,
       );
     }
-    // Do not filter by seller: show all store products and set isAvailable by radius
+    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
+      query.seller = { $in: nearbySellerIds };
+    }
 
     console.log(
       `[getStoreProducts] Final query:`,
