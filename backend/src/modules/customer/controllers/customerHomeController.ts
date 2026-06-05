@@ -841,15 +841,15 @@ export const getStoreProducts = async (req: Request, res: Response) => {
     );
 
     let nearbySellerIds: mongoose.Types.ObjectId[] = [];
-    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
+    if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
       nearbySellerIds = await findSellersWithinRange(userLat, userLng);
       console.log(
         `[getStoreProducts] Found ${nearbySellerIds.length} sellers within range`,
       );
     }
-    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
-      query.seller = { $in: nearbySellerIds };
-    }
+    
+    // Always filter by nearby sellers. If no location, this will be an empty array.
+    query.seller = { $in: nearbySellerIds };
 
     console.log(
       `[getStoreProducts] Final query:`,

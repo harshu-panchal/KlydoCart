@@ -9,9 +9,11 @@ import {
 import { themes } from '../../../utils/themes';
 import { ICON_LIBRARY, getIconByName, IconDef } from '../../../utils/iconLibrary';
 import { uploadImage } from '../../../services/api/uploadService';
+import { getCategories, Category } from '../../../services/api/categoryService';
 
 export default function AdminHeaderCategory() {
   const [headerCategories, setHeaderCategories] = useState<HeaderCategory[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form states
@@ -19,7 +21,7 @@ export default function AdminHeaderCategory() {
   const [selectedIconLibrary, setSelectedIconLibrary] = useState('Custom'); // Default to Custom for SVG
   const [headerCategoryIcon, setHeaderCategoryIcon] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(''); // This maps to relatedCategory
-  const [selectedTheme, setSelectedTheme] = useState('all'); // This maps to slug
+  const [selectedTheme, setSelectedTheme] = useState('grocery'); // This maps to slug
   const [selectedStatus, setSelectedStatus] = useState<'Published' | 'Unpublished'>('Published');
   const [headerCategoryImage, setHeaderCategoryImage] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -35,11 +37,23 @@ export default function AdminHeaderCategory() {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  const themeOptions = Object.keys(themes);
+  const themeOptions = Object.keys(themes).filter(key => key !== 'all');
 
   useEffect(() => {
     fetchCategories();
+    fetchRegularCategories();
   }, []);
+
+  const fetchRegularCategories = async () => {
+    try {
+      const response = await getCategories();
+      if (response.success) {
+        setCategories(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories', error);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -108,7 +122,7 @@ export default function AdminHeaderCategory() {
     setSelectedIconLibrary('Custom');
     setHeaderCategoryIcon('');
     setSelectedCategory('');
-    setSelectedTheme('all');
+    setSelectedTheme('grocery');
     setSelectedStatus('Published');
     setHeaderCategoryImage('');
     setEditingId(null);
@@ -121,12 +135,13 @@ export default function AdminHeaderCategory() {
     if (!selectedTheme) return alert('Please select a theme');
 
     try {
+      const generatedSlug = headerCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const payload = {
         name: headerCategoryName,
         iconLibrary: selectedIconLibrary,
         iconName: headerCategoryIcon,
         slug: selectedTheme, // Use theme as slug for color mapping
-        relatedCategory: selectedCategory,
+        relatedCategory: editingId ? selectedCategory : generatedSlug, // Auto-generate slug on creation
         image: headerCategoryImage,
         status: selectedStatus,
       };
@@ -377,7 +392,7 @@ export default function AdminHeaderCategory() {
             </div>
 
             {/* Related Category */}
-            <div>
+            <div className="hidden">
               <label className="block text-sm font-medium text-neutral-700 mb-2">
                 Related Category (Slug):
               </label>
@@ -387,12 +402,14 @@ export default function AdminHeaderCategory() {
                 className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500"
               >
                 <option value="">Select Category</option>
-                <option value="fashion">Fashion</option>
-                <option value="electronics">Electronics</option>
-                <option value="home">Home</option>
-                <option value="beauty">Beauty</option>
-                <option value="mobiles">Mobiles</option>
-                <option value="grocery">Grocery</option>
+                {categories.map((cat) => {
+                  const slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                  return (
+                    <option key={cat._id} value={slug}>
+                      {cat.name}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
