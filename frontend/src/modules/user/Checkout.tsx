@@ -35,6 +35,7 @@ import { getProducts } from "../../services/api/customerProductService";
 import { addToWishlist } from "../../services/api/customerWishlistService";
 import { updateProfile } from "../../services/api/customerService";
 import { calculateProductPrice } from "../../utils/priceUtils";
+import { verifyPayment } from "../../services/api/paymentService";
 
 // const STORAGE_KEY = 'saved_address'; // Removed
 
@@ -117,6 +118,53 @@ export default function Checkout() {
       navigate("/");
     }
   }, [cart.items.length, cartLoading, navigate, showOrderSuccess]);
+
+  // Handle Razorpay Redirect (Intent flow / Mobile)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const razorpay_payment_id = params.get('razorpay_payment_id');
+    const razorpay_order_id = params.get('razorpay_order_id');
+    const razorpay_signature = params.get('razorpay_signature');
+
+    if (razorpay_payment_id && razorpay_order_id && razorpay_signature) {
+      const pendingDataStr = localStorage.getItem('pendingRazorpayOrder');
+      if (pendingDataStr) {
+        try {
+          const pendingData = JSON.parse(pendingDataStr);
+          if (pendingData.orderId) {
+             // Optimistically clear cart and navigate immediately
+             localStorage.removeItem('pendingRazorpayOrder');
+             clearCart();
+             showGlobalToast("Payment successful!", "success");
+             
+             // Clean up URL
+             window.history.replaceState({}, document.title, window.location.pathname);
+             navigate(`/orders/${pendingData.orderId}`);
+
+             // Verify payment in the background
+             verifyPayment({
+                 orderId: pendingData.orderId,
+                 razorpayOrderId: razorpay_order_id,
+                 razorpayPaymentId: razorpay_payment_id,
+                 razorpaySignature: razorpay_signature
+             }).catch(console.error);
+          }
+        } catch(e) {
+            console.error(e);
+        }
+      }
+    }
+  }, [clearCart, showGlobalToast, navigate]);
+
+  // Auto-redirect to order details after successful order placement (for COD)
+  useEffect(() => {
+    if (showOrderSuccess && placedOrderId) {
+      const timer = setTimeout(() => {
+        navigate(`/orders/${placedOrderId}`);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [showOrderSuccess, placedOrderId, navigate]);
 
   // Load addresses and coupons
   useEffect(() => {

@@ -26,7 +26,11 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
     onFailure,
     customerDetails,
 }) => {
+    const hasInitiated = React.useRef(false);
+
     useEffect(() => {
+        if (hasInitiated.current) return;
+        
         // Load Razorpay script if not already loaded
         const loadRazorpayScript = () => {
             return new Promise((resolve) => {
@@ -75,35 +79,39 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                     },
                     handler: async function (response: any) {
                         try {
-                            // Verify payment with backend
-                            const verificationResponse = await verifyPayment({
+                            // Optimistically trigger success immediately to redirect to order details
+                            onSuccess(response.razorpay_payment_id);
+                            
+                            // Verify payment with backend in the background
+                            verifyPayment({
                                 orderId,
                                 razorpayOrderId: response.razorpay_order_id,
                                 razorpayPaymentId: response.razorpay_payment_id,
                                 razorpaySignature: response.razorpay_signature,
-                            });
+                            }).catch(console.error);
 
-                            if (verificationResponse.success) {
-                                onSuccess(response.razorpay_payment_id);
-                            } else {
-                                onFailure(verificationResponse.message || 'Payment verification failed');
-                            }
                         } catch (error: any) {
                             console.error('Payment verification error:', error);
-                            onFailure(error.response?.data?.message || 'Payment verification failed');
                         }
                     },
                     modal: {
                         ondismiss: function () {
+                            hasInitiated.current = false;
                             onFailure('Payment cancelled by user');
                         },
                     },
                 };
 
                 const razorpay = new window.Razorpay(options);
+                localStorage.setItem('pendingRazorpayOrder', JSON.stringify({
+                    orderId: orderId,
+                    timestamp: Date.now()
+                }));
                 razorpay.open();
+                hasInitiated.current = true;
             } catch (error: any) {
                 console.error('Payment initiation error:', error);
+                hasInitiated.current = false;
                 onFailure(error.response?.data?.message || 'Failed to initiate payment');
             }
         };
