@@ -52,13 +52,11 @@ export default function DeliverySignUp() {
     drivingLicense: File | null;
     nationalIdentityCard: File | null;
     marksheet: File | null;
-    signature: File | null;
   }>({
     profilePic: null,
     drivingLicense: null,
     nationalIdentityCard: null,
     marksheet: null,
-    signature: null,
   });
 
   const [uploadingDocs, setUploadingDocs] = useState(false);
@@ -169,7 +167,6 @@ export default function DeliverySignUp() {
         nationalIdentityCard: uploadedUrls.nationalIdentityCard,
         profilePic: uploadedUrls.profilePic,
         marksheet: uploadedUrls.marksheet,
-        signature: uploadedUrls.signature,
       });
 
       if (response.success) {
@@ -302,11 +299,7 @@ export default function DeliverySignUp() {
                   </div>
                 </section>
 
-                {/* Verification Section */}
-                <section className="space-y-4">
-                  <h2 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] border-b pb-2">Verification</h2>
-                  <FileUpload label="Applicant Signature" name="signature" onChange={handleFileChange} file={files.signature} required capture={false} />
-                </section>
+
 
                 {error && (
                   <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl text-xs font-bold">
