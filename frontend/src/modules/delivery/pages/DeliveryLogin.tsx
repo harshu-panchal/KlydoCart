@@ -107,7 +107,7 @@ export default function DeliveryLogin() {
             <div className="relative z-10 w-full flex flex-col items-center">
               <div className="mb-4 relative group">
                 <img
-                  src="/assets/login/KlydoCardLatest.png"
+                  src="/KlydoCardLatest.png"
                   alt="KlydoCart"
                   className="h-10 sm:h-12 w-auto object-contain relative z-10"
                 />

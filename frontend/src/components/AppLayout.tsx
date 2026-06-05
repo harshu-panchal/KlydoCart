@@ -314,7 +314,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <div className="flex-shrink-0 flex justify-end w-[250px] transition-transform hover:scale-105 active:scale-95 duration-300">
                 <Link to="/">
                   <img 
-                    src="/assets/login/KlydoCardLatest.png" 
+                    src="/KlydoCardLatest.png" 
                     alt="KLYDO CART Logo" 
                     className="h-12 w-12 object-contain bg-white/10 backdrop-blur-sm rounded-xl p-1 shadow-sm" 
                   />

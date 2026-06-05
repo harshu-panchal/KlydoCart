@@ -276,7 +276,7 @@ export default function SellerSignUp() {
             <div className="relative z-10 w-full flex flex-col items-center">
               <div className="mb-4">
                 <img
-                  src="/assets/login/KlydoCardLatest.png"
+                  src="/KlydoCardLatest.png"
                   alt="KlydoCart"
                   className="h-10 w-auto object-contain"
                 />

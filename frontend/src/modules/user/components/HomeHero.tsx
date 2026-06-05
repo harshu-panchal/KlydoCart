@@ -426,7 +426,7 @@ export default function HomeHero({
             {/* Right: Logo */}
             <div className="flex-shrink-0 ml-4 transition-transform hover:scale-105 active:scale-95 duration-300">
                 <img 
-                  src="/assets/login/KlydoCardLatest.png" 
+                  src="/KlydoCardLatest.png" 
                   alt="KLYDO CART Logo" 
                   className="h-16 w-16 md:h-20 md:w-20 object-contain" 
                 />

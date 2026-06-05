@@ -18,7 +18,7 @@ export default function Footer() {
             <Link to="/" className="flex items-center gap-3 group">
               <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm overflow-hidden border border-white/20">
                 <img 
-                  src="/assets/login/KlydoCardLatest.png" 
+                  src="/KlydoCardLatest.png" 
                   alt="KlydoCart" 
                   className="w-10 h-10 object-contain"
                 />

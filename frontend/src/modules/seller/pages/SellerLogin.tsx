@@ -125,7 +125,7 @@ export default function SellerLogin() {
               </button>
               <div className="mb-3">
                 <img
-                  src="/assets/login/KlydoCardLatest.png"
+                  src="/KlydoCardLatest.png"
                   alt="KlydoCart"
                   className="h-10 w-auto object-contain"
                 />
