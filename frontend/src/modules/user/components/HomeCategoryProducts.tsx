@@ -269,23 +269,10 @@ export default function HomeCategoryProducts() {
                             </div>
                             
                             <button
-                                onClick={() => {
-                                    if (sec.loadingMore) return;
-                                    if (sec.hasMore) {
-                                        handleLoadMore(sec.headerCategoryId);
-                                    } else {
-                                        showToast('More products coming soon', 'success');
-                                    }
-                                }}
-                                disabled={sec.loadingMore}
-                                className="text-[12px] md:text-[14px] font-bold text-green-600 hover:text-green-700 transition-colors flex items-center justify-center gap-1 bg-transparent border-none p-0 disabled:opacity-70 disabled:cursor-not-allowed"
+                                onClick={() => navigate(`/category/${sec.slug}`)}
+                                className="text-[12px] md:text-[14px] font-bold text-green-600 hover:text-green-700 transition-colors flex items-center justify-center gap-1 bg-transparent border-none p-0"
                             >
-                                {sec.loadingMore ? (
-                                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                    </svg>
-                                ) : '+more'}
+                                +more
                             </button>
                         </div>
 

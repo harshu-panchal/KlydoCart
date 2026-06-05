@@ -165,13 +165,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     <span className="line-clamp-1 font-medium" title={userLocation.address || userLocation.city}>
                       {(() => {
                         if (userLocation.address) {
-                          const parts = userLocation.address.split(',').map(p => p.trim());
-                          if (parts.length >= 2) {
-                            if (parts[0].toLowerCase() === parts[1].toLowerCase()) {
-                              return parts[0];
-                            }
-                            return `${parts[0]}, ${parts[1]}`;
-                          }
                           return userLocation.address;
                         }
                         if (userLocation.city) {
@@ -341,13 +334,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <span className="text-neutral-700 line-clamp-1" title={userLocation?.address || userLocation?.city || ''}>
                   {(() => {
                     if (userLocation?.address) {
-                      const parts = userLocation.address.split(',').map(p => p.trim());
-                      if (parts.length >= 2) {
-                        if (parts[0].toLowerCase() === parts[1].toLowerCase()) {
-                          return parts[0];
-                        }
-                        return `${parts[0]}, ${parts[1]}`;
-                      }
                       return userLocation.address;
                     }
                     if (userLocation?.city) {

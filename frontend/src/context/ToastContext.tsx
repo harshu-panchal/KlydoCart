@@ -2,20 +2,20 @@ import React, { createContext, useContext, useState, ReactNode, useCallback } fr
 import Toast from '../components/Toast';
 
 interface ToastContextType {
-  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   hideToast: () => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; isVisible: boolean }>({
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning'; isVisible: boolean }>({
     message: '',
     type: 'success',
     isVisible: false,
   });
 
-  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     setToast({ message, type, isVisible: true });
   }, []);
 

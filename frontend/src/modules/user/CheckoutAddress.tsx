@@ -11,6 +11,8 @@ import { appConfig } from '../../services/configService';
 import { calculateProductPrice } from '../../utils/priceUtils';
 import GoogleMapsLocationPicker from '../../components/GoogleMapsLocationPicker';
 
+const libraries: ("places")[] = ['places'];
+
 export default function CheckoutAddress() {
   const { cart } = useCart();
   const { isAuthenticated } = useAuth();
@@ -45,7 +47,8 @@ export default function CheckoutAddress() {
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries
   });
 
   // Get user's current location on mount
@@ -327,12 +330,15 @@ export default function CheckoutAddress() {
               setSelectedLongitude(lng);
               if (addr) {
                 // Always auto-fill all address fields when user pins a location
-                if (addr.street) handleInputChange('street', addr.street);
-                if (addr.city) handleInputChange('city', addr.city);
-                if (addr.state) handleInputChange('state', addr.state);
-                if (addr.pincode) handleInputChange('pincode', addr.pincode);
-                // Also fill flat/house if available from geocode
-                if ((addr as any).flat) handleInputChange('flat', (addr as any).flat);
+                // Use landmark as a fallback if street is empty (common with Nominatim)
+                const newStreet = addr.street || addr.landmark || '';
+                
+                // Unconditionally update all fields so old data is cleared if the new location is different
+                handleInputChange('street', newStreet);
+                handleInputChange('city', addr.city || '');
+                handleInputChange('state', addr.state || '');
+                handleInputChange('pincode', addr.pincode || '');
+                handleInputChange('flat', (addr as any).flat || '');
               }
             }}
             height="180px"

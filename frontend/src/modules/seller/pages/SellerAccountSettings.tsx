@@ -656,20 +656,127 @@ const SellerAccountSettings = () => {
                                 )}
                                   <div className="mt-4 animate-fadeIn">
                                     <p className="text-sm font-medium text-neutral-700 mb-2">
-                                      Exact Location <span className="text-teal-600 text-xs font-normal">(Move the map to place the pin on your store's entrance)</span>
+                                      Exact Location
                                     </p>
-                                    <LocationPickerMap
-                                      initialLat={parseFloat(sellerData.latitude) || 26.9124}
-                                      initialLng={parseFloat(sellerData.longitude) || 75.7873}
-                                      onLocationSelect={(lat, lng) => {
-                                        setSellerData(prev => ({
-                                          ...prev,
-                                          latitude: lat.toString(),
-                                          longitude: lng.toString()
-                                        }));
+
+                                    <button
+                                      type="button"
+                                      disabled={sellerData.searchLocation === 'Fetching location...'}
+                                      onClick={() => {
+                                        if (navigator.geolocation) {
+                                          setSellerData(prev => ({
+                                            ...prev,
+                                            searchLocation: 'Fetching location...'
+                                          }));
+                                          navigator.geolocation.getCurrentPosition(
+                                            (position) => {
+                                              const lat = position.coords.latitude;
+                                              const lng = position.coords.longitude;
+                                              
+                                              setSellerData(prev => ({
+                                                ...prev,
+                                                latitude: lat.toString(),
+                                                longitude: lng.toString()
+                                              }));
+
+                                              const fallbackToNominatim = (latitude: number, longitude: number) => {
+                                                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+                                                  .then(res => res.json())
+                                                  .then(data => {
+                                                    if (data && data.address) {
+                                                      const { city: nCity, town, village, state_district } = data.address;
+                                                      const locCity = nCity || town || village || state_district || '';
+                                                      
+                                                      const customAddress = data.display_name;
+
+                                                      setSellerData(prev => ({
+                                                        ...prev,
+                                                        searchLocation: customAddress,
+                                                        address: customAddress,
+                                                        ...(locCity ? { city: locCity } : {})
+                                                      }));
+                                                      showToast('Location fetched successfully.', 'success');
+                                                    } else {
+                                                      setSellerData(prev => ({ ...prev, searchLocation: '' }));
+                                                      showToast('Coordinates fetched, but address not found', 'warning');
+                                                    }
+                                                  })
+                                                  .catch(err => {
+                                                    console.error("Geocoding failed", err);
+                                                    setSellerData(prev => ({ ...prev, searchLocation: '' }));
+                                                    showToast('Failed to get address from coordinates.', 'error');
+                                                  });
+                                              };
+
+                                              const google = (window as any).google;
+                                              if (google && google.maps && google.maps.Geocoder) {
+                                                const geocoder = new google.maps.Geocoder();
+                                                geocoder.geocode({ location: { lat, lng } }, (results: any, status: string) => {
+                                                  if (status === 'OK' && results && results[0]) {
+                                                    const components = results[0].address_components;
+                                                    
+                                                    const getComponent = (types: string[]) => {
+                                                      for (const comp of components) {
+                                                        if (types.some((t: string) => comp.types.includes(t))) {
+                                                          return comp.long_name;
+                                                        }
+                                                      }
+                                                      return '';
+                                                    };
+
+                                                    const locCity = getComponent(['locality', 'administrative_area_level_3']);
+                                                    const customAddress = results[0].formatted_address;
+                                                    
+                                                    setSellerData(prev => ({
+                                                      ...prev,
+                                                      searchLocation: customAddress,
+                                                      address: customAddress,
+                                                      ...(locCity ? { city: locCity } : {})
+                                                    }));
+                                                    showToast('Location fetched successfully.', 'success');
+                                                  } else {
+                                                    fallbackToNominatim(lat, lng);
+                                                  }
+                                                });
+                                              } else {
+                                                fallbackToNominatim(lat, lng);
+                                              }
+                                            },
+                                            (error) => {
+                                              console.error("Error fetching location", error);
+                                              setSellerData(prev => ({ ...prev, searchLocation: '' }));
+                                              if (error.code === error.PERMISSION_DENIED) {
+                                                showToast('Location access denied. Please enter your store location manually.', 'error');
+                                              } else {
+                                                showToast('Unable to fetch location. Please allow location access.', 'error');
+                                              }
+                                            }
+                                          );
+                                        } else {
+                                          showToast('Geolocation is not supported by your browser', 'error');
+                                        }
                                       }}
-                                    />
-                                    <p className="mt-1 text-xs text-neutral-500 text-center">
+                                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                                    >
+                                      {sellerData.searchLocation === 'Fetching location...' ? (
+                                        <>
+                                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                          </svg>
+                                          Fetching...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          </svg>
+                                          Fetch Location Automatically
+                                        </>
+                                      )}
+                                    </button>
+                                    <p className="mt-2 text-xs text-neutral-500 text-center">
                                       Selected Coordinates: {sellerData.latitude || 'Not selected'}, {sellerData.longitude || 'Not selected'}
                                     </p>
                                   </div>

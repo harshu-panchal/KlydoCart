@@ -59,12 +59,14 @@ const cleanAddress = (address: string): string => {
   return cleaned;
 };
 
+const libraries: ("places")[] = ['places'];
+
 export function LocationProvider({ children }: { children: ReactNode }) {
   // Load Google Maps SDK globally
   useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries: ['places'],
+    libraries,
   });
 
   const { isAuthenticated, user } = useAuth();

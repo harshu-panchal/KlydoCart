@@ -305,7 +305,7 @@ export default function DeliverySignUp() {
                 {/* Verification Section */}
                 <section className="space-y-4">
                   <h2 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] border-b pb-2">Verification</h2>
-                  <FileUpload label="Applicant Signature" name="signature" onChange={handleFileChange} file={files.signature} required />
+                  <FileUpload label="Applicant Signature" name="signature" onChange={handleFileChange} file={files.signature} required capture={false} />
                 </section>
 
                 {error && (
@@ -358,7 +358,7 @@ function InputField({ label, name, value, onChange, required, type = "text", max
   );
 }
 
-function FileUpload({ label, name, onChange, file, required }: any) {
+function FileUpload({ label, name, onChange, file, required, capture = "environment" }: any) {
   return (
     <div className="space-y-1">
       <label className="text-[11px] font-bold text-neutral-600 ml-1">
@@ -370,7 +370,7 @@ function FileUpload({ label, name, onChange, file, required }: any) {
           name={name}
           onChange={onChange}
           accept="image/*"
-          capture="environment"
+          {...(capture ? { capture } : {})}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
         />
         <div className={`w-full py-3 px-4 border-2 border-dashed rounded-xl flex items-center justify-between transition-all ${file ? 'border-green-500 bg-green-50' : 'border-neutral-200 bg-neutral-50 hover:border-orange-400'}`}>

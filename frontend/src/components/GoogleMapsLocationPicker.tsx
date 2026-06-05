@@ -4,7 +4,7 @@ import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 interface GoogleMapsLocationPickerProps {
     initialLat: number;
     initialLng: number;
-    onLocationSelect: (lat: number, lng: number, address?: { street?: string, city?: string, state?: string, pincode?: string, landmark?: string }) => void;
+    onLocationSelect: (lat: number, lng: number, address?: { flat?: string, street?: string, city?: string, state?: string, pincode?: string, landmark?: string }) => void;
     height?: string;
 }
 
@@ -12,6 +12,8 @@ const mapContainerStyle = {
     width: '100%',
     height: '100%'
 };
+
+const libraries: ("places")[] = ['places'];
 
 export default function GoogleMapsLocationPicker({
     initialLat,
@@ -26,7 +28,8 @@ export default function GoogleMapsLocationPicker({
 
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
-        googleMapsApiKey: apiKey || ''
+        googleMapsApiKey: apiKey || '',
+        libraries
     });
 
     // Update center when initial props change significantly
@@ -61,6 +64,112 @@ export default function GoogleMapsLocationPicker({
         // Logic moved to handleIdle to prevent race conditions and double updates
     }, []);
 
+    const [isConfirming, setIsConfirming] = useState(false);
+
+    const handleConfirmLocation = useCallback(() => {
+        setIsConfirming(true);
+        const lat = center.lat;
+        const lng = center.lng;
+
+        const fallbackToNominatim = () => {
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.address) {
+                        const { house_number, road, suburb, neighbourhood, residential, locality, city: nCity, town, village, state_district, state: nState, postcode } = data.address;
+                        const flat = house_number || '';
+                        const street = road || '';
+                        const city = nCity || town || village || state_district || '';
+                        const state = nState || '';
+                        const pincode = postcode || '';
+                        const landmark = suburb || neighbourhood || residential || locality || '';
+
+                        onLocationSelect(lat, lng, {
+                            flat,
+                            street: street.trim(),
+                            city,
+                            state,
+                            pincode,
+                            landmark
+                        });
+                    } else {
+                        onLocationSelect(lat, lng);
+                    }
+                })
+                .catch(err => {
+                    console.error("Nominatim geocoding failed", err);
+                    onLocationSelect(lat, lng);
+                })
+                .finally(() => {
+                    setIsConfirming(false);
+                });
+        };
+
+        try {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                if (status === 'OK' && results && results[0]) {
+                    const addressComponents = results[0].address_components;
+                    let flat = '';
+                    let street = '';
+                    let city = '';
+                    let state = '';
+                    let pincode = '';
+                    let landmark = '';
+
+                    // Parse address components
+                    addressComponents.forEach(component => {
+                        const types = component.types;
+                        if (types.includes('street_number')) {
+                            flat = component.long_name;
+                        }
+                        if (types.includes('route')) {
+                            street = component.long_name;
+                        }
+                        if (types.includes('locality')) {
+                            city = component.long_name;
+                        }
+                        if (types.includes('administrative_area_level_1')) {
+                            state = component.long_name;
+                        }
+                        if (types.includes('postal_code')) {
+                            pincode = component.long_name;
+                        }
+                        
+                        // Extract flat/house names from premises
+                        if (types.includes('subpremise') || types.includes('premise')) {
+                            if (!flat) flat = component.long_name;
+                            else flat = component.long_name + ', ' + flat;
+                        }
+
+                        // Landmarks
+                        if (types.includes('point_of_interest') || types.includes('establishment')) {
+                            if (!landmark) landmark = component.long_name;
+                        } else if (!landmark && (types.includes('sublocality') || types.includes('sublocality_level_1'))) {
+                            landmark = component.long_name;
+                        }
+                    });
+
+                    onLocationSelect(lat, lng, {
+                        flat,
+                        street: street.trim(),
+                        city,
+                        state,
+                        pincode,
+                        landmark
+                    });
+                    setIsConfirming(false);
+                } else {
+                    console.warn(`Google Geocoding failed with status: ${status}. Falling back to Nominatim.`);
+                    fallbackToNominatim();
+                }
+            });
+        } catch (e) {
+            console.warn("Error calling Google Geocoder, falling back to Nominatim", e);
+            fallbackToNominatim();
+        }
+    }, [center.lat, center.lng, onLocationSelect]);
+
     const handleIdle = useCallback(() => {
         // Capture location when map becomes idle (after drag or animation)
         if (!isDragging.current && mapRef.current) {
@@ -69,58 +178,10 @@ export default function GoogleMapsLocationPicker({
                 const lat = parseFloat(newCenter.lat().toFixed(6));
                 const lng = parseFloat(newCenter.lng().toFixed(6));
 
-                // Only update if there's a real change (or if we need to fetch address)
+                // Only update if there's a real change
                 if (Math.abs(lat - center.lat) > 0.00001 || Math.abs(lng - center.lng) > 0.00001) {
                     setCenter({ lat, lng });
-
-                    // Reverse Geocoding
-                    const geocoder = new google.maps.Geocoder();
-                    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-                        if (status === 'OK' && results && results[0]) {
-                            const addressComponents = results[0].address_components;
-                            let street = '';
-                            let city = '';
-                            let state = '';
-                            let pincode = '';
-                            let landmark = '';
-
-                            // Parse address components
-                            addressComponents.forEach(component => {
-                                const types = component.types;
-                                if (types.includes('street_number')) {
-                                    street = component.long_name + ' ' + street;
-                                }
-                                if (types.includes('route')) {
-                                    street += component.long_name;
-                                }
-                                if (types.includes('locality')) {
-                                    city = component.long_name;
-                                }
-                                if (types.includes('administrative_area_level_1')) {
-                                    state = component.long_name;
-                                }
-                                if (types.includes('postal_code')) {
-                                    pincode = component.long_name;
-                                }
-                                // Landmarks
-                                if (types.includes('point_of_interest') || types.includes('establishment') || types.includes('premise')) {
-                                    landmark = component.long_name;
-                                } else if (!landmark && (types.includes('sublocality') || types.includes('sublocality_level_1'))) {
-                                    landmark = component.long_name;
-                                }
-                            });
-
-                            onLocationSelect(lat, lng, {
-                                street: street.trim(),
-                                city,
-                                state,
-                                pincode,
-                                landmark
-                            });
-                        } else {
-                            onLocationSelect(lat, lng);
-                        }
-                    });
+                    onLocationSelect(lat, lng); // Only update coordinates implicitly
                 }
             }
         }
@@ -210,13 +271,24 @@ export default function GoogleMapsLocationPicker({
                 </div>
             </div>
 
-            {/* Instruction overlay */}
-            <div className="absolute bottom-2 left-2 right-2 z-10">
-                <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-center shadow-sm">
-                    <p className="text-xs text-neutral-700 font-medium">
-                        📍 Move the map to set your exact delivery location
-                    </p>
-                </div>
+            {/* Action overlay */}
+            <div className="absolute bottom-2 left-2 right-2 z-10 flex flex-col gap-2">
+                <button
+                    onClick={handleConfirmLocation}
+                    disabled={isConfirming}
+                    className="w-full bg-black text-white text-xs font-bold py-2.5 rounded-lg shadow-md hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 active:scale-95"
+                >
+                    {isConfirming ? (
+                        <>
+                            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            Confirming...
+                        </>
+                    ) : (
+                        <>
+                            📍 Confirm Location
+                        </>
+                    )}
+                </button>
             </div>
         </div>
     );

@@ -80,8 +80,14 @@ export default function HomeHero({
             return 0;
           });
 
+          const uniqueSlugs = new Set<string>();
           const mapped = sortedCats
             .filter(c => c.slug !== "all")
+            .filter(c => {
+              if (uniqueSlugs.has(c.slug)) return false;
+              uniqueSlugs.add(c.slug);
+              return true;
+            })
             .map((c) => ({
               id: c.slug,
               label: c.name,
@@ -119,13 +125,6 @@ export default function HomeHero({
 
   const locationDisplayText = useMemo(() => {
     if (userLocation?.address) {
-      const parts = userLocation.address.split(',').map(p => p.trim());
-      if (parts.length >= 2) {
-        if (parts[0].toLowerCase() === parts[1].toLowerCase()) {
-          return parts[0];
-        }
-        return `${parts[0]}, ${parts[1]}`;
-      }
       return userLocation.address;
     }
     
