@@ -64,6 +64,7 @@ export default function DeliverySignUp() {
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   const vehicleTypes = ["Select Vehicle", "Bike", "Scooter", "Cycle"];
 
@@ -95,6 +96,7 @@ export default function DeliverySignUp() {
     else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+    setFormErrors(prev => prev.filter(err => err !== name));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,6 +112,7 @@ export default function DeliverySignUp() {
 
     setFiles(prev => ({ ...prev, [name]: file }));
     setError("");
+    setFormErrors(prev => prev.filter(err => err !== name));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,13 +122,14 @@ export default function DeliverySignUp() {
     const requiredFields = ['name', 'mobile', 'email', 'address', 'city', 'pincode', 'bankName', 'accountName', 'accountNumber', 'ifscCode', 'aadhaarNumber'];
     const missing = requiredFields.filter(f => !formData[f as keyof typeof formData]);
     
-    if (missing.length > 0) {
-      setError(`Please fill required fields: ${missing.join(', ')}`);
-      return;
+    if (!formData.dateOfBirth) {
+      missing.push('dateOfBirth');
     }
 
-    if (!formData.dateOfBirth) {
-      setError("Date of Birth is required");
+    setFormErrors(missing);
+
+    if (missing.length > 0) {
+      setError(`Please fill required fields: ${missing.join(', ')}`);
       return;
     }
 
@@ -213,11 +217,11 @@ export default function DeliverySignUp() {
                 <section className="space-y-4">
                   <h2 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] border-b pb-2">Personal Details</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Full Name" name="name" value={formData.name} onChange={handleInputChange} required />
-                    <InputField label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleInputChange} required maxLength={10} />
-                    <InputField label="Alternate Mobile" name="alternateMobile" value={formData.alternateMobile} onChange={handleInputChange} maxLength={10} />
-                    <InputField label="Email ID" name="email" value={formData.email} onChange={handleInputChange} required type="email" />
-                    <InputField 
+                    <InputField formErrors={formErrors} label="Full Name" name="name" value={formData.name} onChange={handleInputChange} required />
+                    <InputField formErrors={formErrors} label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleInputChange} required maxLength={10} />
+                    <InputField formErrors={formErrors} label="Alternate Mobile" name="alternateMobile" value={formData.alternateMobile} onChange={handleInputChange} maxLength={10} />
+                    <InputField formErrors={formErrors} label="Email ID" name="email" value={formData.email} onChange={handleInputChange} required type="email" />
+                    <InputField formErrors={formErrors} 
                       label="Date of Birth" 
                       name="dateOfBirth" 
                       value={formData.dateOfBirth} 
@@ -225,18 +229,18 @@ export default function DeliverySignUp() {
                       type="date" 
                       max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                     />
-                    <InputField label="Age" name="age" value={formData.age} onChange={handleInputChange} maxLength={2} />
-                    <InputField label="Father's Name" name="fatherName" value={formData.fatherName} onChange={handleInputChange} />
+                    <InputField formErrors={formErrors} label="Age" name="age" value={formData.age} onChange={handleInputChange} maxLength={2} />
+                    <InputField formErrors={formErrors} label="Father's Name" name="fatherName" value={formData.fatherName} onChange={handleInputChange} />
                   </div>
                   <div className="space-y-4 mt-4">
-                    <InputField label="Current Address" name="address" value={formData.address} onChange={handleInputChange} required />
-                    <InputField label="Permanent Address" name="permanentAddress" value={formData.permanentAddress} onChange={handleInputChange} />
+                    <InputField formErrors={formErrors} label="Current Address" name="address" value={formData.address} onChange={handleInputChange} required />
+                    <InputField formErrors={formErrors} label="Permanent Address" name="permanentAddress" value={formData.permanentAddress} onChange={handleInputChange} />
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <InputField label="City" name="city" value={formData.city} onChange={handleInputChange} required />
-                      <InputField label="State" name="state" value={formData.state} onChange={handleInputChange} />
-                      <InputField label="PIN Code" name="pincode" value={formData.pincode} onChange={handleInputChange} required maxLength={6} />
+                      <InputField formErrors={formErrors} label="City" name="city" value={formData.city} onChange={handleInputChange} required />
+                      <InputField formErrors={formErrors} label="State" name="state" value={formData.state} onChange={handleInputChange} />
+                      <InputField formErrors={formErrors} label="PIN Code" name="pincode" value={formData.pincode} onChange={handleInputChange} required maxLength={6} />
                     </div>
-                    <InputField label="Emergency Contact Number" name="emergencyContact" value={formData.emergencyContact} onChange={handleInputChange} maxLength={10} />
+                    <InputField formErrors={formErrors} label="Emergency Contact Number" name="emergencyContact" value={formData.emergencyContact} onChange={handleInputChange} maxLength={10} />
                   </div>
                 </section>
 
@@ -244,13 +248,13 @@ export default function DeliverySignUp() {
                 <section className="space-y-4">
                   <h2 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] border-b pb-2">Identity Details</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Aadhaar Number" name="aadhaarNumber" value={formData.aadhaarNumber} onChange={handleInputChange} required maxLength={12} />
-                    <InputField label="PAN Number" name="panNumber" value={formData.panNumber} onChange={handleInputChange} maxLength={10} />
+                    <InputField formErrors={formErrors} label="Aadhaar Number" name="aadhaarNumber" value={formData.aadhaarNumber} onChange={handleInputChange} required maxLength={12} />
+                    <InputField formErrors={formErrors} label="PAN Number" name="panNumber" value={formData.panNumber} onChange={handleInputChange} maxLength={10} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
-                    <FileUpload label="Passport Size Photo" name="profilePic" onChange={handleFileChange} file={files.profilePic} />
-                    <FileUpload label="National Identity Card" name="nationalIdentityCard" onChange={handleFileChange} file={files.nationalIdentityCard} />
-                    <FileUpload label="Higher Education Marksheet" name="marksheet" onChange={handleFileChange} file={files.marksheet} />
+                    <FileUpload formErrors={formErrors} label="Passport Size Photo" name="profilePic" onChange={handleFileChange} file={files.profilePic} />
+                    <FileUpload formErrors={formErrors} label="National Identity Card" name="nationalIdentityCard" onChange={handleFileChange} file={files.nationalIdentityCard} />
+                    <FileUpload formErrors={formErrors} label="Higher Education Marksheet" name="marksheet" onChange={handleFileChange} file={files.marksheet} />
                   </div>
                   <div className="flex items-center gap-4 mt-4">
                     <span className="text-xs font-bold text-neutral-700">Police Verification:</span>
@@ -273,15 +277,15 @@ export default function DeliverySignUp() {
                         {vehicleTypes.map(v => <option key={v} value={v === "Select Vehicle" ? "" : v}>{v}</option>)}
                       </select>
                     </div>
-                    <InputField label="Vehicle Number" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleInputChange} />
-                    <InputField label="Driving License Number" name="drivingLicenseNumber" value={formData.drivingLicenseNumber} onChange={handleInputChange} />
-                    <InputField label="RC Number" name="rcNumber" value={formData.rcNumber} onChange={handleInputChange} />
-                    <InputField label="Vehicle Insurance Number" name="vehicleInsuranceNumber" value={formData.vehicleInsuranceNumber} onChange={handleInputChange} />
-                    <InputField label="Insurance Valid Till" name="insuranceValidTill" value={formData.insuranceValidTill} onChange={handleInputChange} type="date" />
+                    <InputField formErrors={formErrors} label="Vehicle Number" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleInputChange} />
+                    <InputField formErrors={formErrors} label="Driving License Number" name="drivingLicenseNumber" value={formData.drivingLicenseNumber} onChange={handleInputChange} />
+                    <InputField formErrors={formErrors} label="RC Number" name="rcNumber" value={formData.rcNumber} onChange={handleInputChange} />
+                    <InputField formErrors={formErrors} label="Vehicle Insurance Number" name="vehicleInsuranceNumber" value={formData.vehicleInsuranceNumber} onChange={handleInputChange} />
+                    <InputField formErrors={formErrors} label="Insurance Valid Till" name="insuranceValidTill" value={formData.insuranceValidTill} onChange={handleInputChange} type="date" />
                   </div>
                   {formData.vehicleType !== 'Cycle' && (
                     <div className="mt-4">
-                      <FileUpload label="Upload Driving License" name="drivingLicense" onChange={handleFileChange} file={files.drivingLicense} />
+                      <FileUpload formErrors={formErrors} label="Upload Driving License" name="drivingLicense" onChange={handleFileChange} file={files.drivingLicense} />
                     </div>
                   )}
                 </section>
@@ -290,12 +294,12 @@ export default function DeliverySignUp() {
                 <section className="space-y-4">
                   <h2 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] border-b pb-2">Bank Details</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Bank Name" name="bankName" value={formData.bankName} onChange={handleInputChange} required />
-                    <InputField label="Account Holder Name" name="accountName" value={formData.accountName} onChange={handleInputChange} required />
-                    <InputField label="Account Number" name="accountNumber" value={formData.accountNumber} onChange={handleInputChange} required />
-                    <InputField label="IFSC Code" name="ifscCode" value={formData.ifscCode} onChange={handleInputChange} required />
-                    <InputField label="Branch Name" name="branchName" value={formData.branchName} onChange={handleInputChange} />
-                    <InputField label="UPI ID (Optional)" name="upiId" value={formData.upiId} onChange={handleInputChange} />
+                    <InputField formErrors={formErrors} label="Bank Name" name="bankName" value={formData.bankName} onChange={handleInputChange} required />
+                    <InputField formErrors={formErrors} label="Account Holder Name" name="accountName" value={formData.accountName} onChange={handleInputChange} required />
+                    <InputField formErrors={formErrors} label="Account Number" name="accountNumber" value={formData.accountNumber} onChange={handleInputChange} required />
+                    <InputField formErrors={formErrors} label="IFSC Code" name="ifscCode" value={formData.ifscCode} onChange={handleInputChange} required />
+                    <InputField formErrors={formErrors} label="Branch Name" name="branchName" value={formData.branchName} onChange={handleInputChange} />
+                    <InputField formErrors={formErrors} label="UPI ID (Optional)" name="upiId" value={formData.upiId} onChange={handleInputChange} />
                   </div>
                 </section>
 
@@ -332,7 +336,8 @@ export default function DeliverySignUp() {
   );
 }
 
-function InputField({ label, name, value, onChange, required, type = "text", maxLength }: any) {
+function InputField({ label, name, value, onChange, required, type = "text", maxLength, formErrors = [] }: any) {
+  const hasError = formErrors.includes(name);
   return (
     <div className="space-y-1">
       <label className="text-[11px] font-bold text-neutral-600 ml-1">
@@ -345,13 +350,14 @@ function InputField({ label, name, value, onChange, required, type = "text", max
         onChange={onChange}
         maxLength={maxLength}
         placeholder={`Enter ${label.toLowerCase()}`}
-        className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:bg-white focus:border-orange-500 outline-none transition-all placeholder:text-neutral-300"
+        className={`w-full px-4 py-2.5 bg-neutral-50 border rounded-xl text-sm outline-none transition-all placeholder:text-neutral-300 ${hasError ? 'border-red-500 focus:border-red-600' : 'border-neutral-200 focus:bg-white focus:border-orange-500'}`}
       />
     </div>
   );
 }
 
-function FileUpload({ label, name, onChange, file, required, capture = "environment" }: any) {
+function FileUpload({ label, name, onChange, file, required, capture = "environment", formErrors = [] }: any) {
+  const hasError = formErrors.includes(name);
   return (
     <div className="space-y-1">
       <label className="text-[11px] font-bold text-neutral-600 ml-1">
@@ -366,10 +372,10 @@ function FileUpload({ label, name, onChange, file, required, capture = "environm
           {...(capture ? { capture } : {})}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
         />
-        <div className={`w-full py-3 px-4 border-2 border-dashed rounded-xl flex items-center justify-between transition-all ${file ? 'border-green-500 bg-green-50' : 'border-neutral-200 bg-neutral-50 hover:border-orange-400'}`}>
+        <div className={`w-full py-3 px-4 border-2 border-dashed rounded-xl flex items-center justify-between transition-all ${file ? 'border-green-500 bg-green-50' : hasError ? 'border-red-500 bg-red-50' : 'border-neutral-200 bg-neutral-50 hover:border-orange-400'}`}>
           <div className="flex items-center gap-2">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={file ? "#22c55e" : "#94a3b8"} strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            <span className={`text-[10px] font-bold uppercase ${file ? 'text-green-700' : 'text-neutral-400'}`}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={file ? "#22c55e" : hasError ? "#ef4444" : "#94a3b8"} strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <span className={`text-[10px] font-bold uppercase ${file ? 'text-green-700' : hasError ? 'text-red-500' : 'text-neutral-400'}`}>
               {file ? "File Selected" : "Tap to Upload"}
             </span>
           </div>

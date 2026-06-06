@@ -132,25 +132,26 @@ export default function Checkout() {
         try {
           const pendingData = JSON.parse(pendingDataStr);
           if (pendingData.orderId) {
-             // Optimistically clear cart and navigate immediately
-             localStorage.removeItem('pendingRazorpayOrder');
-             clearCart();
-             showGlobalToast("Payment successful!", "success");
-             
-             // Clean up URL
-             window.history.replaceState({}, document.title, window.location.pathname);
-             navigate(`/orders/${pendingData.orderId}`);
+            // Optimistically clear cart and show success modal
+            localStorage.removeItem('pendingRazorpayOrder');
+            clearCart();
+            showGlobalToast("Payment successful!", "success");
 
-             // Verify payment in the background
-             verifyPayment({
-                 orderId: pendingData.orderId,
-                 razorpayOrderId: razorpay_order_id,
-                 razorpayPaymentId: razorpay_payment_id,
-                 razorpaySignature: razorpay_signature
-             }).catch(console.error);
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setPlacedOrderId(pendingData.orderId);
+            setShowOrderSuccess(true);
+
+            // Verify payment in the background
+            verifyPayment({
+              orderId: pendingData.orderId,
+              razorpayOrderId: razorpay_order_id,
+              razorpayPaymentId: razorpay_payment_id,
+              razorpaySignature: razorpay_signature
+            }).catch(console.error);
           }
-        } catch(e) {
-            console.error(e);
+        } catch (e) {
+          console.error(e);
         }
       }
     }
@@ -277,7 +278,7 @@ export default function Checkout() {
     fetchSimilar();
   }, [cart?.items?.length]);
 
-  if (cartLoading || ((cart?.items?.length || 0) === 0 && !showOrderSuccess)) {
+  if (!showOrderSuccess && (cartLoading || (cart?.items?.length || 0) === 0)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center">
@@ -970,10 +971,10 @@ export default function Checkout() {
       <div className="flex-1 bg-neutral-50/30">
         <div className="max-w-7xl mx-auto lg:p-8">
           <div className="lg:grid lg:grid-cols-12 lg:gap-10 lg:items-start">
-            
+
             {/* Left Column: Items, Recommendations, and Options */}
             <div className="lg:col-span-8 space-y-4">
-              
+
               {/* Ordering for someone else */}
               <div className="px-4 md:px-0 py-2 md:py-3 bg-white lg:rounded-2xl lg:shadow-sm border-b lg:border border-neutral-200 overflow-hidden">
                 <div className="px-4 flex items-center justify-between">
@@ -1055,7 +1056,7 @@ export default function Checkout() {
                                     return (
                                       <div className="inline-flex items-center gap-1 bg-red-50 text-red-600 text-[10px] font-bold px-2 py-1 rounded mb-2">
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
                                         </svg>
                                         OUT OF STOCK
                                       </div>
@@ -1065,7 +1066,7 @@ export default function Checkout() {
                                     return (
                                       <div className="inline-flex items-center gap-1 bg-amber-50 text-amber-600 text-[10px] font-bold px-2 py-1 rounded mb-2">
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-                                          <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                                          <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
                                         </svg>
                                         ONLY {availableStock} LEFT
                                       </div>
@@ -1121,11 +1122,10 @@ export default function Checkout() {
                                           updateQuantity(item.product?.id, item.quantity + 1, variantId, variantTitle);
                                         }}
                                         disabled={!canIncrease}
-                                        className={`w-6 h-6 flex items-center justify-center font-black rounded-full transition-colors leading-none ${
-                                          canIncrease
+                                        className={`w-6 h-6 flex items-center justify-center font-black rounded-full transition-colors leading-none ${canIncrease
                                             ? 'text-green-600 hover:bg-green-100'
                                             : 'text-neutral-300 cursor-not-allowed'
-                                        }`}>
+                                          }`}>
                                         <span className="relative top-[-1px]">+</span>
                                       </button>
                                     </div>
@@ -1152,12 +1152,12 @@ export default function Checkout() {
                           </div>
                         </div>
                       ))}
-                    
-                    <button 
+
+                    <button
                       onClick={() => navigate('/categories')}
                       className="w-full flex items-center justify-center gap-2 py-3 mt-2 border-2 border-dashed border-green-200 rounded-2xl text-green-600 hover:bg-green-50 transition-all font-bold text-sm active:scale-[0.98]">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       Add more items from store
                     </button>
@@ -1199,7 +1199,7 @@ export default function Checkout() {
                                 <span className="text-sm font-black text-neutral-900 italic">₹{displayPrice}</span>
                                 {hasDiscount && <span className="text-[10px] text-neutral-400 line-through">₹{mrp}</span>}
                               </div>
-                              <button 
+                              <button
                                 onClick={(e) => { e.stopPropagation(); addToCart(product, e.currentTarget); }}
                                 className="mt-2 w-full py-1.5 bg-green-600 text-white text-[10px] font-bold rounded-lg hover:bg-green-700 transition-colors shadow-sm italic">
                                 ADD TO CART
@@ -1308,7 +1308,7 @@ export default function Checkout() {
 
             {/* Right Column: Address, Billing, and Payment Selection as a Sidebar */}
             <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-24 pb-32 lg:pb-0">
-              
+
               {/* Delivery Address Card */}
               <div className="px-4 md:px-0 py-4 bg-white lg:rounded-2xl lg:shadow-md border-b lg:border-2 lg:border-green-600/10 overflow-hidden">
                 <div className="px-4">
@@ -1319,7 +1319,7 @@ export default function Checkout() {
 
                   {savedAddress ? (
                     <div className="space-y-4">
-                      <div 
+                      <div
                         className={`p-3 rounded-xl border-2 transition-all cursor-pointer ${selectedAddress?.id === savedAddress.id && !isMapSelected ? "border-green-600 bg-green-50" : "bg-neutral-50 border-neutral-100"}`}
                         onClick={() => {
                           setSelectedAddress(savedAddress);
@@ -1345,7 +1345,7 @@ export default function Checkout() {
                           <span className="block mt-1 uppercase font-black text-neutral-400">{savedAddress.city} - {savedAddress.pincode}</span>
                         </p>
                       </div>
-                      
+
                       <button onClick={() => { setMapLocation({ lat: userLocation?.latitude || selectedAddress?.latitude || 0, lng: userLocation?.longitude || selectedAddress?.longitude || 0 }); setShowMapPicker(true); }}
                         className={`w-full py-3 rounded-xl border-2 font-black text-[11px] uppercase tracking-widest transition-all italic flex items-center justify-center gap-2 ${isMapSelected ? "bg-green-600 border-green-600 text-white shadow-lg" : "bg-white border-neutral-100 text-neutral-400 shadow-sm hover:border-green-200"}`}>
                         {isMapSelected ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /></svg>}
@@ -1361,7 +1361,7 @@ export default function Checkout() {
               {/* Coupons Secondary Entry */}
               {!selectedCoupon && (
                 <div className="px-4 md:px-0">
-                  <button onClick={() => setShowCouponSheet(true)} 
+                  <button onClick={() => setShowCouponSheet(true)}
                     className="w-full py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-2xl shadow-lg shadow-teal-500/20 flex items-center justify-between px-6 transition-transform active:scale-[0.98]">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center italic font-black text-sm">%</div>
@@ -1380,7 +1380,7 @@ export default function Checkout() {
                 <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 blur-3xl -mr-16 -mt-16 group-hover:bg-green-500/20 transition-colors"></div>
                 <div className="px-6 relative z-10">
                   <h3 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-500 mb-6 italic">Payment Summary</h3>
-                  
+
                   {/* Delivery charge progress banner inside billing summary */}
                   {deliveryCharge > 0 && (
                     <div className="mb-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
