@@ -336,22 +336,30 @@ export default function DeliverySignUp() {
   );
 }
 
-function InputField({ label, name, value, onChange, required, type = "text", maxLength, formErrors = [] }: any) {
+function InputField({ label, name, value, onChange, required, type = "text", maxLength, max, formErrors = [] }: any) {
   const hasError = formErrors.includes(name);
   return (
     <div className="space-y-1">
       <label className="text-[11px] font-bold text-neutral-600 ml-1">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        maxLength={maxLength}
-        placeholder={`Enter ${label.toLowerCase()}`}
-        className={`w-full px-4 py-2.5 bg-neutral-50 border rounded-xl text-sm outline-none transition-all placeholder:text-neutral-300 ${hasError ? 'border-red-500 focus:border-red-600' : 'border-neutral-200 focus:bg-white focus:border-orange-500'}`}
-      />
+      <div className="relative">
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          maxLength={maxLength}
+          max={max}
+          placeholder={type === 'date' ? 'dd-mm-yyyy' : `Enter ${label.toLowerCase()}`}
+          className={`w-full px-4 py-2.5 bg-neutral-50 border rounded-xl text-sm outline-none transition-all placeholder:text-neutral-300 ${hasError ? 'border-red-500 focus:border-red-600' : 'border-neutral-200 focus:bg-white focus:border-orange-500'} ${type === 'date' && !value ? 'text-neutral-300 uppercase' : ''}`}
+        />
+        {type === 'date' && !value && (
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-neutral-300 bg-neutral-50 pr-4 right-10">
+            dd-mm-yyyy
+          </div>
+        )}
+      </div>
     </div>
   );
 }
