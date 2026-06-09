@@ -50,11 +50,10 @@ export async function isDeliveryBoyBusy(_deliveryBoyId: string | mongoose.Types.
  */
 export async function findAvailableDeliveryBoys(): Promise<mongoose.Types.ObjectId[]> {
     try {
-        // NOTE: We intentionally do NOT filter by status:'Active' here.
-        // Any delivery boy who has toggled isOnline=true should receive notifications.
-        // Admin approval (status) is a separate concern from notification eligibility.
+        // Only select delivery boys who are online AND active (approved by admin)
         const deliveryBoys = await Delivery.find({
             isOnline: true,
+            status: 'Active',
         }).select('_id');
 
         console.log(`📋 Found ${deliveryBoys.length} online delivery boys (all statuses)`);
@@ -78,11 +77,11 @@ export async function findDeliveryBoysNearLocation(
     const nearbyDeliveryBoys: { deliveryBoyId: mongoose.Types.ObjectId; distance: number }[] = [];
 
     try {
-        // 1. Try to find delivery boys using the new GeoJSON location field in Delivery model
         try {
-            // NOTE: Removed status:'Active' filter — any online delivery boy is eligible.
+            // Only select delivery boys who are online AND active (approved by admin)
             const deliveryBoysWithLocation = await Delivery.find({
                 isOnline: true,
+                status: 'Active',
                 location: {
                     $near: {
                         $geometry: {
@@ -118,6 +117,7 @@ export async function findDeliveryBoysNearLocation(
         try {
             const otherOnlineBoys = await Delivery.find({
                 isOnline: true,
+                status: 'Active',
                 _id: { $nin: Array.from(trackedIds).map(id => new mongoose.Types.ObjectId(id)) }
             }).select('_id');
 
@@ -569,7 +569,7 @@ export async function scanOrdersForDeliveryBoy(io: SocketIOServer, deliveryBoyId
     try {
         // Query database for all pending orders that don't have a delivery boy assigned yet
         const pendingOrders = await Order.find({
-            status: { $in: ['Received', 'Accepted', 'Processed'] },
+            status: { $in: ['Accepted', 'Processed'] },
             deliveryBoy: { $exists: false }
         });
 
@@ -600,7 +600,7 @@ export async function scanOrdersForDeliveryBoy(io: SocketIOServer, deliveryBoyId
             }).lean();
 
             const orderDataObj: any = order;
-            if (!orderDataObj || ['Delivered', 'Cancelled', 'Rejected', 'Returned'].includes(orderDataObj.status as string)) {
+            if (!orderDataObj || !['Accepted', 'Processed'].includes(orderDataObj.status as string)) {
                 continue;
             }
 

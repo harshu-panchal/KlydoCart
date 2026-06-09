@@ -56,15 +56,18 @@ export const acceptOrder = (
 ): Promise<AcceptOrderResponse> => {
     return new Promise((resolve) => {
         const timeout = setTimeout(() => {
+            console.error(`❌ acceptOrder timeout after 30 seconds for order ${orderId}`);
             resolve({
                 success: false,
                 message: 'Request timeout',
             });
-        }, 10000); // 10 second timeout
+        }, 30000); // 30 second timeout
 
+        console.log(`📤 Sending accept-order for order ${orderId} by delivery boy ${deliveryBoyId}`);
         socket.emit('accept-order', { orderId, deliveryBoyId });
 
         socket.once('accept-order-response', (response: AcceptOrderResponse) => {
+            console.log(`📥 Received accept-order-response:`, response);
             clearTimeout(timeout);
             resolve(response);
         });
@@ -81,19 +84,21 @@ export const rejectOrder = (
 ): Promise<RejectOrderResponse> => {
     return new Promise((resolve) => {
         const timeout = setTimeout(() => {
+            console.error(`❌ rejectOrder timeout after 30 seconds for order ${orderId}`);
             resolve({
                 success: false,
                 message: 'Request timeout',
                 allRejected: false,
             });
-        }, 10000); // 10 second timeout
+        }, 30000); // 30 second timeout
 
+        console.log(`📤 Sending reject-order for order ${orderId} by delivery boy ${deliveryBoyId}`);
         socket.emit('reject-order', { orderId, deliveryBoyId });
 
         socket.once('reject-order-response', (response: RejectOrderResponse) => {
+            console.log(`📥 Received reject-order-response:`, response);
             clearTimeout(timeout);
             resolve(response);
         });
     });
 };
-

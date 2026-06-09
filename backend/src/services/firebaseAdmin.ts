@@ -83,6 +83,15 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
             },
             data: payload.data || {},
             tokens: tokens,
+            // Web Push Specifics (crucial for waking up PWA/Browsers in sleep mode)
+            webpush: {
+                headers: {
+                    Urgency: 'high'
+                },
+                notification: {
+                    requireInteraction: true // Keeps the notification on screen until interacted with
+                }
+            },
             // Mobile Specifics
             android: {
                 priority: 'high',

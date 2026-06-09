@@ -18,9 +18,24 @@ export async function generateDeliveryOtp(orderId: string): Promise<{ success: b
       throw new Error('Order is already delivered');
     }
 
-    // No longer generate per-order OTP - customer has permanent deliveryOtp
-    // Just return success as the customer's permanent OTP will be used
-    console.log(`[Delivery OTP] Using customer's permanent delivery OTP for order ${orderId}`);
+    // Retrieve customer's permanent OTP and save it to the order
+    let customerOtp: string | undefined;
+
+    if (order.customer && typeof order.customer === 'object' && 'deliveryOtp' in order.customer) {
+      customerOtp = (order.customer as any).deliveryOtp;
+    } else if (order.customer) {
+      const customer = await Customer.findById(order.customer);
+      customerOtp = customer?.deliveryOtp;
+    }
+
+    if (!customerOtp) {
+      throw new Error('Customer delivery OTP not found. Please contact support.');
+    }
+
+    order.deliveryOtp = customerOtp;
+    await order.save();
+
+    console.log(`[Delivery OTP] Populated order ${orderId} delivery OTP from customer's permanent OTP`);
 
     return {
       success: true,

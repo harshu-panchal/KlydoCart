@@ -79,11 +79,7 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
         });
     }
 
-    const delivery = await Delivery.findByIdAndUpdate(
-        deliveryId,
-        { isOnline },
-        { new: true }
-    );
+    const delivery = await Delivery.findById(deliveryId);
 
     if (!delivery) {
         return res.status(404).json({
@@ -91,6 +87,16 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
             message: "Delivery partner not found"
         });
     }
+
+    if (isOnline && delivery.status !== "Active") {
+        return res.status(403).json({
+            success: false,
+            message: "Cannot toggle status to online. Your account is pending admin approval/activation."
+        });
+    }
+
+    delivery.isOnline = isOnline;
+    await delivery.save();
 
     if (isOnline && delivery.isOnline) {
         const io = (req.app as any).get("io");

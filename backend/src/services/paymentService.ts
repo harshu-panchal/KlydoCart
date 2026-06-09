@@ -101,7 +101,8 @@ export const capturePayment = async (
     orderId: string,
     razorpayOrderId: string,
     razorpayPaymentId: string,
-    razorpaySignature: string
+    razorpaySignature: string,
+    io?: any
 ) => {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -162,24 +163,39 @@ export const capturePayment = async (
         }
 
         // Update order
+        let shouldNotify = false;
         order.paymentStatus = 'Paid';
         order.paymentId = razorpayPaymentId;
         // Keep status as Placed/Received or whatever was set.
         // Usually, online payment orders start as 'Pending' and move to 'Received'
         if (order.status === 'Pending') {
             order.status = 'Received';
+            shouldNotify = true;
         }
         await order.save({ session });
 
         // Trigger creation of Pending commissions
         try {
             const { createPendingCommissions } = await import('./commissionService');
-            await createPendingCommissions(orderId);
+            await createPendingCommissions(orderId, session);
         } catch (commError) {
             console.error("Failed to create pending commissions after payment:", commError);
         }
 
         await session.commitTransaction();
+
+        // Notify sellers
+        if (shouldNotify && io) {
+            try {
+                const fullOrder = await Order.findById(orderId).populate('items').lean();
+                if (fullOrder) {
+                    const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
+                    await notifySellersOfOrderUpdate(io, fullOrder, 'NEW_ORDER');
+                }
+            } catch (notifyErr) {
+                console.error("Failed to notify sellers in capturePayment:", notifyErr);
+            }
+        }
 
         return {
             success: true,
@@ -261,7 +277,8 @@ export const processRefund = async (
  */
 export const handleWebhook = async (
     body: any,
-    signature: string
+    signature: string,
+    io?: any
 ): Promise<{ success: boolean; message: string }> => {
     try {
         const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -287,7 +304,7 @@ export const handleWebhook = async (
         switch (event) {
             case 'payment.captured':
                 // Payment was captured successfully
-                await handlePaymentCaptured(payload);
+                await handlePaymentCaptured(payload, io);
                 break;
 
             case 'payment.failed':
@@ -318,7 +335,7 @@ export const handleWebhook = async (
 };
 
 // Helper functions for webhook events
-const handlePaymentCaptured = async (payload: any) => {
+const handlePaymentCaptured = async (payload: any, io?: any) => {
     try {
         const razorpayPaymentId = payload.id;
         const razorpayOrderId = payload.order_id;
@@ -333,10 +350,25 @@ const handlePaymentCaptured = async (payload: any) => {
             await payment.save();
 
             // Update order
-            await Order.findByIdAndUpdate(payment.order, {
-                paymentStatus: 'Paid',
-                paymentId: razorpayPaymentId,
-            });
+            const order = await Order.findById(payment.order);
+            if (order) {
+                let shouldNotify = false;
+                order.paymentStatus = 'Paid';
+                order.paymentId = razorpayPaymentId;
+                if (order.status === 'Pending') {
+                    order.status = 'Received';
+                    shouldNotify = true;
+                }
+                await order.save();
+
+                if (shouldNotify && io) {
+                    const fullOrder = await Order.findById(order._id).populate('items').lean();
+                    if (fullOrder) {
+                        const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
+                        await notifySellersOfOrderUpdate(io, fullOrder, 'NEW_ORDER');
+                    }
+                }
+            }
         }
     } catch (error) {
         console.error('Error handling payment captured:', error);

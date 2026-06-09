@@ -28,6 +28,7 @@ export default function DeliveryPartnerCard({
     onMessage
 }: DeliveryPartnerCardProps) {
     const [isCopied, setIsCopied] = useState(false)
+    const [showOtpCode, setShowOtpCode] = useState(false)
 
     const handleCopyOtp = useCallback(async () => {
         if (!deliveryOtp) return
@@ -169,58 +170,79 @@ export default function DeliveryPartnerCard({
             {/* Delivery OTP Section - Permanent OTP, no expiry */}
             {deliveryOtp && (
                 <div className="mx-4 mb-4 p-3 bg-neutral-50 rounded-xl border border-dashed border-neutral-200">
-                    <div className="flex items-center justify-between mb-2">
-                        <div>
-                            <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-0.5">Your Delivery OTP</p>
-                            <p className="text-[11px] text-neutral-600 leading-tight">Share this with the delivery partner</p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <div className="flex-1 bg-white px-4 py-2.5 rounded-lg border border-neutral-100 shadow-sm flex items-center justify-between group">
-                            <span className="text-2xl font-black tracking-[0.25em] text-green-700">{deliveryOtp}</span>
+                    {!showOtpCode ? (
+                        <div className="flex flex-col items-center py-2">
+                            <p className="text-[11px] text-neutral-500 font-medium mb-3 text-center">
+                                Click the button below to get the verification OTP for the rider
+                            </p>
                             <motion.button
-                                onClick={handleCopyOtp}
-                                className="p-1.5 hover:bg-neutral-50 rounded-md transition-colors relative"
-                                whileTap={{ scale: 0.9 }}
+                                onClick={() => setShowOtpCode(true)}
+                                className="w-full py-2.5 px-4 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 shadow-sm flex items-center justify-center gap-2"
+                                whileTap={{ scale: 0.98 }}
                             >
-                                <AnimatePresence mode="wait">
-                                    {isCopied ? (
-                                        <motion.svg
-                                            key="check"
-                                            initial={{ opacity: 0, scale: 0.5 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.5 }}
-                                            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3"
-                                        >
-                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                        </motion.svg>
-                                    ) : (
-                                        <motion.svg
-                                            key="copy"
-                                            initial={{ opacity: 0, scale: 0.5 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.5 }}
-                                            width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.5"
-                                        >
-                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                        </motion.svg>
-                                    )}
-                                </AnimatePresence>
-                                {isCopied && (
-                                    <motion.span
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 10 }}
-                                        className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap"
-                                    >
-                                        Copied!
-                                    </motion.span>
-                                )}
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                                Get OTP
                             </motion.button>
                         </div>
-                    </div>
+                    ) : (
+                        <>
+                            <div className="flex items-center justify-between mb-2">
+                                <div>
+                                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mb-0.5">Your Delivery OTP</p>
+                                    <p className="text-[11px] text-neutral-600 leading-tight">Share this with the delivery partner</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 bg-white px-4 py-2.5 rounded-lg border border-neutral-100 shadow-sm flex items-center justify-between group">
+                                    <span className="text-2xl font-black tracking-[0.25em] text-green-700">{deliveryOtp}</span>
+                                    <motion.button
+                                        onClick={handleCopyOtp}
+                                        className="p-1.5 hover:bg-neutral-50 rounded-md transition-colors relative"
+                                        whileTap={{ scale: 0.9 }}
+                                    >
+                                        <AnimatePresence mode="wait">
+                                            {isCopied ? (
+                                                <motion.svg
+                                                    key="check"
+                                                    initial={{ opacity: 0, scale: 0.5 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.5 }}
+                                                    width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3"
+                                                >
+                                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                                </motion.svg>
+                                            ) : (
+                                                <motion.svg
+                                                    key="copy"
+                                                    initial={{ opacity: 0, scale: 0.5 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.5 }}
+                                                    width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.5"
+                                                >
+                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                </motion.svg>
+                                            )}
+                                        </AnimatePresence>
+                                        {isCopied && (
+                                            <motion.span
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 10 }}
+                                                className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap"
+                                            >
+                                                Copied!
+                                            </motion.span>
+                                        )}
+                                    </motion.button>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
         </motion.div>

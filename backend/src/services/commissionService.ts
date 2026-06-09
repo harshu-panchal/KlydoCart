@@ -243,13 +243,13 @@ export const calculateOrderCommissions = async (orderId: string) => {
 /**
  * Create Pending Commissions (called on Order Payment)
  */
-export const createPendingCommissions = async (orderId: string) => {
+export const createPendingCommissions = async (orderId: string, session?: mongoose.ClientSession) => {
     try {
-        const order = await Order.findById(orderId).populate("items");
+        const order = await Order.findById(orderId).populate("items").session(session || null);
         if (!order) throw new Error("Order not found");
 
         // Check if commissions already exist
-        const existingCommissions = await Commission.find({ order: orderId });
+        const existingCommissions = await Commission.find({ order: orderId }).session(session || null);
         if (existingCommissions.length > 0) {
             console.log(`Commissions already exist for order ${orderId}`);
             return;
@@ -258,10 +258,10 @@ export const createPendingCommissions = async (orderId: string) => {
         const items = order.items;
 
         for (const itemId of items) {
-            const item = await OrderItem.findById(itemId);
+            const item = await OrderItem.findById(itemId).session(session || null);
             if (!item) continue;
 
-            const seller = await Seller.findById(item.seller);
+            const seller = await Seller.findById(item.seller).session(session || null);
             if (!seller) continue;
 
             const commissionRate = await getOrderItemCommissionRate(
@@ -282,7 +282,7 @@ export const createPendingCommissions = async (orderId: string) => {
                 order.paymentMethod.toUpperCase() === "CASH"
             );
 
-            const commission = await Commission.create({
+            const commissionDocs = await Commission.create([{
                 order: item.order,
                 orderItem: item._id,
                 seller: item.seller,
@@ -292,7 +292,8 @@ export const createPendingCommissions = async (orderId: string) => {
                 commissionAmount,
                 status: isCOD ? "Pending" : "Paid",
                 paidAt: isCOD ? null : new Date(),
-            });
+            }], { session });
+            const commission = commissionDocs[0];
 
             // Credit Wallet Immediately only for non-COD
             if (!isCOD && seller) {
@@ -303,6 +304,7 @@ export const createPendingCommissions = async (orderId: string) => {
                     `Sale proceeds from Order #${order.orderNumber}`,
                     item.order.toString(),
                     commission._id.toString(),
+                    session
                 );
             }
         }

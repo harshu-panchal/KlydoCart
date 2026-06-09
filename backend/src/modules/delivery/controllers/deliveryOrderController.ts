@@ -328,8 +328,8 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
             });
         }
 
-        // Trigger notification to sellers for payment status change or specific transitions
-        if (order.paymentStatus === 'Paid' || status === 'Delivered') {
+        // Trigger notification to sellers only when the status is Delivered
+        if (status === 'Delivered') {
             notifySellersOfOrderUpdate(io, order, 'STATUS_UPDATE');
         }
     }
@@ -475,6 +475,10 @@ export const sendDeliveryOtp = asyncHandler(async (req: Request, res: Response) 
     try {
         const result = await generateDeliveryOtp(id);
 
+        // Fetch updated order to get the saved deliveryOtp
+        const updatedOrder = await Order.findById(id);
+        const deliveryOtp = updatedOrder?.deliveryOtp;
+
         // Emit otp-sent event to delivery boy
         const io = (req.app as any).get("io");
         if (io) {
@@ -482,6 +486,13 @@ export const sendDeliveryOtp = asyncHandler(async (req: Request, res: Response) 
                 orderId: id,
                 orderNumber: order.orderNumber,
                 message: 'Delivery OTP sent to customer',
+            });
+
+            // Emit otp-sent event to customer's order tracking room
+            io.to(`order-${id}`).emit('otp-sent', {
+                orderId: id,
+                deliveryOtp,
+                message: 'Delivery OTP has been requested/sent'
             });
         }
 

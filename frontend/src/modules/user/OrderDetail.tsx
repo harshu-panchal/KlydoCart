@@ -505,6 +505,7 @@ export default function OrderDetail() {
     error: trackingError,
     reconnectAttempts,
     reconnect,
+    deliveryOtp: socketDeliveryOtp,
   } = useDeliveryTracking(id);
 
   // Seller locations for the order
@@ -597,7 +598,6 @@ export default function OrderDetail() {
     if (confirmed && order) {
       const timer1 = setTimeout(() => {
         setShowConfirmation(false);
-        setOrderStatus("Accepted");
       }, 3000);
       return () => clearTimeout(timer1);
     }
@@ -1078,7 +1078,7 @@ export default function OrderDetail() {
               </motion.div>
 
               {/* Delivery Partner Details */}
-              {(order?.deliveryPartner || order?.deliveryOtp) && (
+              {(order?.deliveryPartner || order?.deliveryOtp || socketDeliveryOtp) && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}>
@@ -1091,8 +1091,8 @@ export default function OrderDetail() {
                     }}
                     eta={routeInfo ? Math.ceil(routeInfo.durationValue / 60) : eta}
                     distance={routeInfo ? routeInfo.distanceValue : distance}
-                    isTracking={isConnected && !!deliveryLocation}
-                    deliveryOtp={order?.deliveryOtp}
+                    isTracking={isConnected && !!deliveryLocation && ['Picked up', 'Out for Delivery', 'On the way', 'Shipped'].includes(orderStatus)}
+                    deliveryOtp={socketDeliveryOtp || order?.deliveryOtp}
                     onCall={() => {
                       const phone = order?.deliveryPartner?.phone || "9031275861";
                       window.location.href = `tel:${phone}`;

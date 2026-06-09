@@ -355,7 +355,7 @@ function InputField({ label, name, value, onChange, required, type = "text", max
           className={`w-full px-4 py-2.5 bg-neutral-50 border rounded-xl text-sm outline-none transition-all placeholder:text-neutral-300 ${hasError ? 'border-red-500 focus:border-red-600' : 'border-neutral-200 focus:bg-white focus:border-orange-500'} ${type === 'date' && !value ? 'text-neutral-300 uppercase' : ''}`}
         />
         {type === 'date' && !value && (
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-neutral-300 bg-neutral-50 pr-4 right-10">
+          <div className="absolute top-[1px] bottom-[1px] left-4 flex items-center pointer-events-none text-neutral-300 bg-neutral-50 pr-4 right-10">
             dd-mm-yyyy
           </div>
         )}

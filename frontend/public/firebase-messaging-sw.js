@@ -43,7 +43,8 @@ if (messaging) {
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
-    const data = event.notification.data;
+    // Firebase wraps the data in FCM_MSG sometimes when auto-displaying notifications
+    const data = event.notification.data?.FCM_MSG?.data || event.notification.data || {};
     const urlToOpen = data?.link || '/';
 
     event.waitUntil(
