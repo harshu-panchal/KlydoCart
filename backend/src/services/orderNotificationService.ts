@@ -40,9 +40,51 @@ function calculateDistance(
     return R * c;
 }
 
-export async function isDeliveryBoyBusy(_deliveryBoyId: string | mongoose.Types.ObjectId): Promise<boolean> {
-    // Disabled busy check to ensure delivery boys always receive notifications and can handle queued/multiple orders
-    return false;
+export async function isDeliveryBoyBusy(
+    deliveryBoyId: string | mongoose.Types.ObjectId,
+    excludeOrderId?: string | mongoose.Types.ObjectId,
+    excludeReturnId?: string | mongoose.Types.ObjectId
+): Promise<boolean> {
+    try {
+        const dbId = typeof deliveryBoyId === 'string' ? new mongoose.Types.ObjectId(deliveryBoyId) : deliveryBoyId;
+
+        // 1. Check for active orders
+        const orderQuery: any = {
+            deliveryBoy: dbId,
+            status: { $in: ['Processed', 'Shipped', 'Out for Delivery', 'On the way'] }
+        };
+        if (excludeOrderId) {
+            const excludeOrdId = typeof excludeOrderId === 'string' ? new mongoose.Types.ObjectId(excludeOrderId) : excludeOrderId;
+            orderQuery._id = { $ne: excludeOrdId };
+        }
+        const activeOrder = await Order.findOne(orderQuery);
+
+        if (activeOrder) {
+            console.log(`ℹ️ Delivery boy ${dbId} is busy with active order: ${activeOrder._id}`);
+            return true;
+        }
+
+        // 2. Check for active returns
+        const returnQuery: any = {
+            deliveryBoy: dbId,
+            pickupStatus: { $in: ['Assigned', 'Picked Up'] }
+        };
+        if (excludeReturnId) {
+            const excludeRetId = typeof excludeReturnId === 'string' ? new mongoose.Types.ObjectId(excludeReturnId) : excludeReturnId;
+            returnQuery._id = { $ne: excludeRetId };
+        }
+        const activeReturn = await Return.findOne(returnQuery);
+
+        if (activeReturn) {
+            console.log(`ℹ️ Delivery boy ${dbId} is busy with active return: ${activeReturn._id}`);
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        console.error('Error checking if delivery boy is busy:', error);
+        return false;
+    }
 }
 
 /**
@@ -254,8 +296,22 @@ export async function notifyDeliveryBoysOfNewOrder(
 
         console.log(`✅ Found ${nearbyDeliveryBoyIds.length} available delivery boys:`, nearbyDeliveryBoyIds.map(id => id.toString()));
 
-        // --- FILTER BUSY DELIVERY BOYS (Bypassed) ---
-        console.log(`ℹ️ Busy filtering bypassed. Available: ${nearbyDeliveryBoyIds.length}`);
+        // --- FILTER BUSY DELIVERY BOYS ---
+        const availableDeliveryBoyIds: mongoose.Types.ObjectId[] = [];
+        for (const id of nearbyDeliveryBoyIds) {
+            const isBusy = await isDeliveryBoyBusy(id, order._id);
+            if (!isBusy) {
+                availableDeliveryBoyIds.push(id);
+            }
+        }
+        nearbyDeliveryBoyIds = availableDeliveryBoyIds;
+
+        if (nearbyDeliveryBoyIds.length === 0) {
+            console.log(`❌ No available (non-busy) delivery boys to notify for order ${order.orderNumber || order._id}`);
+            return;
+        }
+
+        console.log(`✅ Filtered to ${nearbyDeliveryBoyIds.length} non-busy delivery boys:`, nearbyDeliveryBoyIds.map(id => id.toString()));
 
         // Prepare order data for notification
         const orderData = {
@@ -739,8 +795,22 @@ export async function notifyDeliveryBoysOfNewReturn(io: SocketIOServer, returnRe
 
         let nearbyDeliveryBoyIds = nearbyBoys.map(b => b.deliveryBoyId);
 
-        // --- FILTER BUSY DELIVERY BOYS FOR RETURN (Bypassed) ---
-        console.log(`ℹ️ [Return] Busy filtering bypassed. Available: ${nearbyDeliveryBoyIds.length}`);
+        // --- FILTER BUSY DELIVERY BOYS FOR RETURN ---
+        const availableDeliveryBoyIds: mongoose.Types.ObjectId[] = [];
+        for (const id of nearbyDeliveryBoyIds) {
+            const isBusy = await isDeliveryBoyBusy(id, undefined, returnRequest._id);
+            if (!isBusy) {
+                availableDeliveryBoyIds.push(id);
+            }
+        }
+        nearbyDeliveryBoyIds = availableDeliveryBoyIds;
+
+        if (nearbyDeliveryBoyIds.length === 0) {
+            console.log(`❌ No available (non-busy) delivery boys to notify for return request ${returnId}`);
+            return;
+        }
+
+        console.log(`✅ Filtered to ${nearbyDeliveryBoyIds.length} non-busy delivery boys for return:`, nearbyDeliveryBoyIds.map(id => id.toString()));
 
         const customerName = order.customerName || 'Customer';
         const customerPhone = order.customerPhone || '';

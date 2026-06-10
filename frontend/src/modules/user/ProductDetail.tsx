@@ -325,13 +325,6 @@ export default function ProductDetail() {
       : null;
 
   const handleAddToCart = () => {
-    // Redirect to login if not authenticated
-    if (!isAuthenticated) {
-      showToast('Login to continue', 'info');
-      navigate('/login');
-      return;
-    }
-
     // Check if product is out of stock
     const isOutOfStock = selectedVariant?.status === 'Sold out' || product?.status === 'Sold out';
     

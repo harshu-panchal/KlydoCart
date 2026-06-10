@@ -153,17 +153,62 @@ export function CartProvider({ children }: { children: ReactNode }) {
     await fetchCart(latitude, longitude);
   };
 
+  // Track previous auth state to detect login transition
+  const prevIsAuthenticatedRef = useRef<boolean>(isAuthenticated);
+
   // Load cart on auth change
   useEffect(() => {
-    if (isAuthenticated) {
-      // Check if token is actually available before making API call
+    const wasAuthenticated = prevIsAuthenticatedRef.current;
+    const isNowAuthenticated = isAuthenticated;
+    prevIsAuthenticatedRef.current = isNowAuthenticated;
+
+    if (isNowAuthenticated && user?.userType === 'Customer') {
       const token = localStorage.getItem('authToken');
-      if (token) {
-        fetchCart();
-      } else {
+      if (!token) {
         setLoading(false);
+        return;
       }
-    } else {
+
+      // If user just logged in (transition from guest → authenticated),
+      // push any existing guest cart items to the server first.
+      if (!wasAuthenticated) {
+        const guestItems = items.filter(item => item?.product && !item.id);
+        if (guestItems.length > 0) {
+          // Sequentially push each guest item to the API, then refresh
+          const mergeGuestCart = async () => {
+            setLoading(true);
+            try {
+              for (const guestItem of guestItems) {
+                const productId = guestItem.product.id || (guestItem.product as any)._id;
+                if (!productId) continue;
+                const variation =
+                  (guestItem.product as any).variantId ||
+                  (guestItem.product as any).selectedVariant?._id ||
+                  (guestItem.product as any).variantTitle ||
+                  guestItem.product.pack;
+                try {
+                  await apiAddToCart(
+                    productId,
+                    guestItem.quantity,
+                    variation,
+                    location?.latitude,
+                    location?.longitude
+                  );
+                } catch (err) {
+                  console.warn('Failed to merge guest item to server cart:', err);
+                }
+              }
+            } finally {
+              await fetchCart();
+            }
+          };
+          mergeGuestCart();
+          return;
+        }
+      }
+
+      fetchCart();
+    } else if (!isNowAuthenticated) {
       // Guest cart is already in 'items' from localStorage if it existed
       setLoading(false);
     }

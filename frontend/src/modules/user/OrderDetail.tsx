@@ -572,9 +572,11 @@ export default function OrderDetail() {
   // Update orderStatus when order state changes
   useEffect(() => {
     if (order) {
-      setOrderStatus(order.status);
+      // Prefer socketOrderStatus if available to prevent infinite ping-pong loops
+      const currentStatus = socketOrderStatus || order.status;
+      setOrderStatus(currentStatus as OrderStatus);
     }
-  }, [order]);
+  }, [order, socketOrderStatus]);
 
   // Real-time order status updates from socket
   useEffect(() => {
@@ -586,7 +588,11 @@ export default function OrderDetail() {
       if (id) {
         fetchOrderById(id).then((fetchedOrder) => {
           if (fetchedOrder) {
-            setOrder(fetchedOrder);
+            // Merge but keep the socketOrderStatus to avoid reverting status in state
+            setOrder({
+              ...fetchedOrder,
+              status: socketOrderStatus || fetchedOrder.status
+            });
           }
         });
       }
@@ -1092,7 +1098,7 @@ export default function OrderDetail() {
                     eta={routeInfo ? Math.ceil(routeInfo.durationValue / 60) : eta}
                     distance={routeInfo ? routeInfo.distanceValue : distance}
                     isTracking={isConnected && !!deliveryLocation && ['Picked up', 'Out for Delivery', 'On the way', 'Shipped'].includes(orderStatus)}
-                    deliveryOtp={socketDeliveryOtp || order?.deliveryOtp}
+                    deliveryOtp={orderStatus === "Delivered" ? undefined : (socketDeliveryOtp || order?.deliveryOtp)}
                     onCall={() => {
                       const phone = order?.deliveryPartner?.phone || "9031275861";
                       window.location.href = `tel:${phone}`;

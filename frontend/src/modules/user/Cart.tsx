@@ -1,11 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/ui/button';
 import { appConfig } from '../../services/configService';
 import { calculateProductPrice } from '../../utils/priceUtils';
 
 export default function Cart() {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const threshold = cart.freeDeliveryThreshold ?? appConfig.freeDeliveryThreshold;
@@ -14,6 +16,11 @@ export default function Cart() {
   const totalAmount = cart.total + deliveryFee + platformFee;
 
   const handleCheckout = () => {
+    if (!isAuthenticated) {
+      // Redirect to login with a hint to come back to checkout
+      navigate('/login', { state: { redirectTo: '/checkout' } });
+      return;
+    }
     navigate('/checkout');
   };
 

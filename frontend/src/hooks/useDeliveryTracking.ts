@@ -110,6 +110,7 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
         })
 
         socket.on('location-update', (update: LocationUpdate) => {
+            if (update.orderId !== orderId) return;
             console.log('📍 Location update received:', update)
 
             // Parse timestamp - handle both string and Date objects
@@ -144,6 +145,7 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
 
         // Listen for delivery OTP request from rider
         socket.on('otp-sent', (data: any) => {
+            if (data.orderId !== orderId) return;
             console.log('🔑 OTP sent event received:', data)
             setTrackingData(prev => ({
                 ...prev,
@@ -154,6 +156,7 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
 
         // Listen for order status updates
         socket.on('order-taken', (data: any) => {
+            if (data.orderId !== orderId) return;
             console.log('📦 Order picked up from seller:', data)
             setTrackingData(prev => ({
                 ...prev,
@@ -163,6 +166,7 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
         })
 
         socket.on('seller-pickup-confirmed', (data: any) => {
+            if (data.orderId !== orderId) return;
             console.log('🏪 Seller pickup confirmed:', data)
             if (data.allPickedUp && data.newStatus) {
                 setTrackingData(prev => ({
@@ -174,6 +178,7 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
         })
 
         socket.on('order-delivered', (data: any) => {
+            if (data.orderId !== orderId) return;
             console.log('✅ Order status update (Delivered/Rejected):', data)
             setTrackingData(prev => ({
                 ...prev,
@@ -183,6 +188,7 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
         })
 
         socket.on('status-update', (data: any) => {
+            if (data.orderId !== orderId) return;
             console.log('🔄 General status update:', data)
             setTrackingData(prev => ({
                 ...prev,

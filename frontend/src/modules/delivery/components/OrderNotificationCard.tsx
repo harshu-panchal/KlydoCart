@@ -15,10 +15,8 @@ export default function OrderNotificationCard({
     onReject,
 }: OrderNotificationCardProps) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const localAudioRef = useRef<HTMLAudioElement | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [hasUserInteracted, setHasUserInteracted] = useState(false);
-    const [audioError, setAudioError] = useState<string | null>(null);
-    const [soundEnabled, setSoundEnabled] = useState(true);
     const vibrationPatternRef = useRef<number[]>([200, 100, 200, 100, 200]);
 
     // Vibrate on notification (if supported)
@@ -32,30 +30,13 @@ export default function OrderNotificationCard({
         }
     }, []);
 
-    // Initialize audio with better error handling and settings check
+    // Initialize audio with better error handling
     useEffect(() => {
         let audio: HTMLAudioElement | null = null;
         
-        const initAudio = async () => {
-            try {
-                // Check user settings first
-                const profile = await getProfile();
-                const isEnabled = profile.settings?.sound ?? true;
-                setSoundEnabled(isEnabled);
-
-                if (!isEnabled) {
-                    console.log('Sound is disabled in user settings');
-                    return;
-                }
-
-                audio = new Audio('/assets/sound/delivery-alert.mp3');
-                audio.loop = true;
-                audio.volume = 1.0; // Max volume for better visibility
-
-        // Set up error handlers
+        // Define event listeners in useEffect scope to clean them up properly
         const handleAudioError = (error: Event) => {
             console.error('Audio error:', error);
-            setAudioError('Audio file could not be loaded');
         };
 
         const handleAudioAbort = () => {
@@ -66,26 +47,25 @@ export default function OrderNotificationCard({
             console.log('Audio playback stalled');
         };
 
-        audio.addEventListener('error', handleAudioError);
-        audio.addEventListener('abort', handleAudioAbort);
-        audio.addEventListener('stalled', handleAudioStalled);
+        const initAudio = async () => {
+            try {
+                audio = localAudioRef.current;
+                if (!audio) return;
+
+                audio.loop = true;
+                audio.volume = 1.0; // Max volume for better visibility
+
+                audio.addEventListener('error', handleAudioError);
+                audio.addEventListener('abort', handleAudioAbort);
+                audio.addEventListener('stalled', handleAudioStalled);
 
                 audioRef.current = audio;
 
-                // Try to play audio with better permission handling
+                // Try to play audio immediately
                 try {
                     await audio.play();
-                    setHasUserInteracted(true);
-                    setAudioError(null);
                 } catch (playError: any) {
-                    console.log('Audio autoplay blocked or failed:', playError);
-                    if (playError.name === 'NotAllowedError') {
-                        setAudioError('Tap to enable sound');
-                    } else {
-                        // Try loading explicitly if first attempt failed
-                        audio.load();
-                        setAudioError('Tap to play sound');
-                    }
+                    console.log('Audio autoplay blocked or failed, will play on user interaction:', playError);
                 }
             } catch (error) {
                 console.error('Failed to initialize audio:', error);
@@ -99,42 +79,50 @@ export default function OrderNotificationCard({
             if (audio) {
                 audio.pause();
                 audio.currentTime = 0;
+                audio.removeEventListener('error', handleAudioError);
+                audio.removeEventListener('abort', handleAudioAbort);
+                audio.removeEventListener('stalled', handleAudioStalled);
             }
             audioRef.current = null;
         };
     }, [vibrate]);
 
-    // Play audio on user interaction with better error handling
+    // Play audio on user interaction
     const handleUserInteraction = async () => {
-        if (!hasUserInteracted && audioRef.current) {
+        if (audioRef.current && audioRef.current.paused) {
             try {
-                // Ensure audio is loaded
-                if (audioRef.current.readyState < 2) {
-                    audioRef.current.load();
-                }
                 await audioRef.current.play();
-                setHasUserInteracted(true);
-                setAudioError(null);
             } catch (error: any) {
-                console.error('Failed to play audio:', error);
-                if (error.name === 'NotAllowedError') {
-                    setAudioError('Audio permission denied');
-                } else if (error.name === 'NotSupportedError') {
-                    setAudioError('Audio not supported on this device');
-                } else {
-                    setAudioError('Failed to play audio');
-                }
+                console.error('Failed to play audio on interaction:', error);
             }
         }
     };
 
-    // Stop audio when component unmounts or notification is dismissed
+    // Auto-unlock audio on the very first page interaction anywhere on the screen while this card is open
     useEffect(() => {
-        return () => {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
+        const playOnInteraction = (e: Event) => {
+            // Ignore if the click target is the accept/reject buttons to prevent sound spikes
+            const target = e.target as HTMLElement;
+            if (target && (target.closest('button')?.innerText.toLowerCase().includes('accept') || target.closest('button')?.innerText.toLowerCase().includes('reject'))) {
+                return;
             }
+
+            if (audioRef.current && audioRef.current.paused) {
+                audioRef.current.play().catch((err) => {
+                    console.error('Failed to play audio on document interaction:', err);
+                });
+            }
+            // Remove listeners after first interaction
+            document.removeEventListener('click', playOnInteraction, { capture: true });
+            document.removeEventListener('touchstart', playOnInteraction, { capture: true });
+        };
+
+        document.addEventListener('click', playOnInteraction, { capture: true });
+        document.addEventListener('touchstart', playOnInteraction, { capture: true });
+
+        return () => {
+            document.removeEventListener('click', playOnInteraction, { capture: true });
+            document.removeEventListener('touchstart', playOnInteraction, { capture: true });
         };
     }, []);
 
@@ -163,21 +151,11 @@ export default function OrderNotificationCard({
                     alert(result.message || 'Failed to accept order');
                 }
                 setIsProcessing(false);
-                // Resume audio if accept failed
-                if (audioRef.current && hasUserInteracted) {
-                    (audioRef.current as any).play().catch(console.error);
-                    vibrate(); // Resume vibration
-                }
             }
         } catch (error) {
             console.error('Error accepting order:', error);
             alert('Failed to accept order');
             setIsProcessing(false);
-            // Resume audio if accept failed
-            if (audioRef.current && hasUserInteracted) {
-                (audioRef.current as any).play().catch(console.error);
-                vibrate(); // Resume vibration
-            }
         }
     };
 
@@ -205,20 +183,10 @@ export default function OrderNotificationCard({
                 if (result.message !== 'Order notification not found') {
                     alert(result.message || 'Failed to reject order');
                 }
-                // Resume audio if reject failed
-                if (audioRef.current && hasUserInteracted) {
-                    (audioRef.current as any).play().catch(console.error);
-                    vibrate(); // Resume vibration
-                }
             }
         } catch (error) {
             console.error('Error rejecting order:', error);
             alert('Failed to reject order');
-            // Resume audio if reject failed
-            if (audioRef.current && hasUserInteracted) {
-                (audioRef.current as any).play().catch(console.error);
-                vibrate(); // Resume vibration
-            }
         } finally {
             setIsProcessing(false);
         }
@@ -251,6 +219,12 @@ export default function OrderNotificationCard({
                 paddingTop: 'env(safe-area-inset-top, 0)',
             }}
         >
+            <audio
+                ref={localAudioRef}
+                src="/assets/sound/delivery-alert.mp3"
+                preload="auto"
+                loop
+            />
             <div className={`bg-white rounded-xl shadow-2xl border-2 ${isReturn ? 'border-orange-500' : 'border-teal-500'} p-4 sm:p-6`}>
                 {/* Header with pulsing indicator */}
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -263,11 +237,6 @@ export default function OrderNotificationCard({
                             {isReturn ? '🔄 New Return Request!' : 'New Order!'}
                         </h3>
                     </div>
-                    {(audioError || !hasUserInteracted || !soundEnabled) && (
-                        <div className="text-xs text-neutral-500 bg-neutral-100 px-2 py-1 rounded whitespace-nowrap">
-                            {!soundEnabled ? 'Sound Muted' : (audioError || 'Tap to enable sound')}
-                        </div>
-                    )}
                 </div>
 
                 {/* Information */}
@@ -336,7 +305,11 @@ export default function OrderNotificationCard({
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                     <button
-                        onClick={handleReject}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleReject();
+                        }}
+                        onTouchStart={(e) => e.stopPropagation()}
                         disabled={isProcessing}
                         className="flex-1 px-4 py-3 sm:py-3 bg-neutral-100 active:bg-neutral-200 text-neutral-700 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                         style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -344,7 +317,11 @@ export default function OrderNotificationCard({
                         {isProcessing ? 'Processing...' : 'Reject'}
                     </button>
                     <button
-                        onClick={handleAccept}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleAccept();
+                        }}
+                        onTouchStart={(e) => e.stopPropagation()}
                         disabled={isProcessing}
                         className={`flex-1 px-4 py-3 sm:py-3 ${isReturn ? 'bg-orange-600 active:bg-orange-700' : 'bg-teal-600 active:bg-teal-700'} text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation`}
                         style={{ WebkitTapHighlightColor: 'transparent' }}

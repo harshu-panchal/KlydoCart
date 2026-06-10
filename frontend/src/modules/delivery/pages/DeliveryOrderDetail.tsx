@@ -615,6 +615,8 @@ export default function DeliveryOrderDetail() {
             }
         } catch (err: any) {
             alert(err.message || "Failed to update status");
+        } finally {
+            // Ensure loading is cleared regardless of success/failure so UI doesn't stay stuck
             setLoading(false);
         }
     };

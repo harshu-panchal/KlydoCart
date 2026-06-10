@@ -87,13 +87,7 @@ export const verifySmsOtp = asyncHandler(async (req: Request, res: Response) => 
     });
   }
 
-  // Check if delivery partner is active/approved by admin
-  if (delivery.status !== "Active") {
-    return res.status(403).json({
-      success: false,
-      message: "Your account is pending admin approval/activation. Please contact support.",
-    });
-  }
+
 
   // Generate JWT token
   const token = generateToken(delivery._id.toString(), "Delivery");

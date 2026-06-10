@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   sendOTP,
@@ -12,6 +12,7 @@ import shoppingCartAnimation from "../../../assets/animation/shopping cart.json"
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [mobileNumber, setMobileNumber] = useState("");
   const [showOTP, setShowOTP] = useState(false);
@@ -72,7 +73,9 @@ export default function Login() {
           refCode: response.data.user.refCode,
           status: response.data.user.status,
         });
-        navigate("/");
+        // Navigate to redirectTo if provided (e.g., after adding to cart as guest)
+        const redirectTo = (location.state as any)?.redirectTo || "/";
+        navigate(redirectTo);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "Invalid OTP. Please try again.");

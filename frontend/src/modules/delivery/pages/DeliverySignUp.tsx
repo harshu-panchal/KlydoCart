@@ -61,6 +61,7 @@ export default function DeliverySignUp() {
 
   const [uploadingDocs, setUploadingDocs] = useState(false);
   const [showOTP, setShowOTP] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
   const [sessionId, setSessionId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -325,8 +326,33 @@ export default function DeliverySignUp() {
                   <h2 className="text-xl font-black text-neutral-900 mb-2">Verify Mobile</h2>
                   <p className="text-neutral-500 text-sm font-medium">Enter OTP sent to +91 {formData.mobile}</p>
                 </div>
-                <OTPInput onComplete={handleOTPComplete} disabled={loading} />
-                <button onClick={() => setShowOTP(false)} className="w-full py-3 text-neutral-500 font-bold text-xs uppercase tracking-widest">Edit Mobile Number</button>
+                <OTPInput onComplete={handleOTPComplete} onChange={setOtpValue} disabled={loading} />
+                
+                {error && (
+                  <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl text-xs font-bold text-center">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handleOTPComplete(otpValue)}
+                  disabled={loading || otpValue.length !== 4}
+                  className="w-full py-4 bg-orange-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-700 transition-all shadow-xl shadow-orange-600/20 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
+                >
+                  {loading ? "Verifying..." : "Verify OTP"}
+                </button>
+
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setError("");
+                    setShowOTP(false);
+                  }} 
+                  className="w-full py-3 text-neutral-500 font-bold text-xs uppercase tracking-widest hover:text-neutral-800 transition-colors"
+                >
+                  Edit Mobile Number
+                </button>
               </motion.div>
             )}
           </AnimatePresence>

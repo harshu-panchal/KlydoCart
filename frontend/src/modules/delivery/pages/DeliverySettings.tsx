@@ -20,6 +20,7 @@ export default function DeliverySettings() {
           setNotificationsEnabled(profile.settings.notifications ?? true);
           setLocationEnabled(profile.settings.location ?? true);
           setSoundEnabled(profile.settings.sound ?? true);
+          localStorage.setItem('delivery_settings_sound', String(profile.settings.sound ?? true));
         }
       } catch (error) {
         console.error("Failed to fetch settings", error);
@@ -32,7 +33,10 @@ export default function DeliverySettings() {
     // Optimistic update
     if (key === 'notifications') setNotificationsEnabled(value);
     if (key === 'location') setLocationEnabled(value);
-    if (key === 'sound') setSoundEnabled(value);
+    if (key === 'sound') {
+      setSoundEnabled(value);
+      localStorage.setItem('delivery_settings_sound', String(value));
+    }
 
     try {
       await updateSettings({ [key]: value });

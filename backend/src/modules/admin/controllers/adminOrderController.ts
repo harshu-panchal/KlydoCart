@@ -10,6 +10,7 @@ import WalletTransaction from "../../../models/WalletTransaction";
 import mongoose from "mongoose";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
 import { Server as SocketIOServer } from "socket.io";
+import { isDeliveryBoyBusy } from "../../../services/orderNotificationService";
 
 /**
  * Get all orders with filters
@@ -216,6 +217,15 @@ export const assignDeliveryBoy = asyncHandler(
       return res.status(400).json({
         success: false,
         message: "Delivery boy is not active",
+      });
+    }
+
+    // Check if delivery boy is already busy with another order or return request
+    const isBusy = await isDeliveryBoyBusy(deliveryBoyId, id);
+    if (isBusy) {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery boy is currently busy with another active order or return request",
       });
     }
 

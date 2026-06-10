@@ -30,10 +30,33 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
 
     useEffect(() => {
         if (hasInitiated.current) return;
+        hasInitiated.current = true;
         
         // Load Razorpay script if not already loaded
         const loadRazorpayScript = () => {
             return new Promise((resolve) => {
+                if (window.Razorpay) {
+                    resolve(true);
+                    return;
+                }
+                const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+                if (existingScript) {
+                    const checkInterval = setInterval(() => {
+                        if (window.Razorpay) {
+                            clearInterval(checkInterval);
+                            resolve(true);
+                        }
+                    }, 100);
+                    existingScript.addEventListener('load', () => {
+                        clearInterval(checkInterval);
+                        resolve(true);
+                    });
+                    existingScript.addEventListener('error', () => {
+                        clearInterval(checkInterval);
+                        resolve(false);
+                    });
+                    return;
+                }
                 const script = document.createElement('script');
                 script.src = 'https://checkout.razorpay.com/v1/checkout.js';
                 script.onload = () => resolve(true);
@@ -96,7 +119,6 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                     },
                     modal: {
                         ondismiss: function () {
-                            hasInitiated.current = false;
                             onFailure('Payment cancelled by user');
                         },
                     },
@@ -108,10 +130,8 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
                     timestamp: Date.now()
                 }));
                 razorpay.open();
-                hasInitiated.current = true;
             } catch (error: any) {
                 console.error('Payment initiation error:', error);
-                hasInitiated.current = false;
                 onFailure(error.response?.data?.message || 'Failed to initiate payment');
             }
         };
