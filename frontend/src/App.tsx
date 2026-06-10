@@ -289,13 +289,12 @@ function AppContent() {
     setupForegroundNotificationHandler();
   }, []);
 
-  // NOTE: FCM token registration is handled in individual login flows
-  // (DeliveryLogin, SellerLogin, AdminLogin, CustomerLogin)
-  // This prevents duplicate notifications from being sent on:
-  // - Page refresh
-  // - Tab switching
-  // - Component re-renders
-  // - Auth state rehydration
+  // Register FCM Token with backend if user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      registerFCMToken();
+    }
+  }, [isAuthenticated]);
 
   return (
     <ErrorBoundary>
