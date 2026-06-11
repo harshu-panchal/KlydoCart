@@ -90,7 +90,7 @@ export default function DeliverySettings() {
   };
 
   const playTestSound = () => {
-    const audio = new Audio('/assets/sound/delivery-alert.mp3');
+    const audio = new Audio('/assets/sound/DeliveryNew.mp3');
     audio.volume = 1.0;
     audio.play().catch(() => {
       showToast('Tap anywhere on the screen first to enable sound.', 'info');

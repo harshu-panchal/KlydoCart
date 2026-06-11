@@ -221,7 +221,7 @@ export default function OrderNotificationCard({
         >
             <audio
                 ref={localAudioRef}
-                src="/assets/sound/delivery-alert.mp3"
+                src="/assets/sound/DeliveryNew.mp3"
                 preload="auto"
                 loop
             />
