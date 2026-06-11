@@ -59,16 +59,20 @@ router.post('/save', authenticate, async (req: Request, res: Response) => {
 
         if (platform === 'web') {
             if (!user.fcmTokens) user.fcmTokens = [];
-            if (!user.fcmTokens.includes(token)) {
+            // Check BEFORE pushing — determines if this is truly a new token
+            const isNewToken = !user.fcmTokens.includes(token);
+            if (isNewToken) {
                 user.fcmTokens.push(token);
-                // Limit to 10 tokens per user per platform to prevent unlimited growth
+                // Limit to 10 tokens per user per platform
                 if (user.fcmTokens.length > 10) {
                     user.fcmTokens = user.fcmTokens.slice(-10);
                 }
             }
         } else if (platform === 'mobile') {
             if (!user.fcmTokenMobile) user.fcmTokenMobile = [];
-            if (!user.fcmTokenMobile.includes(token)) {
+            // Check BEFORE pushing — determines if this is truly a new token
+            const isNewToken = !user.fcmTokenMobile.includes(token);
+            if (isNewToken) {
                 user.fcmTokenMobile.push(token);
                 if (user.fcmTokenMobile.length > 10) {
                     user.fcmTokenMobile = user.fcmTokenMobile.slice(-10);
@@ -76,10 +80,10 @@ router.post('/save', authenticate, async (req: Request, res: Response) => {
             }
         }
 
-        // Check if this is a NEW token (not a re-registration)
+        // Check if this is a NEW token (calculated above per-platform, re-check here for notification)
         const isNewToken = platform === 'web'
-            ? !user.fcmTokens?.includes(token)
-            : !user.fcmTokenMobile?.includes(token);
+            ? !(user.fcmTokens || []).slice(0, -1).includes(token) && (user.fcmTokens || []).includes(token)
+            : !(user.fcmTokenMobile || []).slice(0, -1).includes(token) && (user.fcmTokenMobile || []).includes(token);
 
         await user.save();
 

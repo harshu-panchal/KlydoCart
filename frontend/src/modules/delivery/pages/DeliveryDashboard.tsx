@@ -6,6 +6,7 @@ import DashboardCard from '../components/DashboardCard';
 import DeliveryBottomNav from '../components/DeliveryBottomNav';
 import { getDashboardStats } from '../../../services/api/delivery/deliveryService';
 import { useDeliveryStatus } from '../context/DeliveryStatusContext';
+import { registerFCMToken } from '../../../services/pushNotificationService';
 
 export default function DeliveryDashboard() {
   const navigate = useNavigate();
@@ -13,6 +14,11 @@ export default function DeliveryDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Register FCM token for delivery boy push notifications
+  useEffect(() => {
+    registerFCMToken();
+  }, []);
 
   useEffect(() => {
     const fetchStats = async () => {
