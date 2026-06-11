@@ -112,7 +112,7 @@ export default function Checkout() {
   const isPlaceholderUser =
     user?.name === "User" || user?.email?.endsWith("@klydocart.temp");
 
-  // Redirect if empty
+  // Redirect to home only when cart is confirmed empty AFTER loading completes
   useEffect(() => {
     if (!cartLoading && cart.items.length === 0 && !showOrderSuccess) {
       navigate("/");
@@ -278,13 +278,32 @@ export default function Checkout() {
     fetchSimilar();
   }, [cart?.items?.length]);
 
-  if (!showOrderSuccess && (cartLoading || (cart?.items?.length || 0) === 0)) {
+  // Only block rendering when:
+  // 1. Cart is still loading from API AND we have NO cached items to show (true first load)
+  // 2. NOT when items already exist from localStorage — those render immediately while API syncs in background
+  const hasCachedItems = (cart?.items?.length || 0) > 0;
+
+  if (!showOrderSuccess && cartLoading && !hasCachedItems) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center">
           <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-sm font-medium text-neutral-600">
-            {cartLoading ? "Loading checkout..." : "Redirecting..."}
+            Loading checkout...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // If cart is fully loaded and empty (and not showing success), go home
+  if (!showOrderSuccess && !cartLoading && !hasCachedItems) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-sm font-medium text-neutral-600">
+            Redirecting...
           </p>
         </div>
       </div>

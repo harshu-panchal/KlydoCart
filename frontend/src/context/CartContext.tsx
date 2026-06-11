@@ -125,6 +125,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Safety timeout: ensure loading is ALWAYS resolved within 5 seconds
+    const safetyTimer = setTimeout(() => setLoading(false), 5000);
+
     try {
       const response = await getCart({
         latitude: lat ?? location?.latitude,
@@ -144,19 +147,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Failed to fetch cart:", error);
     } finally {
+      clearTimeout(safetyTimer);
       setLoading(false);
     }
   };
 
   const refreshCart = async (latitude?: number, longitude?: number) => {
-    setLoading(true); // Optional: Set loading state if you want to show spinner
+    setLoading(true);
     await fetchCart(latitude, longitude);
   };
 
   // Track previous auth state to detect login transition
   const prevIsAuthenticatedRef = useRef<boolean>(isAuthenticated);
 
-  // Load cart on auth change
+  // Load cart on auth change ONLY — not on location change to avoid infinite re-fetches
   useEffect(() => {
     const wasAuthenticated = prevIsAuthenticatedRef.current;
     const isNowAuthenticated = isAuthenticated;
@@ -174,7 +178,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!wasAuthenticated) {
         const guestItems = items.filter(item => item?.product && !item.id);
         if (guestItems.length > 0) {
-          // Sequentially push each guest item to the API, then refresh
           const mergeGuestCart = async () => {
             setLoading(true);
             try {
@@ -209,10 +212,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       fetchCart();
     } else if (!isNowAuthenticated) {
-      // Guest cart is already in 'items' from localStorage if it existed
+      // Guest cart is already in 'items' from localStorage
       setLoading(false);
     }
-  }, [isAuthenticated, user?.userType, location?.latitude, location?.longitude]);
+  // ⚠️ Intentionally excludes location from deps — location changes should NOT re-fetch cart.
+  // Cart is refreshed with location explicitly via refreshCart() when address changes in Checkout.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user?.userType]);
 
   const cart: Cart = useMemo(() => {
     // Filter out any items with null products before computing totals

@@ -3,13 +3,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/10.9.0/firebase-messaging-compat.js');
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCGGEeLFXSt0TScXaPnzhOQRE3icZqxf4M",
-    authDomain: "klydocart-e-com.firebaseapp.com",
-    projectId: "klydocart-e-com",
-    storageBucket: "klydocart-e-com.firebasestorage.app",
-    messagingSenderId: "277843928493",
-    appId: "1:277843928493:web:02b318e1002498016e6d24",
-    measurementId: "G-QY6BQ2GDYB"
+    apiKey: "AIzaSyC5S9ux3hbEWrTelwS_3Qjqu7RsA-TaamY",
+    authDomain: "klydocart-3bc02.firebaseapp.com",
+    projectId: "klydocart-3bc02",
+    storageBucket: "klydocart-3bc02.firebasestorage.app",
+    messagingSenderId: "246207647923",
+    appId: "1:246207647923:web:4cf935ef4b16dc039560c6",
+    measurementId: "G-YCRLB08H5K"
 };
 
 // Initialize Firebase

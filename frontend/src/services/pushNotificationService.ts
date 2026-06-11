@@ -1,166 +1,178 @@
 import { messaging, getToken, onMessage } from '../firebase';
 import api from './api/config';
 
-const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || "dummy-vapid-key";
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || "";
+const PERMISSION_DISMISSED_KEY = 'notification_permission_dismissed';
 
 // Register service worker
 async function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        try {
-            // Unregister existing workers to ensure fresh update if needed
-            // const registrations = await navigator.serviceWorker.getRegistrations();
-            // for(let registration of registrations) {
-            //     registration.unregister();
-            // }
+    if (!('serviceWorker' in navigator)) {
+        console.warn('Service Workers are not supported in this browser.');
+        return null;
+    }
 
-            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-                scope: '/'
-            });
-            console.log('✅ Service Worker registered:', registration);
-            return registration;
-        } catch (error) {
-            console.error('❌ Service Worker registration failed:', error);
-            // Don't throw to avoid crashing app on non-supported envs
-            return null;
-        }
-    } else {
-        console.warn('Service Workers are not supported');
+    try {
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+            scope: '/'
+        });
+        console.log('✅ Service Worker registered:', registration.scope);
+        return registration;
+    } catch (error) {
+        console.error('❌ Service Worker registration failed:', error);
         return null;
     }
 }
 
-// Request notification permission
-export async function requestNotificationPermission() {
-    if ('Notification' in window) {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            console.log('✅ Notification permission granted');
-            return true;
-        } else {
-            console.log('❌ Notification permission denied');
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-                alert('⚠️ Notification permission DENIED. You must enable notifications in your browser settings to receive orders.');
-            }
-            return false;
-        }
-    }
-    return false;
+/**
+ * Checks the current notification permission status.
+ * Returns 'granted' | 'denied' | 'default'
+ * This does NOT prompt the user.
+ */
+export function getNotificationPermissionStatus(): NotificationPermission | 'unsupported' {
+    if (!('Notification' in window)) return 'unsupported';
+    return Notification.permission;
 }
 
-// Get FCM token
-export async function getFCMToken() {
+/**
+ * Request notification permission from the user.
+ * Will NOT prompt if:
+ *   - Notifications are not supported
+ *   - Permission is already 'denied' (browser-level block — re-prompting is impossible)
+ *   - Permission is already 'granted'
+ * Returns true only if permission is granted.
+ */
+export async function requestNotificationPermission(): Promise<boolean> {
+    if (!('Notification' in window)) {
+        console.info('[Notifications] Not supported in this browser.');
+        return false;
+    }
+
+    const currentPermission = Notification.permission;
+
+    // Already granted — no need to ask again
+    if (currentPermission === 'granted') {
+        return true;
+    }
+
+    // Already denied at browser level — we cannot prompt again; bail silently
+    if (currentPermission === 'denied') {
+        console.info('[Notifications] Permission is blocked at browser level. User must enable it manually via browser settings.');
+        return false;
+    }
+
+    // 'default' — we can ask. But only ask once if user has previously dismissed.
+    const wasDismissed = sessionStorage.getItem(PERMISSION_DISMISSED_KEY);
+    if (wasDismissed) {
+        console.info('[Notifications] Permission prompt was previously dismissed this session. Not asking again.');
+        return false;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('✅ Notification permission granted.');
+            return true;
+        } else {
+            // User dismissed or denied the prompt this time
+            sessionStorage.setItem(PERMISSION_DISMISSED_KEY, 'true');
+            console.info('[Notifications] Permission not granted by user. Will not ask again this session.');
+            return false;
+        }
+    } catch (err) {
+        console.warn('[Notifications] Error requesting permission:', err);
+        return false;
+    }
+}
+
+// Get FCM token (only callable after permission is granted)
+export async function getFCMToken(): Promise<string | null> {
     if (!messaging) return null;
+    if (Notification.permission !== 'granted') return null;
+    if (!VAPID_KEY) {
+        console.warn('[FCM] VAPID key is missing. Cannot get FCM token.');
+        return null;
+    }
 
     try {
         const registration = await registerServiceWorker();
-        if (!registration) {
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-                alert('❌ Service Worker registration failed. FCM will not work on this mobile device.');
-            }
-            return null; // Failed or not supported
-        }
+        if (!registration) return null;
 
-        // Wait for service worker to be ready
         await navigator.serviceWorker.ready;
 
-        if (!window.isSecureContext && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-            alert('❌ Not a Secure Context (HTTPS missing). FCM will not work on this mobile browser.');
+        const token = await getToken(messaging, {
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: registration
+        });
+
+        if (token) {
+            console.log('✅ FCM Token obtained.');
+            return token;
+        } else {
+            console.warn('[FCM] No token returned — check Firebase project configuration and VAPID key.');
+            return null;
         }
-
-        console.log('DEBUG: Using VAPID Key:', VAPID_KEY);
-
-        try {
-            const token = await getToken(messaging, {
-                vapidKey: VAPID_KEY,
-                serviceWorkerRegistration: registration
-            });
-
-            if (token) {
-                console.log('✅ FCM Token obtained:', token);
-                return token;
-            } else {
-                console.log('❌ No FCM token available');
-                return null;
-            }
-        } catch (tokenError: any) {
-            console.error('❌ Error calling getToken:', tokenError);
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-                alert(`❌ getToken failed: ${tokenError.message || 'Unknown error'}`);
-            }
-            if (tokenError.code === 'messaging/token-subscribe-failed' || tokenError.message?.includes('Missing required authentication credential')) {
-                console.error(`👉 POTENTIAL FIX: Check your Google Cloud Console API Key restrictions. ` +
-                    `Ensure "${window.location.origin}" (and with trailing slash) is allowed in HTTP Referrers.`);
-            }
-            throw tokenError;
+    } catch (error: any) {
+        // Suppress the error if it's just about missing permission (race condition)
+        if (error?.code === 'messaging/permission-blocked' || error?.code === 'messaging/permission-default') {
+            console.info('[FCM] Token not available — notifications not permitted.');
+        } else {
+            console.error('[FCM] Error getting token:', error?.message || error);
         }
-
-    } catch (error) {
-        console.error('❌ Error getting FCM token (outer):', error);
         return null;
     }
 }
 
-// Register FCM token with backend
-export async function registerFCMToken(forceUpdate = false) {
-    if (!messaging) {
-        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-            alert('⚠️ Cannot register FCM token: Messaging is not supported or initialized.');
-        }
+/**
+ * Full flow: check permission → request if needed → get token → register with backend.
+ * Safe to call on every login. Will silently skip if permission is denied/blocked.
+ */
+export async function registerFCMToken(forceUpdate = false): Promise<string | null> {
+    if (!messaging) return null;
+
+    // Skip entirely if notifications are blocked — no point continuing
+    if (Notification.permission === 'denied') {
+        console.info('[FCM] Skipping registration — notification permission is blocked by browser.');
         return null;
     }
 
     try {
-        // Check if already registered
+        // Check if already registered and no force update
         const savedToken = localStorage.getItem('fcm_token_web');
         if (savedToken && !forceUpdate) {
-            console.log('FCM token already registered locally');
+            console.info('[FCM] Token already registered.');
             return savedToken;
         }
 
-        // Request permission first
+        // Request permission (respects all guards — will not spam user)
         const hasPermission = await requestNotificationPermission();
         if (!hasPermission) {
-            console.warn('Notification permission not granted, skipping token registration');
             return null;
         }
 
-        // Get token
+        // Get FCM token
         const token = await getFCMToken();
-        if (!token) {
-            console.warn('Failed to get FCM token, skipping backend registration');
-            return null;
-        }
+        if (!token) return null;
 
         // Detect platform
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const platform = isMobile ? 'mobile' : 'web';
 
-        // Save to backend
+        // Register with backend
         try {
-            console.log(`Attempting to save FCM token to backend for ${platform}...`);
-            const response = await api.post(`/fcm-tokens/save`, {
-                token: token,
-                platform: platform
-            });
-
+            const response = await api.post('/fcm-tokens/save', { token, platform });
             if (response.data.success) {
                 localStorage.setItem('fcm_token_web', token);
-                console.log(`✅ FCM token registered with backend as ${platform}`);
+                console.log(`✅ FCM token registered with backend as [${platform}].`);
                 return token;
             }
         } catch (apiError: any) {
-            console.error('Failed to register token with backend API:', apiError);
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-                alert(`❌ Backend registration FAILED: ${apiError.response?.data?.message || apiError.message || 'Network error'}. Check if your API URL is correct.`);
-            }
+            // Non-fatal: token is still usable even if backend save fails
+            console.warn('[FCM] Failed to save token to backend:', apiError?.response?.data?.message || apiError?.message);
         }
 
         return token;
     } catch (error: any) {
-        console.error('❌ Error in registerFCMToken flow:', error);
-        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-            alert(`❌ FCM Flow Error: ${error.message || 'Unknown exception'}`);
-        }
+        console.error('[FCM] Unexpected error in registerFCMToken:', error?.message || error);
         return null;
     }
 }
@@ -172,18 +184,15 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
     onMessage(messaging, (payload) => {
         console.log('📬 Foreground message received:', payload);
 
-        // Call custom handler if provided
         if (handler) {
             handler(payload);
         }
 
-        // Show a system notification even in foreground
-        // This ensures the notification appears in the "notification center" 
-        // while the user is actively using the app.
+        // Show system notification even in foreground if permission is granted
         if (Notification.permission === 'granted' && payload.notification) {
             const { title, body } = payload.notification;
             const notificationTitle = title || 'KlydoCart Notification';
-            const notificationOptions = {
+            const notificationOptions: NotificationOptions = {
                 body: body,
                 icon: '/favicon.png',
                 badge: '/favicon.png',
@@ -191,11 +200,9 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
                 data: payload.data
             };
 
-            // Use the Notification API to show it immediately
             try {
                 new Notification(notificationTitle, notificationOptions);
-            } catch (err) {
-                console.warn('Failed to show foreground notification via new Notification(), trying ServiceWorker:', err);
+            } catch {
                 navigator.serviceWorker.ready.then(registration => {
                     registration.showNotification(notificationTitle, notificationOptions);
                 });
@@ -204,25 +211,18 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
     });
 }
 
-// Initialize push notifications
+// Initialize push notifications (just registers service worker — no permission prompt here)
 export async function initializePushNotifications() {
-    // Basic compatibility check
     if (!('serviceWorker' in navigator) || !('Notification' in window) || !('PushManager' in window)) {
-        console.warn('⚠️ Push notifications are not supported in this browser environment.');
+        console.warn('⚠️ Push notifications are not supported in this environment.');
         return;
     }
 
-    // Secure context check (required for Service Workers and Notifications)
     if (!window.isSecureContext) {
-        console.error('❌ Push notifications require a Secure Context (HTTPS or localhost). ' +
-            'If you are testing on a mobile device via IP, please use a secure tunnel (like ngrok) or deploy to a staging server.');
+        console.warn('[Push] Secure context required (HTTPS or localhost). Push notifications disabled.');
         return;
     }
 
-    try {
-        // Just register service worker on init to be ready
-        await registerServiceWorker();
-    } catch (error) {
-        console.error('Error initializing push notifications:', error);
-    }
+    // Only register service worker here — do NOT ask for permission on app init
+    await registerServiceWorker();
 }
