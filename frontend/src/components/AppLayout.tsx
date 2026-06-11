@@ -360,6 +360,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
                       placeholder="Search for products..."
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       className="w-full px-4 py-2.5 pl-10 bg-neutral-50 border border-neutral-200 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent md:py-3"
                     />
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔍</span>

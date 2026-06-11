@@ -27,11 +27,15 @@ export const getProducts = async (req: Request, res: Response) => {
     const query: any = {
       status: "Active",
       publish: true,
-      // Exclude shop-by-store-only products from category pages
-      $or: [
-        { isShopByStoreOnly: { $ne: true } },
-        { isShopByStoreOnly: { $exists: false } },
-      ],
+      $and: [
+        {
+          // Exclude shop-by-store-only products from category pages
+          $or: [
+            { isShopByStoreOnly: { $ne: true } },
+            { isShopByStoreOnly: { $exists: false } },
+          ]
+        }
+      ]
     };
 
     if (headerCategoryId) {
@@ -40,10 +44,12 @@ export const getProducts = async (req: Request, res: Response) => {
       const categoryIds = categoriesInHeader.map(c => c._id);
       
       if (categoryIds.length > 0) {
-        query.$or = [
-          { headerCategoryId },
-          { category: { $in: categoryIds } }
-        ];
+        query.$and.push({
+          $or: [
+            { headerCategoryId },
+            { category: { $in: categoryIds } }
+          ]
+        });
       } else {
         query.headerCategoryId = headerCategoryId;
       }
@@ -184,8 +190,15 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 
     if (search) {
-      // Use text search for broad matching
-      query.$text = { $search: search as string };
+      // Use regex for substring (smooth) matching
+      const searchRegex = new RegExp(search as string, "i");
+      query.$and.push({
+        $or: [
+          { productName: searchRegex },
+          { tags: searchRegex },
+          { smallDescription: searchRegex }
+        ]
+      });
     }
 
     // Calculate skip for pagination

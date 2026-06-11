@@ -23,7 +23,10 @@ interface DeliveryStatusContextType {
 const DeliveryStatusContext = createContext<DeliveryStatusContextType | undefined>(undefined);
 
 export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
-  const [isOnline, setIsOnlineLocal] = useState(false);
+  const [isOnline, setIsOnlineLocal] = useState(() => {
+    const saved = localStorage.getItem('deliveryIsOnline');
+    return saved === 'true';
+  });
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [sellersInRangeCount, setSellersInRangeCount] = useState(0);
   const [sellersInRange, setSellersInRange] = useState<SellerInRange[]>([]);
@@ -38,6 +41,7 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
       try {
         const profile = await getProfile();
         setIsOnlineLocal(profile.isOnline || false);
+        localStorage.setItem('deliveryIsOnline', String(profile.isOnline || false));
       } catch (error) {
         console.error("Failed to fetch initial status", error);
       }
@@ -130,18 +134,21 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
     const newStatus = !isOnline;
     // Optimistic update
     setIsOnlineLocal(newStatus);
+    localStorage.setItem('deliveryIsOnline', String(newStatus));
     try {
       await updateStatus(newStatus);
     } catch (error) {
       console.error("Failed to update status", error);
       // Revert on failure
       setIsOnlineLocal(!newStatus);
+      localStorage.setItem('deliveryIsOnline', String(!newStatus));
     }
   };
 
   const setIsOnline = (status: boolean) => {
     // Direct setting if needed, but prefer toggleStatus for API sync
     setIsOnlineLocal(status);
+    localStorage.setItem('deliveryIsOnline', String(status));
     updateStatus(status).catch(err => console.error(err));
   };
 

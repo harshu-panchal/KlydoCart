@@ -228,6 +228,7 @@ export default function DeliverySignUp() {
                       value={formData.dateOfBirth} 
                       onChange={handleInputChange} 
                       type="date" 
+                      required
                       max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                     />
                     <InputField formErrors={formErrors} label="Age" name="age" value={formData.age} onChange={handleInputChange} maxLength={2} />
@@ -390,7 +391,7 @@ function InputField({ label, name, value, onChange, required, type = "text", max
   );
 }
 
-function FileUpload({ label, name, onChange, file, required, capture = "environment", formErrors = [] }: any) {
+function FileUpload({ label, name, onChange, file, required, formErrors = [] }: any) {
   const hasError = formErrors.includes(name);
   return (
     <div className="space-y-1">
@@ -403,7 +404,6 @@ function FileUpload({ label, name, onChange, file, required, capture = "environm
           name={name}
           onChange={onChange}
           accept="image/*"
-          {...(capture ? { capture } : {})}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
         />
         <div className={`w-full py-3 px-4 border-2 border-dashed rounded-xl flex items-center justify-between transition-all ${file ? 'border-green-500 bg-green-50' : hasError ? 'border-red-500 bg-red-50' : 'border-neutral-200 bg-neutral-50 hover:border-orange-400'}`}>

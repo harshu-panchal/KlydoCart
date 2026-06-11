@@ -211,6 +211,10 @@ export default function StorePage() {
                                 placeholder={`Search in ${storeName}...`}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                autoCapitalize="none"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                spellCheck={false}
                                 className="w-full pl-10 pr-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition-all"
                             />
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
@@ -256,6 +260,10 @@ export default function StorePage() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 autoFocus
+                                autoCapitalize="none"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                spellCheck={false}
                                 className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition-all shadow-sm"
                             />
                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
