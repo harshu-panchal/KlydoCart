@@ -116,3 +116,11 @@ export const createReturnRequest = async (orderId: string, orderItemId: string, 
     });
     return response.data;
 };
+
+/**
+ * Mark order as paid by cash
+ */
+export const markOrderAsPaidCash = async (id: string): Promise<OrderResponse> => {
+    const response = await api.patch<OrderResponse>(`/customer/orders/${id}/pay-cash`);
+    return response.data;
+};

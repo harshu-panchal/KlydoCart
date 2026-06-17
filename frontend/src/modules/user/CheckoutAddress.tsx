@@ -200,7 +200,7 @@ export default function CheckoutAddress() {
   const handleSaveAddress = async () => {
     if (!isAuthenticated) {
       showToast('Please login to save your address', 'info');
-      navigate('/login', { state: { from: location.pathname } });
+      navigate('/login', { state: { redirectTo: location.pathname } });
       return;
     }
 

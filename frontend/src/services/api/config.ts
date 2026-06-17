@@ -47,36 +47,25 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - Handle errors
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error: any) => {
-    // Only handle 401 (Unauthorized) for auto-logout
-    // 403 (Forbidden) means user is authenticated but doesn't have permission - DO NOT LOGOUT
-    if (error.response?.status === 401) {
-      // Check if this is an authentication endpoint (OTP verification, etc.)
-      // Don't redirect for auth endpoints - let the component handle the error
-      const isAuthEndpoint = error.config?.url?.includes("/auth/");
+    const isUnauthorized = error.response?.status === 401;
+    const isWrongUserType = error.response?.status === 403 && error.response?.data?.message?.includes('Required user type');
 
-      // Check if there was a token in the request (meaning user was logged in)
+    if (isUnauthorized || isWrongUserType) {
+      const isAuthEndpoint = error.config?.url?.includes("/auth/");
       const hadToken = error.config?.headers?.Authorization;
 
-      // Only redirect if:
-      // 1. It's not an auth endpoint
-      // 2. There was a token in the request (user was logged in but token expired)
-      // 3. User is not already on login/signup pages
       if (!isAuthEndpoint && hadToken) {
         const currentPath = window.location.pathname;
 
-        // Skip redirect if already on public auth pages (login/signup)
         if (currentPath.includes("/login") || currentPath.includes("/signup")) {
           return Promise.reject(error);
         }
 
-        // Token expired or invalid - clear token and redirect to appropriate login
-        // Determine which login page based on the Current URL or API endpoint
         const apiUrl = error.config?.url || "";
         let redirectPath = "/login";
 
@@ -97,12 +86,13 @@ api.interceptors.response.use(
 
         localStorage.removeItem("authToken");
         localStorage.removeItem("userData");
-        window.location.href = redirectPath;
+        
+        // Use a short timeout to let pending operations finish before redirecting
+        setTimeout(() => {
+          window.location.href = redirectPath;
+        }, 100);
       }
-      // If no token was present, user is just browsing as guest - don't redirect
-      // Just reject the promise so the component can handle it gracefully
     }
-    // For 403 and other errors, just reject the promise so the UI can handle it
     return Promise.reject(error);
   }
 );

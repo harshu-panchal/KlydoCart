@@ -46,6 +46,7 @@ import {
   getOrderById,
   cancelOrder,
   updateOrderNotes,
+  markOrderAsPaidCash,
 } from "../modules/customer/controllers/customerOrderController";
 
 const router = Router();
@@ -110,6 +111,7 @@ router.get("/customer/orders", authenticate, requireUserType("Customer"), getMyO
 router.get("/customer/orders/:id", authenticate, requireUserType("Customer"), getOrderById);
 router.post("/customer/orders/:id/cancel", authenticate, requireUserType("Customer"), cancelOrder);
 router.patch("/customer/orders/:id/notes", authenticate, requireUserType("Customer"), updateOrderNotes);
+router.patch("/customer/orders/:id/pay-cash", authenticate, requireUserType("Customer"), markOrderAsPaidCash);
 
 router.use("/customer/coupons", customerCouponRoutes);
 router.use("/customer/addresses", customerAddressRoutes);

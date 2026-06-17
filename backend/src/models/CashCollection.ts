@@ -2,10 +2,11 @@ import { Schema, model, Document, Types } from "mongoose";
 
 export interface ICashCollection extends Document {
     deliveryBoy: Types.ObjectId;
-    order: Types.ObjectId;
+    order?: Types.ObjectId;
     amount: number;
+    method: 'Cash' | 'Online';
     remark?: string;
-    collectedBy: Types.ObjectId;
+    collectedBy?: Types.ObjectId;
     collectedAt: Date;
     createdAt: Date;
     updatedAt: Date;
@@ -13,21 +14,26 @@ export interface ICashCollection extends Document {
 
 const cashCollectionSchema = new Schema<ICashCollection>(
     {
-        deliveryBoy: {
-            type: Schema.Types.ObjectId,
-            ref: "Delivery",
-            required: [true, "Delivery boy is required"],
-        },
-        order: {
-            type: Schema.Types.ObjectId,
-            ref: "Order",
-            required: [true, "Order is required"],
-        },
-        amount: {
-            type: Number,
-            required: [true, "Amount is required"],
-            min: [0, "Amount cannot be negative"],
-        },
+    deliveryBoy: {
+        type: Schema.Types.ObjectId,
+        ref: "Delivery",
+        required: [true, "Delivery boy is required"],
+    },
+    order: {
+        type: Schema.Types.ObjectId,
+        ref: "Order",
+        required: false,
+    },
+    amount: {
+        type: Number,
+        required: [true, "Amount is required"],
+        min: [0, "Amount cannot be negative"],
+    },
+    method: {
+        type: String,
+        enum: ['Cash', 'Online'],
+        default: 'Cash',
+    },
         remark: {
             type: String,
             trim: true,
@@ -35,7 +41,7 @@ const cashCollectionSchema = new Schema<ICashCollection>(
         collectedBy: {
             type: Schema.Types.ObjectId,
             ref: "Admin",
-            required: [true, "Collected by admin is required"],
+            required: false,
         },
         collectedAt: {
             type: Date,

@@ -25,6 +25,15 @@ export default function AdminCashCollection() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newCollection, setNewCollection] = useState({
+    deliveryBoyId: "",
+    amount: "",
+    remark: "",
+    method: "Cash"
+  });
+
   // Fetch delivery boys and cash collections on component mount
   useEffect(() => {
     if (!isAuthenticated || !token) {
@@ -115,9 +124,36 @@ export default function AdminCashCollection() {
   const startIndex = (currentPage - 1) * entriesPerPage;
   const endIndex = startIndex + entriesPerPage;
 
-  const handleAddCollection = async () => {
-    // For now, just show an alert. In a real app, this would open a modal to add a cash collection
-    alert("Add cash collection functionality would be implemented here");
+  const handleAddCollectionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCollection.deliveryBoyId || !newCollection.amount) {
+      alert("Please select a delivery boy and enter an amount");
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      const response = await createCashCollection({
+        deliveryBoyId: newCollection.deliveryBoyId,
+        amount: parseFloat(newCollection.amount),
+        remark: newCollection.remark,
+        method: newCollection.method,
+      });
+      
+      if (response.success) {
+        setIsModalOpen(false);
+        setNewCollection({ deliveryBoyId: "", amount: "", remark: "", method: "Cash" });
+        // Refresh list
+        window.location.reload();
+      } else {
+        alert("Failed to add cash collection");
+      }
+    } catch (err: any) {
+      console.error("Error creating collection:", err);
+      alert(err.response?.data?.message || "Failed to add cash collection");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleExport = () => {
@@ -172,7 +208,9 @@ export default function AdminCashCollection() {
         <h1 className="text-white text-xl sm:text-2xl font-semibold">
           Delivery Boy Cash Collection List
         </h1>
-        <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
           <svg
             width="16"
             height="16"
@@ -495,6 +533,27 @@ export default function AdminCashCollection() {
                 </th>
                 <th
                   className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
+                  onClick={() => handleSort("method")}>
+                  <div className="flex items-center gap-2">
+                    Method
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="text-neutral-400">
+                      <path
+                        d="M7 10L12 5L17 10M7 14L12 19L17 14"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                </th>
+                <th
+                  className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100"
                   onClick={() => handleSort("remark")}>
                   <div className="flex items-center gap-2">
                     Remark
@@ -541,7 +600,7 @@ export default function AdminCashCollection() {
               {displayedCollections.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
                     No data available in table
                   </td>
@@ -563,6 +622,15 @@ export default function AdminCashCollection() {
                     </td>
                     <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 font-medium">
                       ₹{collection.amount.toFixed(2)}
+                    </td>
+                    <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        collection.method === 'Cash' 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {collection.method || 'Cash'}
+                      </span>
                     </td>
                     <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
                       {collection.remark || '-'}
@@ -644,6 +712,106 @@ export default function AdminCashCollection() {
           KlydoCart
         </a>
       </div>
+
+      {/* Add Cash Collection Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-neutral-800">Add Cash Collection</h2>
+            <form onSubmit={handleAddCollectionSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Delivery Boy <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={newCollection.deliveryBoyId}
+                  onChange={(e) => setNewCollection({ ...newCollection, deliveryBoyId: e.target.value })}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                >
+                  <option value="">Select Delivery Boy</option>
+                  {deliveryBoys.map((boy) => (
+                    <option key={boy._id} value={boy._id}>
+                      {boy.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Amount (₹) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  value={newCollection.amount}
+                  onChange={(e) => setNewCollection({ ...newCollection, amount: e.target.value })}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="Enter amount"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Payment Method
+                </label>
+                <select
+                  value={newCollection.method}
+                  onChange={(e) => setNewCollection({ ...newCollection, method: e.target.value })}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="Online">Online</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  Remark
+                </label>
+                <textarea
+                  value={newCollection.remark}
+                  onChange={(e) => setNewCollection({ ...newCollection, remark: e.target.value })}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                  placeholder="Optional remark"
+                  rows={3}
+                ></textarea>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-neutral-600 bg-neutral-100 hover:bg-neutral-200 rounded font-medium transition-colors"
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded font-medium transition-colors disabled:opacity-70 flex items-center"
+                >
+                  {submitting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Collection"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

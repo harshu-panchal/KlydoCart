@@ -58,9 +58,10 @@ export const getCashCollections = asyncHandler(
             _id: collection._id,
             deliveryBoyId: collection.deliveryBoy?._id,
             deliveryBoyName: collection.deliveryBoy?.name || "Unknown",
-            orderId: collection.order?._id,
+            orderId: collection.order?._id || "N/A",
             total: collection.order?.total || 0,
             amount: collection.amount,
+            method: collection.method || 'Cash',
             remark: collection.remark,
             collectedAt: collection.collectedAt,
             collectedBy: collection.collectedBy?.name || "Unknown",
@@ -110,14 +111,14 @@ export const getCashCollectionById = asyncHandler(
 /**
  * Create cash collection
  */
-export const createCashCollection = asyncHandler(
+    export const createCashCollection = asyncHandler(
     async (req: Request, res: Response) => {
-        const { deliveryBoyId, orderId, amount, remark } = req.body;
+        const { deliveryBoyId, orderId, amount, method, remark } = req.body;
 
-        if (!deliveryBoyId || !orderId || !amount) {
+        if (!deliveryBoyId || !amount) {
             return res.status(400).json({
                 success: false,
-                message: "Delivery boy ID, order ID, and amount are required",
+                message: "Delivery boy ID and amount are required",
             });
         }
 
@@ -130,20 +131,24 @@ export const createCashCollection = asyncHandler(
             });
         }
 
-        // Verify order exists
-        const order = await Order.findById(orderId);
-        if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: "Order not found",
-            });
+        // Verify order exists if provided
+        let order;
+        if (orderId) {
+            order = await Order.findById(orderId);
+            if (!order) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Order not found",
+                });
+            }
         }
 
         // Create cash collection
         const collection = await CashCollection.create({
             deliveryBoy: deliveryBoyId,
-            order: orderId,
+            order: orderId || undefined,
             amount,
+            method: method || 'Cash',
             remark,
             collectedBy: req.user?.userId,
             collectedAt: new Date(),

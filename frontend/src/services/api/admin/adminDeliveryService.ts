@@ -89,6 +89,7 @@ export interface CashCollection {
   orderId: string;
   total: number;
   amount: number;
+  method: string;
   remark?: string;
   collectedAt: string;
   collectedBy: string;
@@ -96,8 +97,9 @@ export interface CashCollection {
 
 export interface CreateCashCollectionData {
   deliveryBoyId: string;
-  orderId: string;
+  orderId?: string;
   amount: number;
+  method?: string;
   remark?: string;
 }
 

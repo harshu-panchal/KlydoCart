@@ -14,6 +14,7 @@ import {
   getSellerLocationsForOrder,
   refreshDeliveryOtp,
   createReturnRequest,
+  markOrderAsPaidCash,
 } from "../../services/api/customerOrderService";
 import RazorpayCheckout from "../../components/RazorpayCheckout";
 import { useToast } from "../../context/ToastContext";
@@ -809,6 +810,18 @@ export default function OrderDetail() {
     }
   };
 
+  const handleCashPayment = async () => {
+    try {
+      if (!id) return;
+      await markOrderAsPaidCash(id);
+      showToast("Payment status updated to Complete", "success");
+      handleRefresh();
+    } catch (error: any) {
+      console.error("Failed to update payment status to cash:", error);
+      showToast(error.response?.data?.message || "Failed to update payment status", "error");
+    }
+  };
+
   if (loading && !order) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -846,17 +859,17 @@ export default function OrderDetail() {
     },
     Accepted: {
       title: "Preparing your order",
-      subtitle: `Arriving in ${estimatedTime} mins`,
+      subtitle: `Estimate time ${estimatedTime} mins`,
       color: "bg-green-700",
     },
     "On the way": {
       title: "Order picked up",
-      subtitle: `Arriving in ${estimatedTime} mins`,
+      subtitle: `Estimate time ${estimatedTime} mins`,
       color: "bg-green-700",
     },
     Delivered: {
       title: "Order delivered",
-      subtitle: "Enjoy your meal!",
+      subtitle: "Thankyou visit again",
       color: "bg-green-600",
     },
     // Backend status mappings
@@ -882,7 +895,7 @@ export default function OrderDetail() {
     },
     "Out for Delivery": {
       title: "Out for delivery",
-      subtitle: `Arriving in ${estimatedTime} mins`,
+      subtitle: `Estimate time ${estimatedTime} mins`,
       color: "bg-green-700",
     },
     Cancelled: {
@@ -1041,12 +1054,7 @@ export default function OrderDetail() {
                         )}
                       </p>
                     </div>
-                    {["Accepted", "On the way", "Out for Delivery"].includes(orderStatus) && (
-                      <div className="flex flex-col items-center sm:items-end">
-                        <div className="text-4xl font-black tracking-tighter">{estimatedTime}</div>
-                        <div className="text-xs font-bold uppercase tracking-widest opacity-80">Minutes Left</div>
-                      </div>
-                    )}
+                    {/* Dynamic minutes left removed per request */}
                   </div>
                 </div>
 
@@ -1233,12 +1241,20 @@ export default function OrderDetail() {
                 </div>
 
                 {!order.paymentStatus?.toLowerCase().includes('paid') && (
-                  <Button 
-                    onClick={() => setShowRazorpayCheckout(true)}
-                    className="w-full bg-green-600 hover:bg-green-500 h-12 rounded-none text-lg font-bold shadow-lg shadow-green-900/40 group">
-                    PAY NOW
-                    <ChevronRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+                  <div className="flex flex-col gap-3">
+                    <Button 
+                      onClick={() => setShowRazorpayCheckout(true)}
+                      className="w-full bg-green-600 hover:bg-green-500 h-12 rounded-none text-lg font-bold shadow-lg shadow-green-900/40 group">
+                      PAY NOW
+                      <ChevronRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                    <Button 
+                      onClick={handleCashPayment}
+                      className="w-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 h-12 rounded-none text-lg font-bold shadow-lg shadow-yellow-900/40 group">
+                      CASH
+                      <ChevronRightIcon className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </div>
                 )}
               </motion.div>
 

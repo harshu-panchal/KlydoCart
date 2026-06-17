@@ -149,31 +149,7 @@ export async function findDeliveryBoysNearLocation(
                 console.log(`📍 Found ${nearbyDeliveryBoys.length} delivery boys using live location within ${radiusKm}km`);
             }
         } catch (geoError) {
-            console.error('⚠️ Warning: GeoNear query failed (likely missing 2dsphere index). Proceeding to fallback.', geoError);
-        }
-
-        // 2. ALSO include online delivery boys who might NOT have the location field set yet (Fallback/Inclusive)
-        // This ensures new or untracked online delivery boys still get notifications
-        const trackedIds = new Set(nearbyDeliveryBoys.map(db => db.deliveryBoyId.toString()));
-        
-        try {
-            const otherOnlineBoys = await Delivery.find({
-                isOnline: true,
-                status: 'Active',
-                _id: { $nin: Array.from(trackedIds).map(id => new mongoose.Types.ObjectId(id)) }
-            }).select('_id');
-
-            if (otherOnlineBoys.length > 0) {
-                console.log(`ℹ️ Including ${otherOnlineBoys.length} additional online delivery boys without recent location data`);
-                for (const db of otherOnlineBoys) {
-                    nearbyDeliveryBoys.push({
-                        deliveryBoyId: db._id as mongoose.Types.ObjectId,
-                        distance: radiusKm / 2, // Default distance (middle of radius)
-                    });
-                }
-            }
-        } catch (fallbackError) {
-            console.error('❌ Fallback query failed:', fallbackError);
+            console.error('⚠️ Warning: GeoNear query failed (likely missing 2dsphere index).', geoError);
         }
 
         if (nearbyDeliveryBoys.length > 0) {
@@ -208,8 +184,8 @@ export async function findDeliveryBoysNearSellerLocations(
         console.log(`🔍 [Notification] Unique seller IDs for order:`, sellerIds);
 
         if (sellerIds.length === 0) {
-            console.log('No sellers found in order, falling back to all available delivery boys');
-            return findAvailableDeliveryBoys();
+            console.log('No sellers found in order, cannot notify any delivery boys');
+            return [];
         }
 
         // Get seller locations
@@ -218,8 +194,8 @@ export async function findDeliveryBoysNearSellerLocations(
         }).select('latitude longitude location serviceRadiusKm storeName');
 
         if (sellers.length === 0) {
-            console.log('No seller data found, falling back to all available delivery boys');
-            return findAvailableDeliveryBoys();
+            console.log('No seller data found, cannot notify any delivery boys');
+            return [];
         }
         console.log(`🔍 [Notification] Found ${sellers.length} sellers with location data`);
 
@@ -258,8 +234,8 @@ export async function findDeliveryBoysNearSellerLocations(
         }
 
         if (nearbyDeliveryBoyMap.size === 0) {
-            console.log('No delivery boys found near seller locations, falling back to all available');
-            return findAvailableDeliveryBoys();
+            console.log('No delivery boys found near seller locations');
+            return [];
         }
 
         // Sort by distance and return IDs
@@ -271,7 +247,7 @@ export async function findDeliveryBoysNearSellerLocations(
         return sortedBoys;
     } catch (error) {
         console.error('Error finding delivery boys near seller locations:', error);
-        return findAvailableDeliveryBoys();
+        return [];
     }
 }
 

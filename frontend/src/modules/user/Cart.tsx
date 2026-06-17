@@ -16,11 +16,7 @@ export default function Cart() {
   const totalAmount = cart.total + deliveryFee + platformFee;
 
   const handleCheckout = () => {
-    if (!isAuthenticated) {
-      // Redirect to login with a hint to come back to checkout
-      navigate('/login', { state: { redirectTo: '/checkout' } });
-      return;
-    }
+    navigate('/checkout');
     navigate('/checkout');
   };
 

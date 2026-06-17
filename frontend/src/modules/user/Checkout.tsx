@@ -54,8 +54,11 @@ export default function Checkout() {
   const { addOrder } = useOrders();
   const { location: userLocation } = useLocationContext();
   const { showToast: showGlobalToast } = useToast();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Authentication is now checked during order placement
+
   const [tipAmount, setTipAmount] = useState<number | null>(null);
   const [customTipAmount, setCustomTipAmount] = useState<number>(0);
   const [showCustomTipInput, setShowCustomTipInput] = useState(false);
@@ -455,6 +458,16 @@ export default function Checkout() {
   };
 
   const handlePlaceOrder = async (arg?: any) => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { redirectTo: '/checkout' } });
+      return;
+    }
+
+    if (!selectedAddress) {
+      navigate("/checkout/address", { state: { editAddress: savedAddress } });
+      return;
+    }
+
     // Only bypass if explicitly passed true (handles event objects from onClick)
     const bypassProfileCheck = arg === true;
 
@@ -1372,7 +1385,7 @@ export default function Checkout() {
                       </button>
                     </div>
                   ) : (
-                    <button onClick={() => navigate("/checkout/address")} className="w-full py-6 bg-neutral-100 rounded-2xl border-2 border-dashed border-neutral-300 text-neutral-500 font-black italic uppercase tracking-widest">ADD ADDRESS TO CONTINUE</button>
+                    <button onClick={handlePlaceOrder} className="w-full py-6 bg-neutral-100 rounded-2xl border-2 border-dashed border-neutral-300 text-neutral-500 font-black italic uppercase tracking-widest">ADD ADDRESS TO CONTINUE</button>
                   )}
                 </div>
               </div>
@@ -1497,7 +1510,7 @@ export default function Checkout() {
                 <div className="hidden lg:block px-6 mt-8">
                   <button
                     onClick={() => handlePlaceOrder()}
-                    disabled={cart.items.length === 0 || !selectedAddress}
+                    disabled={cart.items.length === 0}
                     className="w-full py-5 bg-green-600 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-green-600/30 hover:bg-green-700 hover:shadow-green-600/40 transition-all active:scale-[0.98] disabled:bg-neutral-200 disabled:shadow-none italic">
                     Place Final Order
                   </button>
@@ -1794,15 +1807,10 @@ export default function Checkout() {
         ) : (
           <div className="px-4 py-3">
             <button
-              onClick={() =>
-                navigate("/checkout/address", {
-                  state: {
-                    editAddress: savedAddress,
-                  },
-                })
-              }
+              onClick={handlePlaceOrder}
+              disabled={cart.items.length === 0}
               className="w-full bg-green-600 text-white py-4 px-4 font-bold text-sm uppercase tracking-widest rounded-xl hover:bg-green-700 shadow-lg shadow-green-600/20 transition-all active:scale-[0.98]">
-              Choose address at next step
+              PLACE ORDER
             </button>
           </div>
         )}

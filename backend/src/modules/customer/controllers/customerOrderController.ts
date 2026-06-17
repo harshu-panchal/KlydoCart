@@ -4,6 +4,7 @@ import Product from "../../../models/Product";
 import OrderItem from "../../../models/OrderItem";
 import Customer from "../../../models/Customer";
 import Seller from "../../../models/Seller";
+import Delivery from "../../../models/Delivery";
 import mongoose from "mongoose";
 import { calculateDistance } from "../../../utils/locationHelper";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
@@ -978,6 +979,56 @@ export const updateOrderNotes = async (req: Request, res: Response) => {
         return res.status(500).json({
             success: false,
             message: "Failed to update order notes",
+            error: error.message
+        });
+    }
+};
+
+// Mark Order as Paid by Cash
+export const markOrderAsPaidCash = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user!.userId;
+
+        const order = await Order.findOne({ _id: id, customer: userId });
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+
+        if (order.paymentStatus === 'Paid') {
+            return res.status(400).json({
+                success: false,
+                message: "Order is already paid"
+            });
+        }
+
+        order.paymentMethod = 'COD';
+        order.paymentStatus = 'Paid';
+        await order.save();
+
+        if (order.deliveryBoy) {
+            await Delivery.findByIdAndUpdate(order.deliveryBoy, {
+                $inc: { 
+                    cashCollected: order.total,
+                    pendingAdminPayout: order.total 
+                }
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Payment status updated to Complete",
+            data: {
+                paymentStatus: order.paymentStatus,
+                paymentMethod: order.paymentMethod
+            }
+        });
+    } catch (error: any) {
+        console.error('Error marking order as paid cash:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to update payment status",
             error: error.message
         });
     }

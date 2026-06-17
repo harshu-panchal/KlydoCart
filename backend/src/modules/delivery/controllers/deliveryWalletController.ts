@@ -4,6 +4,7 @@ import Delivery from '../../../models/Delivery';
 import { createRazorpayOrder, verifyPaymentSignature } from '../../../services/paymentService';
 import WalletTransaction from '../../../models/WalletTransaction';
 import PlatformWallet from '../../../models/PlatformWallet';
+import CashCollection from '../../../models/CashCollection';
 import mongoose from 'mongoose';
 import {
     getWalletBalance,
@@ -260,6 +261,16 @@ export const verifyAdminPayout = async (req: Request, res: Response) => {
 
         // 3. Distribute funds to sellers (process pending COD payouts)
         await processPendingCODPayouts(deliveryBoyId, amount, session);
+
+        // Create CashCollection record for the admin panel
+        const cashCollection = new CashCollection({
+            deliveryBoy: deliveryBoyId,
+            amount: amount,
+            method: 'Online',
+            remark: `Online payout via Razorpay (Txn: ${razorpayPaymentId})`,
+            collectedAt: new Date()
+        });
+        await cashCollection.save({ session });
 
         // Update delivery boy pending amount
         deliveryBoy.pendingAdminPayout = Math.max(0, currentPending - amount);

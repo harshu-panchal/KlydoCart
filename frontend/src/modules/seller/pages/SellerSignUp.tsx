@@ -195,6 +195,46 @@ export default function SellerSignUp() {
     }
   };
 
+  const handleConfirmLocation = async () => {
+    if (!formData.latitude || !formData.longitude) return;
+
+    setLoading(true);
+    try {
+      if (isLoaded && (window as any).google && (window as any).google.maps) {
+        const geocoder = new (window as any).google.maps.Geocoder();
+        const response = await geocoder.geocode({
+          location: { lat: parseFloat(formData.latitude), lng: parseFloat(formData.longitude) }
+        });
+        
+        let address = "Selected Location on Map";
+        let city = formData.city;
+
+        if (response.results && response.results[0]) {
+          address = response.results[0].formatted_address;
+          for (const component of response.results[0].address_components) {
+            if (component.types.includes('locality')) {
+              city = component.long_name;
+              break;
+            } else if (component.types.includes('administrative_area_level_3') && !city) {
+              city = component.long_name;
+            }
+          }
+        }
+        
+        setFormData(p => ({
+          ...p,
+          searchLocation: address,
+          address: address,
+          city: city || p.city
+        }));
+      }
+    } catch (err) {
+      console.error("Reverse geocoding error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleOTPComplete = async (otp: string) => {
     setLoading(true);
     setError("");
@@ -496,12 +536,26 @@ export default function SellerSignUp() {
                         </div>
 
                         {formData.latitude && (
-                          <div className="mt-3 rounded-xl overflow-hidden border border-slate-100">
-                            <LocationPickerMap
-                              initialLat={parseFloat(formData.latitude)}
-                              initialLng={parseFloat(formData.longitude)}
-                              onLocationSelect={(lat, lng) => setFormData(p => ({ ...p, latitude: lat.toString(), longitude: lng.toString() }))}
-                            />
+                          <div className="mt-3 space-y-2">
+                            <div className="rounded-xl overflow-hidden border border-slate-100">
+                              <LocationPickerMap
+                                initialLat={parseFloat(formData.latitude)}
+                                initialLng={parseFloat(formData.longitude)}
+                                onLocationSelect={(lat, lng) => setFormData(p => ({ ...p, latitude: lat.toString(), longitude: lng.toString() }))}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleConfirmLocation}
+                              disabled={loading}
+                              className="w-full py-2 bg-teal-50 text-teal-700 rounded-xl border border-teal-100 hover:bg-teal-100 transition-all text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                              </svg>
+                              Set Location from Pin
+                            </button>
                           </div>
                         )}
                       </div>
