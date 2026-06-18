@@ -8,7 +8,19 @@
   <link rel="apple-touch-icon" href="/KlydoCardLatest.png" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <link rel="manifest" href="/manifest.json" />
+  <link id="pwa-manifest" rel="manifest" href="/manifest.json" />
+  <script>
+    (function() {
+      const manifestEl = document.getElementById('pwa-manifest');
+      if (manifestEl) {
+        if (window.location.pathname.startsWith('/seller')) {
+          manifestEl.setAttribute('href', '/seller-manifest.json');
+        } else if (window.location.pathname.startsWith('/admin')) {
+          manifestEl.setAttribute('href', '/admin-manifest.json');
+        }
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
