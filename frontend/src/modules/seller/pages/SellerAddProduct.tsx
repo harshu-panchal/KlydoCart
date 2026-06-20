@@ -166,7 +166,7 @@ export default function SellerAddProduct() {
           const isAdmin = location.pathname.includes("/admin/");
           const response = isAdmin ? await adminGetProductById(id) : await getProductById(id);
           if (response.success && response.data) {
-            const product = response.data;
+            const product = response.data as any;
             setFormData({
               productName: product.productName,
               headerCategory:
