@@ -14,6 +14,17 @@ import {
   Shop,
 } from "../../../services/api/productService";
 import {
+  getProductById as adminGetProductById,
+  updateProduct as adminUpdateProduct,
+  getBrands as adminGetBrands,
+} from "../../../services/api/admin/adminProductService";
+import api from "../../../services/api/config";
+
+const adminGetShops = async () => {
+  const response = await api.get("/admin/shops");
+  return response.data;
+};
+import {
   getCategories,
   getSubcategories,
   getSubSubCategories,
@@ -94,13 +105,14 @@ export default function SellerAddProduct() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const isAdmin = location.pathname.includes("/admin/");
         // Use Promise.allSettled to ensure one failing API doesn't break all others
         const results = await Promise.allSettled([
           getCategories(),
           getActiveTaxes(),
-          getBrands(),
+          isAdmin ? adminGetBrands() : getBrands(),
           getHeaderCategoriesPublic(),
-          getShops(),
+          isAdmin ? adminGetShops() : getShops(),
         ]);
 
         // Handle categories
@@ -151,7 +163,8 @@ export default function SellerAddProduct() {
     if (id) {
       const fetchProduct = async () => {
         try {
-          const response = await getProductById(id);
+          const isAdmin = location.pathname.includes("/admin/");
+          const response = isAdmin ? await adminGetProductById(id) : await getProductById(id);
           if (response.success && response.data) {
             const product = response.data;
             setFormData({
@@ -498,8 +511,11 @@ export default function SellerAddProduct() {
 
       // Create or Update product via API
       let response;
+      const isAdmin = location.pathname.includes("/admin/");
       if (id) {
-        response = await updateProduct(id as string, productData);
+        response = isAdmin
+          ? await adminUpdateProduct(id as string, productData as any)
+          : await updateProduct(id as string, productData);
       } else {
         response = await createProduct(productData);
       }
