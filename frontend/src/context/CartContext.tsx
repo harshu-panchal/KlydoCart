@@ -133,19 +133,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
         latitude: lat ?? location?.latitude,
         longitude: lng ?? location?.longitude
       });
-      if (response && response.data && response.data.items) {
-        setItems(mapApiItemsToState(response.data.items));
+      if (response && response.data && Array.isArray(response.data.items)) {
+        const serverItems = mapApiItemsToState(response.data.items);
+        // Only replace local items with server items if the server returned items,
+        // OR if the local cart is also empty. This prevents a cold-start / slow
+        // deployed backend from returning an empty array and wiping a freshly-added cart.
+        setItems(prev => {
+          if (serverItems.length > 0 || prev.length === 0) {
+            return serverItems;
+          }
+          // Server returned empty but we have local items — keep local until server confirms
+          return prev;
+        });
         setEstimatedFee(response.data.estimatedDeliveryFee);
         setPlatformFee(response.data.platformFee);
         setFreeDeliveryThreshold(response.data.freeDeliveryThreshold);
-      } else {
-        setItems([]);
-        setEstimatedFee(undefined);
-        setPlatformFee(undefined);
-        setFreeDeliveryThreshold(undefined);
       }
+      // If response is malformed / missing items field, silently keep existing items.
     } catch (error) {
       console.error("Failed to fetch cart:", error);
+      // Do NOT clear items on error — keep whatever is in localStorage/state.
     } finally {
       clearTimeout(safetyTimer);
       setLoading(false);

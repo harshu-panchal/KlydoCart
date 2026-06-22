@@ -87,9 +87,12 @@ api.interceptors.response.use(
         localStorage.removeItem("authToken");
         localStorage.removeItem("userData");
         
-        // Use a short timeout to let pending operations finish before redirecting
+        // Use a short timeout to let pending operations finish before redirecting.
+        // Use history.pushState instead of window.location.href to avoid a full
+        // page reload that would clear in-memory cart state on the deployed app.
         setTimeout(() => {
-          window.location.href = redirectPath;
+          window.history.pushState({}, '', redirectPath);
+          window.dispatchEvent(new PopStateEvent('popstate'));
         }, 100);
       }
     }

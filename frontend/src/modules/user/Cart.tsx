@@ -17,7 +17,6 @@ export default function Cart() {
 
   const handleCheckout = () => {
     navigate('/checkout');
-    navigate('/checkout');
   };
 
   if (cart.items.length === 0) {
