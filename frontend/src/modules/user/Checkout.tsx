@@ -170,6 +170,32 @@ export default function Checkout() {
     }
   }, [showOrderSuccess, placedOrderId, navigate]);
 
+  // Sync address with global userLocation unless map is explicitly selected on checkout
+  useEffect(() => {
+    if (userLocation && userLocation.latitude && userLocation.longitude && !isMapSelected) {
+      const latDiff = Math.abs(userLocation.latitude - (selectedAddress?.latitude || 0));
+      const lngDiff = Math.abs(userLocation.longitude - (selectedAddress?.longitude || 0));
+      
+      // Don't override if it's the exact same location coordinates
+      if (selectedAddress && latDiff < 0.00001 && lngDiff < 0.00001) return;
+
+      const locAddress: OrderAddress = {
+        name: user?.name || "User",
+        phone: user?.phone || "",
+        flat: "",
+        street: userLocation.address || "",
+        city: userLocation.city || "",
+        state: userLocation.state || "",
+        pincode: userLocation.pincode || "",
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude
+      };
+      
+      setSavedAddress(locAddress);
+      setSelectedAddress(locAddress);
+    }
+  }, [userLocation, isMapSelected, selectedAddress, user]);
+
   // Load addresses and coupons
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -201,8 +227,23 @@ export default function Checkout() {
             id: defaultAddr._id,
             _id: defaultAddr._id,
           };
-          setSavedAddress(mappedAddress);
-          setSelectedAddress(mappedAddress);
+          
+          // Only use DB address if no userLocation exists, OR if the DB address matches userLocation
+          // This ensures that if the user explicitly changed their location on the homepage,
+          // we respect that newly picked location instead of forcing their default DB address.
+          if (!userLocation || !userLocation.latitude) {
+            setSavedAddress(mappedAddress);
+            setSelectedAddress(mappedAddress);
+          } else {
+            const latDiff = Math.abs(userLocation.latitude - (mappedAddress.latitude || 0));
+            const lngDiff = Math.abs(userLocation.longitude - (mappedAddress.longitude || 0));
+            // If the coordinates match closely, use the DB address since it has full details (name, flat, etc)
+            if (latDiff < 0.001 && lngDiff < 0.001) {
+              setSavedAddress(mappedAddress);
+              setSelectedAddress(mappedAddress);
+            }
+            // Otherwise, we leave savedAddress as the userLocation that was set by the other useEffect
+          }
         }
 
         if (couponResponse.success) {

@@ -541,7 +541,7 @@ export default function ProductCard({
             <>
               {/* Unit and ADD button row */}
               <div className="bg-neutral-50/70 px-2.5 py-1 flex items-center justify-between border-b border-neutral-100 min-h-[32px]">
-                <span className="text-[11px] font-bold text-neutral-500">
+                <span className="text-xs font-extrabold text-neutral-900 tracking-tight">
                   {product.variations?.[0]?.value || product.pack || '1 unit'}
                 </span>
 
@@ -630,7 +630,7 @@ export default function ProductCard({
               </div>
 
               {/* Price & Name Details */}
-              <div className="px-2 pt-1 pb-1.5 flex-1 flex flex-col justify-start">
+              <div className="px-2 pt-1 pb-1.5 flex-1 flex flex-col justify-start relative">
                 <div className="flex items-baseline gap-1 mb-0.5 flex-wrap">
                   <span className="text-[14px] font-black text-neutral-900 leading-none">
                     ₹{displayPrice.toLocaleString('en-IN')}
@@ -642,22 +642,29 @@ export default function ProductCard({
                   )}
                 </div>
 
-                <h3 className="text-[12px] font-semibold text-neutral-800 line-clamp-2 leading-[1.3] overflow-hidden mb-0 group-hover:text-emerald-700 transition-colors duration-200">
+                <h3 className="text-[12px] font-semibold text-neutral-800 line-clamp-2 leading-[1.3] overflow-hidden mb-1 group-hover:text-emerald-700 transition-colors duration-200">
                   {product.name || product.productName || ''}
                 </h3>
 
-                {(product.variations?.length || 0) >= 2 && (
-                  <span className="text-[9px] text-neutral-400 font-medium mt-auto">
-                    {product.variations?.length} options
-                  </span>
-                )}
+                <div className="mt-auto flex flex-col gap-0.5">
+                  {(product.variations?.length || 0) >= 2 && (
+                    <span className="text-[9px] text-neutral-500 font-medium">
+                      {product.variations?.length} options
+                    </span>
+                  )}
+                  {product.seller?.storeName && (
+                    <span className="text-[9px] text-black font-bold truncate w-full">
+                      By {product.seller.storeName}
+                    </span>
+                  )}
+                </div>
               </div>
             </>
           ) : (
             // Non-category style layout (original)
             <>
               {!showPackBadge && (
-                <p className={`${compact ? 'text-[10px] md:text-xs' : 'text-xs md:text-sm'} font-semibold text-neutral-500 mb-1`}>
+                <p className={`${compact ? 'text-[10px] md:text-xs' : 'text-xs md:text-sm'} font-extrabold text-neutral-900 mb-1 tracking-tight`}>
                     {product.variations?.[0]?.value || product.pack}
                 </p>
               )}
@@ -691,7 +698,7 @@ export default function ProductCard({
                 </div>
               )}
 
-              <div className="mt-auto mb-2">
+              <div className="mt-auto mb-2 flex flex-col gap-1">
                 <div className="flex items-baseline gap-1.5 flex-wrap">
                   <span className="text-base font-black text-neutral-900">
                     ₹{displayPrice}
@@ -702,6 +709,11 @@ export default function ProductCard({
                     </span>
                   )}
                 </div>
+                {product.seller?.storeName && (
+                  <span className="text-[10px] text-black font-bold truncate w-full">
+                    By {product.seller.storeName}
+                  </span>
+                )}
               </div>
             </>
           )}

@@ -478,13 +478,13 @@ export default function OrderAgain() {
                   </div>
 
                   {/* Product Details */}
-                  <div className="p-1.5 md:p-4 flex-1 flex flex-col bg-white">
+                  <div className="p-2 md:p-4 flex-1 flex flex-col bg-white">
                     {/* Product Name */}
                     <div
                       onClick={() => navigate(`/product/${product.id}`)}
-                      className="mb-0.5 md:mb-2 cursor-pointer"
+                      className="mb-1 md:mb-2 cursor-pointer flex-1"
                     >
-                      <h3 className="text-[10px] md:text-[13px] md:leading-snug md:font-black md:text-neutral-800 font-bold text-neutral-900 line-clamp-2 leading-tight md:hover:text-green-600 transition-colors">
+                      <h3 className="text-xs md:text-sm md:leading-snug md:font-black md:text-neutral-800 font-bold text-neutral-900 line-clamp-2 leading-tight md:hover:text-green-600 transition-colors">
                         {(() => {
                           // Remove description suffixes like " - Fresh & Quality Assured", " - Premium Quality", etc.
                           const productName = product.name || product.productName || '';
@@ -493,61 +493,58 @@ export default function OrderAgain() {
                       </h3>
                     </div>
 
-                    {/* Rating and Reviews */}
-                    <div className="flex items-center gap-0.5 md:gap-1 mb-0.5 md:mb-1.5">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <svg
-                            key={i}
-                            className="w-2 h-2 md:w-3.5 md:h-3.5"
-                            viewBox="0 0 24 24"
-                            fill={i < 4 ? '#fbbf24' : '#e5e7eb'}
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                          </svg>
-                        ))}
+                    <div className="flex flex-col mt-auto gap-0.5 md:gap-1">
+                      {/* Rating and Reviews */}
+                      <div className="flex items-center gap-1">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <svg
+                              key={i}
+                              className="w-2.5 h-2.5 md:w-3.5 md:h-3.5"
+                              viewBox="0 0 24 24"
+                              fill={i < 4 ? '#fbbf24' : '#e5e7eb'}
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                          ))}
+                        </div>
+                        <span className="text-[9px] md:text-[11px] text-neutral-500 font-medium">(85)</span>
                       </div>
-                      <span className="text-[8px] md:text-[11px] text-neutral-500 font-medium">(85)</span>
-                    </div>
 
-                    {/* Delivery Time */}
-                    <div className="text-[9px] md:text-[10px] text-neutral-600 mb-0.5 md:mb-2 font-bold bg-neutral-100 w-fit px-1 md:px-2 py-0.5 rounded text-center">
-                      20 MINS
-                    </div>
+                      {/* Discount - Blue Text */}
+                      {discount > 0 && (
+                        <div className="text-[10px] md:text-xs text-blue-600 font-bold">
+                          {discount}% OFF
+                        </div>
+                      )}
 
-                    {/* Discount - Blue Text */}
-                    {discount > 0 && (
-                      <div className="text-[9px] md:text-xs text-blue-600 font-bold mb-0.5 md:mb-1">
-                        {discount}% OFF
-                      </div>
-                    )}
-
-                    {/* Price */}
-                    <div className="mb-1 md:mb-3">
-                      <div className="flex items-baseline gap-1 md:gap-2">
-                        <span className="text-[13px] md:text-[1.1rem] font-black text-neutral-900">
-                          ₹{displayPrice.toLocaleString('en-IN')}
-                        </span>
-                        {hasDiscount && (
-                          <span className="text-[10px] md:text-sm text-neutral-400 line-through font-medium">
-                            ₹{mrp.toLocaleString('en-IN')}
+                      {/* Price */}
+                      <div>
+                        <div className="flex items-baseline gap-1 md:gap-2">
+                          <span className="text-[15px] md:text-[1.2rem] font-black text-neutral-900">
+                            ₹{displayPrice.toLocaleString('en-IN')}
                           </span>
-                        )}
+                          {hasDiscount && (
+                            <span className="text-[11px] md:text-sm text-neutral-400 line-through font-medium">
+                              ₹{mrp.toLocaleString('en-IN')}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Bottom Link */}
-                    <div
-                      onClick={() => navigate(`/category/${product.categoryId || 'all'}`)}
-                      className="w-full bg-green-100 text-green-700 text-[8px] md:text-xs md:font-semibold py-0.5 md:py-2 md:mt-2 rounded-lg md:rounded-xl flex items-center justify-between px-1 md:px-3 hover:bg-green-200 md:hover:bg-green-100 transition-colors mt-auto cursor-pointer border border-transparent md:border-green-100"
-                    >
-                      <span>See more like this</span>
-                      <div className="flex items-center gap-0.5 md:gap-2">
-                        <div className="w-px h-2 md:h-3 bg-green-300"></div>
-                        <svg className="w-1.5 h-1.5 md:w-2.5 md:h-2.5" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M0 0L8 4L0 8Z" fill="#16a34a" />
-                        </svg>
+                      {/* Bottom Link */}
+                      <div
+                        onClick={() => navigate(`/category/${product.categoryId || 'all'}`)}
+                        className="w-full bg-green-100 text-green-700 text-[9px] md:text-xs md:font-semibold py-1 md:py-2 md:mt-2 rounded-lg md:rounded-xl flex items-center justify-between px-1.5 md:px-3 hover:bg-green-200 md:hover:bg-green-100 transition-colors mt-1 cursor-pointer border border-transparent md:border-green-100"
+                      >
+                        <span>See more like this</span>
+                        <div className="flex items-center gap-1 md:gap-2">
+                          <div className="w-px h-2.5 md:h-3 bg-green-300"></div>
+                          <svg className="w-1.5 h-1.5 md:w-2.5 md:h-2.5" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M0 0L8 4L0 8Z" fill="#16a34a" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
                   </div>

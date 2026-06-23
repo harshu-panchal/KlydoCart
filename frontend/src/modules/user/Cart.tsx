@@ -85,40 +85,33 @@ export default function Cart() {
                   <p className="text-xs md:text-sm text-neutral-500 mb-2">{item.product.pack}</p>
                   <div className="flex items-center gap-2 mb-3 md:mb-4">
                     <span className="text-base md:text-lg font-bold text-neutral-900">
-                      ₹{displayPrice.toLocaleString('en-IN')}
+                      ₹{(displayPrice * item.quantity).toLocaleString('en-IN')}
                     </span>
                     {hasDiscount && (
                       <span className="text-xs md:text-sm text-neutral-500 line-through">
-                        ₹{mrp.toLocaleString('en-IN')}
+                        ₹{(mrp * item.quantity).toLocaleString('en-IN')}
                       </span>
                     )}
                   </div>
 
                   {/* Quantity Controls */}
-                  <div className="flex items-center gap-3 md:gap-4">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variant)}
-                      className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-green-600 hover:text-green-600 md:text-lg"
-                    >
-                      −
-                    </Button>
-                    <span className="text-base md:text-lg font-semibold text-neutral-900 min-w-[2rem] md:min-w-[2.5rem] text-center">
-                      {item.quantity}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variant)}
-                      className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-green-600 hover:text-green-600 md:text-lg"
-                    >
-                      +
-                    </Button>
-                    <div className="ml-auto text-right">
-                      <div className="text-sm md:text-base font-bold text-neutral-900">
-                        ₹{(displayPrice * item.quantity).toFixed(0)}
-                      </div>
+                  <div className="flex items-center flex-wrap gap-y-2 gap-x-2 md:gap-4 mt-2">
+                    <div className="flex items-center gap-2 md:gap-4 shrink-0">
+                      <button
+                        onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variant)}
+                        className="w-8 h-8 md:w-10 md:h-10 shrink-0 p-0 border-2 border-neutral-200 text-neutral-700 hover:border-green-600 hover:text-green-600 hover:bg-green-50 rounded-md text-xl md:text-2xl transition-all shadow-sm flex items-center justify-center font-medium bg-white"
+                      >
+                        <span className="relative top-[-1px]">−</span>
+                      </button>
+                      <span className="text-base md:text-lg font-bold text-neutral-900 w-6 md:w-8 text-center shrink-0">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variant)}
+                        className="w-8 h-8 md:w-10 md:h-10 shrink-0 p-0 border-2 border-neutral-200 text-neutral-700 hover:border-green-600 hover:text-green-600 hover:bg-green-50 rounded-md text-xl md:text-2xl transition-all shadow-sm flex items-center justify-center font-medium bg-white"
+                      >
+                        <span className="relative top-[-1px]">+</span>
+                      </button>
                     </div>
                   </div>
                 </div>

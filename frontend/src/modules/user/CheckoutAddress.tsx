@@ -258,7 +258,12 @@ export default function CheckoutAddress() {
       // If editing an existing address, use updateAddress instead
       if (editAddress && (editAddress.id || editAddress._id)) {
         const addressId = editAddress.id || editAddress._id;
-        await updateAddress(addressId!, payload);
+        // Verify it's a valid MongoDB ObjectId (24 hex characters) to prevent Cast errors
+        if (addressId && /^[0-9a-fA-F]{24}$/.test(addressId)) {
+          await updateAddress(addressId, payload);
+        } else {
+          await addAddress(payload);
+        }
       } else {
         await addAddress(payload);
       }

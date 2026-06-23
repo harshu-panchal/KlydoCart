@@ -437,8 +437,8 @@ export default function ProductDetail() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="max-w-[1200px] mx-auto px-0 md:px-6 mt-14 md:mt-8">
-          <div className="md:flex md:gap-12">
+        <div className="max-w-[1200px] mx-auto px-0 md:px-6 mt-14 md:mt-6">
+          <div className="md:flex md:gap-8">
             
             {/* Left Column: Image Gallery */}
             <div className="md:w-[45%] md:sticky md:top-8 h-fit">
@@ -488,14 +488,27 @@ export default function ProductDetail() {
               </div>
 
               {/* Product Details - Desktop (Below Image) */}
-              <div className="hidden md:block mt-8 border-t border-neutral-100 pt-8">
-                <h3 className="text-lg font-bold text-neutral-900 mb-6">Product Details</h3>
+              <div className="hidden md:block mt-6 border-t border-neutral-100 pt-6">
+                <h3 className="text-lg font-bold text-neutral-900 mb-4">Product Details</h3>
                 <div className="space-y-6">
                   {/* Specific fields from Blinkit look */}
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-neutral-900 uppercase tracking-wider">Description</p>
-                    <p className="text-sm text-neutral-600 leading-relaxed">{product.description || "Fresh and high quality product delivered to your doorstep."}</p>
-                  </div>
+                  {(product.smallDescription || product.description) && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-neutral-900 uppercase tracking-wider">Description</p>
+                      <p className="text-sm text-neutral-600 leading-relaxed">{product.smallDescription || product.description}</p>
+                    </div>
+                  )}
+
+                  {/* Seller Store Description */}
+                  {product.seller?.storeDescription && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-neutral-900 uppercase tracking-wider">About the Store</p>
+                      <p className="text-sm text-neutral-600 leading-relaxed">{product.seller.storeDescription}</p>
+                      {product.seller?.storeName && (
+                        <p className="text-xs text-green-600 font-semibold mt-1">— {product.seller.storeName}</p>
+                      )}
+                    </div>
+                  )}
                   
                   {product.manufacturer && (
                     <div className="space-y-1">
@@ -548,9 +561,9 @@ export default function ProductDetail() {
             </div>
 
             {/* Right Column: Info & Actions */}
-            <div className="flex-1 px-4 md:px-0 py-6 md:py-0">
+            <div className="flex-1 px-4 md:px-0 py-4 md:py-0">
               {/* Product Info */}
-              <div className="mb-8">
+              <div className="mb-6">
                 <div className="flex items-start justify-between gap-4">
                   <h1 className="text-xl md:text-2xl font-bold text-neutral-900 mb-1 leading-tight flex-1">
                     {product.name}
@@ -602,8 +615,8 @@ export default function ProductDetail() {
 
                 {/* Variant Selection (Blinkit Style) */}
                 {product.variations && product.variations.length > 0 && (
-                  <div className="mb-8">
-                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4">Select Unit</p>
+                  <div className="mb-6">
+                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-3">Select Unit</p>
                     <div className="flex flex-wrap gap-3">
                       {product.variations.map((variant: any, index: number) => {
                         const isSelected = index === selectedVariantIndex;
@@ -632,7 +645,7 @@ export default function ProductDetail() {
                 )}
 
                 {/* Price & Add to Cart (Desktop only, mobile is sticky footer) */}
-                <div className="hidden md:flex items-center gap-8 mb-10 pb-10 border-b border-neutral-100">
+                <div className="hidden md:flex items-center gap-8 mb-6 pb-6 border-b border-neutral-100">
                   <div className="flex flex-col">
                     <span className="text-sm text-neutral-500 font-medium mb-1">{variantTitle}</span>
                     <div className="flex items-baseline gap-2">
@@ -712,10 +725,80 @@ export default function ProductDetail() {
             </div>
           </div>
 
+          {/* Product Details - Mobile Only (Desktop shows in left column) */}
+          <div className="md:hidden mt-6 pt-6 border-t border-neutral-100 px-4">
+            <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-widest mb-4">Product Details</h3>
+            
+            <div className="space-y-6">
+              {(product.smallDescription || product.description) && (
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-neutral-900 uppercase tracking-wider">Description</p>
+                  <p className="text-sm text-neutral-600 leading-relaxed">{product.smallDescription || product.description}</p>
+                </div>
+              )}
+
+              {product.manufacturer && (
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-neutral-900 uppercase tracking-wider">Manufacturer Details</p>
+                  <p className="text-sm text-neutral-600 leading-relaxed">{product.manufacturer}</p>
+                </div>
+              )}
+
+              <button 
+                onClick={() => setIsInfoExpanded(!isInfoExpanded)}
+                className="text-green-600 text-sm font-bold flex items-center gap-1 mt-4"
+              >
+                View more details
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`${isInfoExpanded ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+
+              <AnimatePresence>
+                {isInfoExpanded && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden space-y-4 pt-2"
+                  >
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-neutral-400 font-bold uppercase">Unit</p>
+                        <p className="text-sm text-neutral-700">{variantTitle}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-neutral-400 font-bold uppercase">Shelf Life</p>
+                        <p className="text-sm text-neutral-700">Refer to package</p>
+                      </div>
+                      {product.fssaiLicNo && (
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-neutral-400 font-bold uppercase">FSSAI License</p>
+                          <p className="text-sm text-neutral-700">{product.fssaiLicNo}</p>
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-neutral-400 font-bold uppercase">Country of Origin</p>
+                        <p className="text-sm text-neutral-700">{product.madeIn || "India"}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+          {product.seller?.storeDescription && (
+            <div className="md:hidden mt-6 pt-6 border-t border-neutral-100 px-4">
+              <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-widest mb-3">About the Store</h3>
+              <p className="text-sm text-neutral-600 leading-relaxed">{product.seller.storeDescription}</p>
+              {product.seller?.storeName && (
+                <p className="text-xs text-green-600 font-semibold mt-2">— {product.seller.storeName}</p>
+              )}
+            </div>
+          )}
+
           {/* Similar Products Section */}
           {similarProducts.length > 0 && (
-            <div className="mt-16 pt-12 border-t border-neutral-100">
-              <h3 className="text-xl font-bold text-neutral-900 mb-8 px-4 md:px-0">Similar products</h3>
+            <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-neutral-100">
+              <h3 className="text-xl font-bold text-neutral-900 mb-4 md:mb-6 px-4 md:px-0">Similar products</h3>
               <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4 md:px-0 pb-4">
                 {similarProducts.map((p) => (
                   <div 
@@ -742,8 +825,8 @@ export default function ProductDetail() {
           )}
 
           {/* Reviews Section - Simplified for Blinkit feel */}
-          <div className="mt-16 pt-12 border-t border-neutral-100 mb-12">
-            <h3 className="text-xl font-bold text-neutral-900 mb-8 px-4 md:px-0">Ratings & Reviews</h3>
+          <div className="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-neutral-100 mb-8">
+            <h3 className="text-xl font-bold text-neutral-900 mb-4 md:mb-6 px-4 md:px-0">Ratings & Reviews</h3>
             <div className="px-4 md:px-0 max-w-2xl">
               {reviews.length > 0 ? (
                 <div className="space-y-8">

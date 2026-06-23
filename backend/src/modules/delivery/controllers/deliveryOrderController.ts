@@ -304,8 +304,19 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
     // Emit socket events for status changes
     const io = (req.app as any).get("io");
     if (io) {
+        // Always emit a general status-update so the customer sees live status changes
+        if (status && status !== previousStatus) {
+            io.to(`order-${id}`).emit('status-update', {
+                orderId: id,
+                status,
+                previousStatus,
+                orderNumber: order.orderNumber,
+                message: `Order status updated to ${status}`,
+            });
+        }
+
         if (status === 'Picked up' && previousStatus !== 'Picked up') {
-            // Emit order-taken event
+            // Emit order-taken event (kept for backward compatibility)
             io.to(`order-${id}`).emit('order-taken', {
                 orderId: id,
                 message: 'Order has been picked up from seller',
@@ -317,6 +328,7 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
             io.to(`order-${id}`).emit('order-delivered', {
                 orderId: id,
                 orderNumber: order.orderNumber,
+                status: 'Delivered',
                 message: 'Order has been delivered successfully',
             });
 
@@ -326,10 +338,8 @@ export const updateOrderStatus = asyncHandler(async (req: Request, res: Response
                 orderNumber: order.orderNumber,
                 message: 'Order delivered successfully',
             });
-        }
 
-        // Trigger notification to sellers only when the status is Delivered
-        if (status === 'Delivered') {
+            // Notify sellers of status update
             notifySellersOfOrderUpdate(io, order, 'STATUS_UPDATE');
         }
     }

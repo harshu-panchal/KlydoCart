@@ -168,7 +168,8 @@ export const useDeliveryTracking = (orderId: string | undefined) => {
         socket.on('seller-pickup-confirmed', (data: any) => {
             if (data.orderId !== orderId) return;
             console.log('🏪 Seller pickup confirmed:', data)
-            if (data.allPickedUp && data.newStatus) {
+            // Update status whenever a new status is provided (partial or full pickup)
+            if (data.newStatus) {
                 setTrackingData(prev => ({
                     ...prev,
                     orderStatus: data.newStatus,

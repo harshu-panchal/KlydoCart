@@ -874,8 +874,8 @@ export default function OrderDetail() {
     },
     // Backend status mappings
     Received: {
-      title: "Order received",
-      subtitle: "Processing your order",
+      title: "Order placed",
+      subtitle: "Waiting for seller to accept",
       color: "bg-green-700",
     },
     Pending: {
@@ -892,6 +892,11 @@ export default function OrderDetail() {
       title: "Order shipped",
       subtitle: "On the way to you",
       color: "bg-blue-600",
+    },
+    "Picked up": {
+      title: "Order picked up",
+      subtitle: `Delivery partner is on the way`,
+      color: "bg-green-700",
     },
     "Out for Delivery": {
       title: "Out for delivery",
