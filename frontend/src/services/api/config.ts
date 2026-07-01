@@ -40,9 +40,10 @@ api.interceptors.request.use(
     if (token && config.headers) {
       if (typeof config.headers.set === "function") {
         config.headers.set("Authorization", `Bearer ${token}`);
-      } else {
-        config.headers.Authorization = `Bearer ${token}`;
       }
+      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.authorization = `Bearer ${token}`;
+      config.headers["Authorization"] = `Bearer ${token}`;
     }
     return config;
   },
@@ -61,7 +62,13 @@ api.interceptors.response.use(
 
     if (isUnauthorized || isWrongUserType) {
       const isAuthEndpoint = error.config?.url?.includes("/auth/");
-      const hadToken = error.config?.headers?.Authorization;
+      
+      const headers = error.config?.headers;
+      const hadToken = headers && (
+        headers.Authorization ||
+        headers.authorization ||
+        (typeof headers.get === 'function' && (headers.get('Authorization') || headers.get('authorization')))
+      );
 
       if (!isAuthEndpoint && hadToken) {
         const currentPath = window.location.pathname;
