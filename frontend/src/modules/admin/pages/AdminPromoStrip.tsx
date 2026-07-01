@@ -21,6 +21,7 @@ export default function AdminPromoStrip() {
   const [endDate, setEndDate] = useState("");
   const [categoryCards, setCategoryCards] = useState<CategoryCard[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<string[]>([]);
+  const [selectedProductNames, setSelectedProductNames] = useState<Record<string, string>>({}); // id → name map
   const [crazyDealsTitle, setCrazyDealsTitle] = useState("CRAZY DEALS");
   const [isActive, setIsActive] = useState(true);
   const [order, setOrder] = useState(0);
@@ -204,14 +205,21 @@ export default function AdminPromoStrip() {
         };
       })
     );
-    setFeaturedProducts(
-      promoStrip.featuredProducts.map((p) => {
-        if (typeof p === "string") {
-          return p;
-        }
-        return (p as any)?._id || p;
-      })
-    );
+    // Build selectedProductNames map from populated product objects
+    const productIds = promoStrip.featuredProducts.map((p) => {
+      if (typeof p === "string") return p;
+      return (p as any)?._id || p;
+    });
+    const namesMap: Record<string, string> = {};
+    promoStrip.featuredProducts.forEach((p) => {
+      if (typeof p === "object" && p !== null) {
+        const pid = (p as any)._id;
+        const name = (p as any).productName || (p as any).name || "";
+        if (pid && name) namesMap[pid] = name;
+      }
+    });
+    setSelectedProductNames(namesMap);
+    setFeaturedProducts(productIds);
     setCrazyDealsTitle(promoStrip.crazyDealsTitle || "CRAZY DEALS");
     setIsActive(promoStrip.isActive);
     setOrder(promoStrip.order);
@@ -244,6 +252,7 @@ export default function AdminPromoStrip() {
     setEndDate("");
     setCategoryCards([]);
     setFeaturedProducts([]);
+    setSelectedProductNames({});
     setCrazyDealsTitle("CRAZY DEALS");
     setOrder(0);
     setEditingId(null);
@@ -280,9 +289,10 @@ export default function AdminPromoStrip() {
     setCategoryCards(categoryCards.filter((_, i) => i !== index));
   };
 
-  const addFeaturedProduct = (productId: string) => {
-    if (!featuredProducts.includes(productId)) {
-      setFeaturedProducts([...featuredProducts, productId]);
+  const addFeaturedProduct = (product: Product) => {
+    if (!featuredProducts.includes(product._id)) {
+      setFeaturedProducts([...featuredProducts, product._id]);
+      setSelectedProductNames((prev) => ({ ...prev, [product._id]: product.productName }));
     }
     setProductSearch("");
     setProducts([]);
@@ -448,7 +458,14 @@ export default function AdminPromoStrip() {
                       <div className="space-y-2">
                         <select
                           value={typeof card.categoryId === 'string' ? card.categoryId : (card.categoryId as any)?._id || ''}
-                          onChange={(e) => updateCategoryCard(index, "categoryId", e.target.value)}
+                          onChange={(e) => {
+                            const selectedCat = categories.find((c) => c._id === e.target.value);
+                            updateCategoryCard(index, "categoryId", e.target.value);
+                            // Auto-fill title from category name if field is currently blank
+                            if (!card.title && selectedCat) {
+                              updateCategoryCard(index, "title", selectedCat.name);
+                            }
+                          }}
                           className="w-full px-2 py-1 text-sm border border-neutral-300 rounded bg-white"
                           required
                         >
@@ -530,7 +547,7 @@ export default function AdminPromoStrip() {
                     {products.map((product) => (
                       <div
                         key={product._id}
-                        onClick={() => addFeaturedProduct(product._id)}
+                        onClick={() => addFeaturedProduct(product)}
                         className="p-2 hover:bg-neutral-50 cursor-pointer text-sm"
                       >
                         {product.productName}
@@ -543,13 +560,14 @@ export default function AdminPromoStrip() {
                 )}
                 <div className="flex flex-wrap gap-2 mb-2">
                   {featuredProducts.map((productId) => {
-                    const product = products.find((p) => p._id === productId);
+                    // Use selectedProductNames map so names show even after search results are cleared
+                    const displayName = selectedProductNames[productId] || productId;
                     return (
                       <div
                         key={productId}
                         className="flex items-center gap-1 bg-teal-50 text-teal-700 px-2 py-1 rounded text-sm"
                       >
-                        <span>{product?.productName || productId}</span>
+                        <span>{displayName}</span>
                         <button
                           type="button"
                           onClick={() => removeFeaturedProduct(productId)}

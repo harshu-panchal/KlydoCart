@@ -18,6 +18,7 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
     endDate,
     categoryCards,
     featuredProducts,
+    crazyDealsTitle,
     isActive = true,
     order = 0,
   } = req.body;
@@ -43,7 +44,9 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
 
   // Validate dates
   const start = new Date(startDate);
+  // Set end date to end of day (23:59:59.999 UTC) so the promo runs through the full end date
   const end = new Date(endDate);
+  end.setUTCHours(23, 59, 59, 999);
   if (end <= start) {
     return res.status(400).json({
       success: false,
@@ -91,6 +94,7 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
     endDate: end,
     categoryCards: categoryCards || [],
     featuredProducts: featuredProducts || [],
+    crazyDealsTitle: crazyDealsTitle || "CRAZY DEALS",
     isActive,
     order,
   });
@@ -194,6 +198,8 @@ export const updatePromoStrip = asyncHandler(async (req: Request, res: Response)
     });
   }
 
+  const originalSlug = promoStrip.headerCategorySlug;
+
   // Validate header category if provided (allow "all" as a special case)
   if (headerCategorySlug) {
     if (headerCategorySlug.toLowerCase() !== "all") {
@@ -211,7 +217,11 @@ export const updatePromoStrip = asyncHandler(async (req: Request, res: Response)
   // Validate dates if provided
   if (startDate || endDate) {
     const start = startDate ? new Date(startDate) : promoStrip.startDate;
+    // Set end date to end of day (23:59:59.999 UTC) so the promo runs through the full end date
     const end = endDate ? new Date(endDate) : promoStrip.endDate;
+    if (endDate) {
+      end.setUTCHours(23, 59, 59, 999);
+    }
     if (end <= start) {
       return res.status(400).json({
         success: false,
@@ -265,6 +275,9 @@ export const updatePromoStrip = asyncHandler(async (req: Request, res: Response)
 
   // Invalidate cache for this header category slug
   cache.delete(`promoStrip-${promoStrip.headerCategorySlug.toLowerCase()}`);
+  if (originalSlug && originalSlug.toLowerCase() !== promoStrip.headerCategorySlug.toLowerCase()) {
+    cache.delete(`promoStrip-${originalSlug.toLowerCase()}`);
+  }
 
   return res.status(200).json({
     success: true,

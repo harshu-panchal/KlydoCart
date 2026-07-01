@@ -189,6 +189,8 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                     slug: category?.slug || card.categoryId, // Use slug for navigation
                     imageUrl: category?.image,
                     bgColor: "bg-yellow-50",
+                    // Use backend-provided subcategory images directly (avoids extra API call)
+                    subcategoryImages: card.subcategoryImages || [],
                   };
                 });
             }

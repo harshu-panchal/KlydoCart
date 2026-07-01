@@ -609,6 +609,78 @@ export const getHomeContent = async (req: Request, res: Response) => {
         });
       }
 
+      // Auto-populate categoryCards with 4 random categories that have real products
+      if (promoStrip && (!(promoStrip as any).categoryCards || (promoStrip as any).categoryCards.length === 0)) {
+        // Use $lookup to pick only categories that have at least 1 active+published product
+        const randomCategories = await Category.aggregate([
+          // Step 1: Only active root categories
+          { $match: { status: "Active", parentId: null } },
+          // Step 2: Join with products collection — keep only cats with at least 1 product
+          {
+            $lookup: {
+              from: "products",
+              let: { catId: "$_id" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ["$category", "$$catId"] },
+                    status: "Active",
+                    publish: true,
+                  },
+                },
+                { $limit: 1 },           // We only need to know IF a product exists
+                { $project: { _id: 1 } },
+              ],
+              as: "productSample",
+            },
+          },
+          // Step 3: Keep only categories that matched at least one product
+          { $match: { "productSample.0": { $exists: true } } },
+          // Step 4: Randomly pick 4 from those
+          { $sample: { size: 4 } },
+          { $project: { name: 1, slug: 1, image: 1 } },
+        ]);
+
+        // For each selected category, fetch 4 real product images to show in the grid
+        const autoCategoryCards = await Promise.all(
+          randomCategories.map(async (cat: any, idx: number) => {
+            // Fetch 4 active products from this category to use as preview images
+            const categoryProducts = await Product.find({
+              category: cat._id,
+              status: "Active",
+              publish: true,
+              mainImage: { $exists: true, $ne: "" },
+            })
+              .select("mainImage")
+              .limit(4)
+              .lean();
+
+            const subcategoryImages = categoryProducts
+              .map((p: any) => p.mainImage)
+              .filter((img: string) => img && img.trim() !== "")
+              .slice(0, 4);
+
+            return {
+              _id: cat._id.toString(),
+              categoryId: {
+                _id: cat._id.toString(),
+                name: cat.name,
+                slug: cat.slug,
+                image: cat.image || "",
+              },
+              title: cat.name,
+              badge: "Up to 55% OFF",
+              discountPercentage: 55,
+              order: idx,
+              subcategoryImages,   // Real product images from this category
+            };
+          }),
+        );
+
+        (promoStrip as any).categoryCards = autoCategoryCards;
+      }
+
+
       // Cache for 3 minutes (PromoStrip data doesn't change frequently)
       if (promoStrip) {
         cache.set(promoStripCacheKey, promoStrip, 3 * 60 * 1000);
