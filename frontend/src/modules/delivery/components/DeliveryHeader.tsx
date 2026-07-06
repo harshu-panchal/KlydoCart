@@ -7,7 +7,7 @@ interface DeliveryHeaderProps {
 }
 
 export default function DeliveryHeader({ userName }: DeliveryHeaderProps) {
-  const { isOnline, setIsOnline } = useDeliveryStatus();
+  const { isOnline, setIsOnline, statusError, isUpdatingStatus } = useDeliveryStatus();
   const { userName: contextUserName } = useDeliveryUser();
   const displayName = userName || contextUserName;
 
@@ -50,9 +50,10 @@ export default function DeliveryHeader({ userName }: DeliveryHeaderProps) {
           {/* Toggle Switch */}
           <button
             onClick={() => setIsOnline(!isOnline)}
+            disabled={isUpdatingStatus}
             className={`relative w-12 h-6 rounded-full transition-colors ${
               isOnline ? 'bg-green-600' : 'bg-neutral-300'
-            }`}
+            } ${isUpdatingStatus ? 'opacity-60 cursor-wait' : ''}`}
           >
             <div
               className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
@@ -61,6 +62,13 @@ export default function DeliveryHeader({ userName }: DeliveryHeaderProps) {
             />
           </button>
         </div>
+
+        {/* Status update error (e.g. account not yet approved / network failure) */}
+        {statusError && (
+          <div className="mt-2 text-xs text-red-600 text-center">
+            {statusError}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -11,13 +11,15 @@ interface SellerInRange {
 
 interface DeliveryStatusContextType {
   isOnline: boolean;
-  setIsOnline: (status: boolean) => void;
+  setIsOnline: (status: boolean) => Promise<void>;
   toggleStatus: () => Promise<void>;
   currentLocation: { latitude: number; longitude: number } | null;
   sellersInRangeCount: number;
   sellersInRange: SellerInRange[];
   locationError: string | null;
   isLoadingSellers: boolean;
+  statusError: string | null;
+  isUpdatingStatus: boolean;
 }
 
 const DeliveryStatusContext = createContext<DeliveryStatusContextType | undefined>(undefined);
@@ -32,6 +34,8 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
   const [sellersInRange, setSellersInRange] = useState<SellerInRange[]>([]);
   const [isLoadingSellers, setIsLoadingSellers] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   const lastUpdateTimeRef = useRef<number>(0);
 
@@ -130,26 +134,36 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
     console.error("Location error:", error);
   };
 
-  const toggleStatus = async () => {
-    const newStatus = !isOnline;
+  // Single robust path for changing online status.
+  // Persists to backend FIRST-and-revert: the UI updates optimistically, but if the
+  // server write fails we roll the UI back so it can never drift from the DB.
+  // This prevents the "auto offline on refresh" bug where the toggle looked online
+  // but the DB was never updated (e.g. account not yet Active, cold-start, token blip).
+  const setIsOnline = async (status: boolean) => {
+    if (isUpdatingStatus) return;
+    const previous = isOnline;
+    setStatusError(null);
+    setIsUpdatingStatus(true);
+
     // Optimistic update
-    setIsOnlineLocal(newStatus);
-    localStorage.setItem('deliveryIsOnline', String(newStatus));
+    setIsOnlineLocal(status);
+    localStorage.setItem('deliveryIsOnline', String(status));
+
     try {
-      await updateStatus(newStatus);
-    } catch (error) {
+      await updateStatus(status);
+    } catch (error: any) {
       console.error("Failed to update status", error);
-      // Revert on failure
-      setIsOnlineLocal(!newStatus);
-      localStorage.setItem('deliveryIsOnline', String(!newStatus));
+      // Revert to the previous (server-consistent) value so the UI matches the DB
+      setIsOnlineLocal(previous);
+      localStorage.setItem('deliveryIsOnline', String(previous));
+      setStatusError(error?.message || "Failed to update status. Please try again.");
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
-  const setIsOnline = (status: boolean) => {
-    // Direct setting if needed, but prefer toggleStatus for API sync
-    setIsOnlineLocal(status);
-    localStorage.setItem('deliveryIsOnline', String(status));
-    updateStatus(status).catch(err => console.error(err));
+  const toggleStatus = async () => {
+    await setIsOnline(!isOnline);
   };
 
   return (
@@ -161,7 +175,9 @@ export function DeliveryStatusProvider({ children }: { children: ReactNode }) {
       sellersInRangeCount,
       sellersInRange,
       locationError,
-      isLoadingSellers
+      isLoadingSellers,
+      statusError,
+      isUpdatingStatus
     }}>
       {children}
     </DeliveryStatusContext.Provider>
