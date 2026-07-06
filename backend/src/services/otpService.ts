@@ -225,6 +225,15 @@ function isMockMode(): boolean {
 }
 
 /**
+ * Predictable OTP used in mock mode so local logins work without the SMS gateway.
+ * Uses DEFAULT_OTP from env if it is a valid 4-digit code, otherwise falls back to '1234'.
+ */
+function getMockOtp(): string {
+  const fromEnv = process.env.DEFAULT_OTP?.trim();
+  return fromEnv && /^\d{4}$/.test(fromEnv) ? fromEnv : '1234';
+}
+
+/**
  * Check if developer bypass OTP
  */
 function isDeveloperBypass(otp: string): boolean {
@@ -255,7 +264,9 @@ export async function sendSmsOtp(
 
     // Mock mode
     if (isMockMode()) {
-      await saveOtpToDb(mobile, otp, userType);
+      const mockOtp = getMockOtp();
+      await saveOtpToDb(mobile, mockOtp, userType);
+      console.log(`📱 [MOCK OTP] ${userType} ${mobile} → use OTP: ${mockOtp}`);
       return {
         success: true,
         sessionId: 'MOCK_SESSION_' + mobile,
@@ -363,7 +374,9 @@ export async function sendOTP(
 
     // Mock mode
     if (isMockMode()) {
-      await saveOtpToDb(mobile, otp, userType);
+      const mockOtp = getMockOtp();
+      await saveOtpToDb(mobile, mockOtp, userType);
+      console.log(`📱 [MOCK OTP] ${userType} ${mobile} → use OTP: ${mockOtp}`);
       return {
         success: true,
         message: 'OTP sent successfully',

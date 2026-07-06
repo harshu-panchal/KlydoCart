@@ -18,6 +18,16 @@ export interface OrderNotificationState {
 export const notificationStates = new Map<string, OrderNotificationState>();
 
 /**
+ * Max age (in minutes) of a pending order/return that the catch-up scan will surface to a
+ * delivery boy who just connected/went online. Orders older than this are considered stale
+ * backlog and are NOT re-broadcast — otherwise a newly-approved delivery boy would receive
+ * every old unassigned order in the system instead of only fresh ones.
+ * Override with SCAN_MAX_AGE_MINUTES env var if needed.
+ */
+const SCAN_MAX_AGE_MINUTES = Number(process.env.SCAN_MAX_AGE_MINUTES) || 30;
+const getScanCutoffDate = (): Date => new Date(Date.now() - SCAN_MAX_AGE_MINUTES * 60 * 1000);
+
+/**
  * Calculate distance between two coordinates using Haversine formula
  * Returns distance in kilometers
  */
@@ -599,13 +609,16 @@ export async function scanOrdersForDeliveryBoy(io: SocketIOServer, deliveryBoyId
     console.log(`🔍 Scanning pending orders for delivery boy ${normalizedId} who just went online/connected`);
 
     try {
-        // Query database for all pending orders that don't have a delivery boy assigned yet
+        // Query database for RECENT pending orders that don't have a delivery boy assigned yet.
+        // The createdAt cutoff prevents dumping the entire historical backlog of old,
+        // unaccepted orders onto a delivery boy who just came online (e.g. a newly approved one).
         const pendingOrders = await Order.find({
             status: { $in: ['Accepted', 'Processed'] },
-            deliveryBoy: { $exists: false }
+            deliveryBoy: { $exists: false },
+            createdAt: { $gte: getScanCutoffDate() }
         });
 
-        console.log(`🔍 Found ${pendingOrders.length} pending orders in database`);
+        console.log(`🔍 Found ${pendingOrders.length} recent pending orders (last ${SCAN_MAX_AGE_MINUTES} min) in database`);
 
         for (const orderRequest of pendingOrders) {
             const orderId = orderRequest._id.toString();
@@ -884,13 +897,15 @@ export async function scanReturnsForDeliveryBoy(io: SocketIOServer, deliveryBoyI
     console.log(`🔍 Scanning pending returns for delivery boy ${normalizedId} who just went online/connected`);
 
     try {
-        // Query database for all approved return requests that don't have a delivery boy assigned yet
+        // Query database for RECENT approved return requests that don't have a delivery boy assigned yet.
+        // The createdAt cutoff prevents dumping stale return backlog onto a newly connected delivery boy.
         const pendingReturns = await Return.find({
             status: 'Approved',
-            deliveryBoy: { $exists: false }
+            deliveryBoy: { $exists: false },
+            createdAt: { $gte: getScanCutoffDate() }
         });
 
-        console.log(`🔍 Found ${pendingReturns.length} pending approved returns in database`);
+        console.log(`🔍 Found ${pendingReturns.length} recent pending approved returns (last ${SCAN_MAX_AGE_MINUTES} min) in database`);
 
         for (const returnRequest of pendingReturns) {
             const returnId = returnRequest._id.toString();
