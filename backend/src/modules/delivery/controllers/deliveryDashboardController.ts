@@ -43,9 +43,14 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
     // Fetch active orders for counts
     const allAssignedOrders = await Order.find({ deliveryBoy: objectId });
 
-    const pendingOrders = allAssignedOrders.filter(order => 
+    const pendingOrders = allAssignedOrders.filter(order =>
         ["Processed", "Shipped", "Out for Delivery", "On the way"].includes(order.status) &&
         (order.createdAt >= todayStart || order.updatedAt >= todayStart)
+    ).length;
+
+    // All-time pending (currently assigned & not yet delivered) — full record, not just today
+    const totalPending = allAssignedOrders.filter(order =>
+        ["Processed", "Shipped", "Out for Delivery", "On the way"].includes(order.status)
     ).length;
 
     const allOrdersToday = allAssignedOrders.filter(order => 
@@ -121,8 +126,10 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
             dailyCollection: dailyCollection,
             cashBalance: deliveryPartner.cashCollected || 0,
             pendingOrders: pendingOrders,
+            totalPending: totalPending,
             allOrders: allOrdersToday,
             totalDeliveries: totalDelivered.length,
+            totalDelivered: totalDelivered.length,
             returnOrders: returnOrdersToday,
             returnItems: 0,
             todayEarning: Math.round(todayEarning * 100) / 100,

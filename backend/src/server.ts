@@ -15,6 +15,7 @@ import { notFound } from "./middleware/notFound";
 import { ensureDefaultAdmin } from "./utils/ensureDefaultAdmin";
 import { seedHeaderCategories } from "./utils/seedHeaderCategories";
 import { initializeSocket } from "./socket/socketService";
+import { startDeliveryAutoRelease } from "./services/deliveryAutoReleaseService";
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -126,6 +127,10 @@ async function startServer() {
   await connectDB();
   await ensureDefaultAdmin();
   await seedHeaderCategories();
+
+  // Background job: auto-release delivery boys stuck on undelivered orders/returns
+  // so they don't stay "busy" forever. Configurable via DELIVERY_AUTO_RELEASE_MINUTES.
+  startDeliveryAutoRelease(io);
 
   httpServer.listen(PORT, () => {
     console.log("\n\x1b[32m✓\x1b[0m \x1b[1mklydocart Server Started\x1b[0m");

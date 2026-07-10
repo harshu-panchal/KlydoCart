@@ -65,6 +65,26 @@ export interface PushNotificationPayload {
 }
 
 /**
+ * Remove tokens Firebase reported as invalid/unregistered from every user collection,
+ * so future sends don't keep failing on them.
+ */
+async function pruneInvalidTokens(deadTokens: string[]): Promise<void> {
+    if (!deadTokens || deadTokens.length === 0) return;
+    // Lazy-require to avoid any load-order/circular issues at module init.
+    const Delivery = (await import('../models/Delivery')).default;
+    const Customer = (await import('../models/Customer')).default;
+    const Seller = (await import('../models/Seller')).default;
+
+    const pull = { $pull: { fcmTokens: { $in: deadTokens }, fcmTokenMobile: { $in: deadTokens } } } as any;
+    await Promise.all([
+        Delivery.updateMany({}, pull),
+        Customer.updateMany({}, pull),
+        Seller.updateMany({}, pull),
+    ]);
+    console.log(`🧹 Pruned ${deadTokens.length} invalid FCM token(s) from user records.`);
+}
+
+/**
  * Send push notification to multiple tokens
  */
 export async function sendPushNotification(tokens: string[], payload: PushNotificationPayload) {
@@ -114,6 +134,27 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
 
         const response = await admin.messaging().sendEachForMulticast(message);
         console.log(`[${new Date().toISOString()}] FCM Send to ${tokens.length} tokens: ${response.successCount} success, ${response.failureCount} failure`);
+
+        // Prune dead/unregistered tokens so we stop retrying them every time (the main cause
+        // of the "N failure" noise in the logs). Only remove tokens Firebase says are invalid.
+        if (response.failureCount > 0) {
+            const deadTokens: string[] = [];
+            response.responses.forEach((resp, idx) => {
+                const code = resp.error?.code;
+                if (
+                    code === 'messaging/registration-token-not-registered' ||
+                    code === 'messaging/invalid-registration-token' ||
+                    code === 'messaging/invalid-argument'
+                ) {
+                    deadTokens.push(tokens[idx]);
+                }
+            });
+            if (deadTokens.length > 0) {
+                pruneInvalidTokens(deadTokens).catch((err) =>
+                    console.error('Error pruning invalid FCM tokens:', err)
+                );
+            }
+        }
 
         return response;
     } catch (error) {

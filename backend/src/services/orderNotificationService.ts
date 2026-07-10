@@ -447,24 +447,38 @@ export async function handleOrderAcceptance(
             // We assume if they have the ID, they were notified effectively.
         }
 
-        // Update order in database
-        const order = await Order.findById(orderId);
+        // Atomically assign the order ONLY if it is still unassigned. Using findOneAndUpdate with
+        // `deliveryBoy: null` (matches missing OR null) as a guard makes this race-safe: if two
+        // delivery boys tap Accept simultaneously — or the in-memory state was lost on a restart —
+        // exactly one write wins and the other gets a clean "already assigned" response instead of
+        // silently overwriting the first assignment.
+        const order = await Order.findOneAndUpdate(
+            { _id: orderId, deliveryBoy: null },
+            {
+                $set: {
+                    deliveryBoy: new mongoose.Types.ObjectId(normalizedDeliveryBoyId),
+                    deliveryBoyStatus: 'Assigned',
+                    assignedAt: new Date(),
+                    status: 'Processed', // Mark as processed when assigned
+                },
+            },
+            { new: true }
+        );
+
         if (!order) {
-            return { success: false, message: 'Order not found' };
+            // Lost the race (or order gone). Roll back the in-memory claim so the state isn't
+            // left falsely marked as accepted by this boy.
+            if (state && state.acceptedBy === normalizedDeliveryBoyId) {
+                state.acceptedBy = null;
+            }
+            const stillExists = await Order.exists({ _id: orderId });
+            return {
+                success: false,
+                message: stillExists
+                    ? 'Order already assigned to another delivery boy'
+                    : 'Order not found',
+            };
         }
-
-        // Check if order already has a delivery boy assigned
-        if (order.deliveryBoy) {
-            return { success: false, message: 'Order already assigned to another delivery boy' };
-        }
-
-        // Assign order to delivery boy
-        order.deliveryBoy = new mongoose.Types.ObjectId(normalizedDeliveryBoyId);
-        order.deliveryBoyStatus = 'Assigned';
-        order.assignedAt = new Date();
-        order.status = 'Processed'; // Mark as processed when assigned
-
-        await order.save();
 
         // Emit order-accepted event to all delivery boys who were notified
         // (Only to individual rooms, not general room)
