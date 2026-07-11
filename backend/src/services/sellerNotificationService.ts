@@ -20,6 +20,13 @@ const SELLER_PUSH_REPEAT_INTERVAL_MS =
 const activeSellerPushRepeats = new Set<string>();
 
 /**
+ * Max age (in minutes) of a pending 'Received' order that the catch-up scan re-sends to a
+ * seller when they (re)connect. Keeps the "order stays until accepted/rejected" guarantee
+ * without replaying ancient backlog. Override with SELLER_SCAN_MAX_AGE_MINUTES.
+ */
+const SELLER_SCAN_MAX_AGE_MINUTES = Number(process.env.SELLER_SCAN_MAX_AGE_MINUTES) || 1440;
+
+/**
  * Notify all sellers involved in an order about a new order or status change
  */
 export async function notifySellersOfOrderUpdate(
@@ -236,4 +243,78 @@ function scheduleSellerPushRepeats(
     };
 
     setTimeout(tick, SELLER_PUSH_REPEAT_INTERVAL_MS);
+}
+
+/**
+ * Re-send NEW_ORDER notifications for orders still awaiting this seller's action.
+ * Called when a seller (re)joins their socket room — e.g. after a page refresh or after
+ * opening the app from a push notification — so the accept/reject alert doesn't vanish
+ * until the order is actually accepted or rejected.
+ */
+export async function scanPendingOrdersForSeller(
+    io: SocketIOServer,
+    sellerId: string
+): Promise<void> {
+    try {
+        const normalizedSellerId = String(sellerId).trim();
+        const cutoff = new Date(Date.now() - SELLER_SCAN_MAX_AGE_MINUTES * 60 * 1000);
+
+        // Orders still waiting for seller accept/reject
+        const pendingOrders = await Order.find({
+            status: 'Received',
+            createdAt: { $gte: cutoff },
+        }).lean() as any[];
+
+        if (pendingOrders.length === 0) return;
+
+        // Of those, keep only orders that contain this seller's items
+        const orderIds = pendingOrders.map(o => o._id);
+        const sellerItems = await OrderItem.find({
+            order: { $in: orderIds },
+            seller: normalizedSellerId,
+        }).lean();
+
+        if (sellerItems.length === 0) return;
+
+        const itemsByOrder = new Map<string, any[]>();
+        for (const item of sellerItems) {
+            const key = item.order.toString();
+            if (!itemsByOrder.has(key)) itemsByOrder.set(key, []);
+            itemsByOrder.get(key)!.push(item);
+        }
+
+        for (const order of pendingOrders) {
+            const orderKey = order._id.toString();
+            const items = itemsByOrder.get(orderKey);
+            if (!items || items.length === 0) continue;
+
+            const notificationData = {
+                type: 'NEW_ORDER' as const,
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                status: order.status,
+                paymentStatus: order.paymentStatus,
+                customer: {
+                    name: order.customerName,
+                    email: order.customerEmail,
+                    phone: order.customerPhone,
+                    address: order.deliveryAddress
+                },
+                items: items.map((item: any) => ({
+                    productName: item.productName,
+                    quantity: item.quantity,
+                    price: item.unitPrice,
+                    total: item.total,
+                    variation: item.variation
+                })),
+                totalAmount: items.reduce((acc: number, item: any) => acc + item.total, 0),
+                timestamp: new Date()
+            };
+
+            io.to(`seller-${normalizedSellerId}`).emit('seller-notification', notificationData);
+            console.log(`🔁 Re-sent pending order ${order.orderNumber} to reconnected seller ${normalizedSellerId}`);
+        }
+    } catch (error) {
+        console.error('Error scanning pending orders for seller:', error);
+    }
 }

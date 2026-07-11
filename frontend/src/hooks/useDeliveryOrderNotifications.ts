@@ -119,6 +119,14 @@ export const useDeliveryOrderNotifications = () => {
             console.log('📦 New order notification received:', orderData);
 
             setState(prev => {
+                // The backend re-broadcasts pending orders on every (re)connect so they
+                // survive refreshes — dedupe by orderId so reconnects don't stack duplicates
+                const isDuplicate =
+                    (prev.currentNotification && !prev.currentNotification.isReturn && prev.currentNotification.orderId === orderData.orderId) ||
+                    prev.notificationQueue.some(n => !n.isReturn && n.orderId === orderData.orderId);
+                if (isDuplicate) {
+                    return prev;
+                }
                 // If there's already a current notification, queue this one
                 if (prev.currentNotification) {
                     return {
@@ -152,6 +160,13 @@ export const useDeliveryOrderNotifications = () => {
             };
 
             setState(prev => {
+                // Dedupe re-broadcast return pickups by returnId (reconnect catch-up scan)
+                const isDuplicate =
+                    (prev.currentNotification?.isReturn && (prev.currentNotification as ReturnNotificationData).returnId === returnNotification.returnId) ||
+                    prev.notificationQueue.some(n => n.isReturn && (n as ReturnNotificationData).returnId === returnNotification.returnId);
+                if (isDuplicate) {
+                    return prev;
+                }
                 if (prev.currentNotification) {
                     return {
                         ...prev,

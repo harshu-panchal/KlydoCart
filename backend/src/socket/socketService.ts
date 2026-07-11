@@ -2,6 +2,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { handleOrderAcceptance, handleOrderRejection, scanOrdersForDeliveryBoy, scanReturnsForDeliveryBoy } from '../services/orderNotificationService';
+import { scanPendingOrdersForSeller } from '../services/sellerNotificationService';
 import Order from '../models/Order';
 import DeliveryTracking from '../models/DeliveryTracking';
 import Delivery from '../models/Delivery';
@@ -193,16 +194,24 @@ export const initializeSocket = (httpServer: HttpServer) => {
         });
 
         // Seller joins their notification room
-        socket.on('join-seller-room', (sellerId: string) => {
+        socket.on('join-seller-room', async (sellerId: string) => {
             const normalizedSellerId = String(sellerId).trim();
             console.log(`🏪 Seller ${normalizedSellerId} joined notifications room`);
-            socket.join(`seller-${normalizedSellerId}`);
+            await socket.join(`seller-${normalizedSellerId}`);
 
             socket.emit('joined-seller-room', {
                 success: true,
                 message: 'Successfully joined seller notifications room',
                 sellerId: normalizedSellerId
             });
+
+            // Re-send any orders still awaiting this seller's accept/reject so the
+            // alert survives page refreshes / opening the app from a push notification
+            try {
+                await scanPendingOrdersForSeller(io, normalizedSellerId);
+            } catch (err) {
+                console.error('Error scanning pending orders for seller:', err);
+            }
         });
 
         // Delivery boy joins notification room

@@ -10,10 +10,21 @@ interface SellerLayoutProps {
 
 export default function SellerLayout({ children }: SellerLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeNotification, setActiveNotification] = useState<SellerNotification | null>(null);
+  const [notificationQueue, setNotificationQueue] = useState<SellerNotification[]>([]);
+  const activeNotification = notificationQueue[0] ?? null;
 
   const handleNotificationReceived = useCallback((notification: SellerNotification) => {
-    setActiveNotification(notification);
+    setNotificationQueue(prev => {
+      // The backend re-sends pending NEW_ORDER alerts on every (re)connect so they
+      // survive refreshes — dedupe by orderId so reconnects don't stack duplicates
+      if (
+        notification.type === 'NEW_ORDER' &&
+        prev.some(n => n.type === 'NEW_ORDER' && String(n.orderId) === String(notification.orderId))
+      ) {
+        return prev;
+      }
+      return [...prev, notification];
+    });
   }, []);
 
   useSellerSocket(handleNotificationReceived);
@@ -23,7 +34,7 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   };
 
   const closeNotification = () => {
-    setActiveNotification(null);
+    setNotificationQueue(prev => prev.slice(1));
   };
 
   return (

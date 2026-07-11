@@ -1067,6 +1067,7 @@ export async function scanReturnsForDeliveryBoy(io: SocketIOServer, deliveryBoyI
                     const sellerId = returnRequest.seller?._id || returnRequest.seller;
                     const seller = await Seller.findById(sellerId).lean() as any;
                     const orderId = returnRequest.order?._id || returnRequest.order;
+                    const order = await Order.findById(orderId).lean() as any;
 
                     const returnData = {
                         returnId,
@@ -1075,10 +1076,17 @@ export async function scanReturnsForDeliveryBoy(io: SocketIOServer, deliveryBoyI
                         quantity: returnRequest.quantity,
                         storeName: seller?.storeName || 'Seller',
                         pickupAddress: seller?.address || '',
+                        customerName: order?.customerName || 'Customer',
+                        customerPhone: order?.customerPhone || '',
+                        customerAddress: (returnRequest as any).pickupAddress
+                            ? `${(returnRequest as any).pickupAddress.address}, ${(returnRequest as any).pickupAddress.city}`
+                            : '',
                         timestamp: new Date()
                     };
 
-                    io.to(`delivery-${normalizedId}`).emit('new-return-pickup', returnData);
+                    // Must match the event name the delivery frontend listens for,
+                    // otherwise the return alert never reappears after a refresh
+                    io.to(`delivery-${normalizedId}`).emit('NEW_RETURN_PICKUP', returnData);
                 } catch (err) {
                     console.error(`Error emitting return ${returnId} for delivery boy ${normalizedId}:`, err);
                 }
