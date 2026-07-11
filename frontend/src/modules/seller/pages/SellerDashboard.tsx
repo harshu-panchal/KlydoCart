@@ -4,7 +4,7 @@ import DashboardCard from '../components/DashboardCard';
 import OrderChart from '../components/OrderChart';
 import AlertCard from '../components/AlertCard';
 import { getSellerDashboardStats, DashboardStats, NewOrder } from '../../../services/api/dashboardService';
-import { getSellerProfile, toggleShopStatus } from '../../../services/api/auth/sellerAuthService';
+import { getSellerProfile, toggleShopStatus, updateSellerProfile } from '../../../services/api/auth/sellerAuthService';
 
 export default function SellerDashboard() {
   const navigate = useNavigate();
@@ -16,6 +16,8 @@ export default function SellerDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isShopOpen, setIsShopOpen] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [autoAccept, setAutoAccept] = useState(false);
+  const [autoAcceptLoading, setAutoAcceptLoading] = useState(false);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -38,6 +40,7 @@ export default function SellerDashboard() {
           const shopStatus = profileResponse.data.isShopOpen ?? true;
           console.log('Initial shop status from profile:', shopStatus, 'Raw value:', profileResponse.data.isShopOpen);
           setIsShopOpen(shopStatus);
+          setAutoAccept(profileResponse.data.autoAcceptOrders ?? false);
         }
       } catch (err: any) {
         setError(err.response?.data?.message || 'Error loading dashboard data');
@@ -73,6 +76,24 @@ export default function SellerDashboard() {
       alert('Error toggling shop status: ' + (error.response?.data?.message || error.message || 'Unknown error'));
     } finally {
       setStatusLoading(false);
+    }
+  };
+
+  const handleToggleAutoAccept = async () => {
+    try {
+      setAutoAcceptLoading(true);
+      const next = !autoAccept;
+      const response = await updateSellerProfile({ autoAcceptOrders: next });
+      if (response.success) {
+        setAutoAccept(response.data?.autoAcceptOrders ?? next);
+      } else {
+        alert('Failed to update auto-accept setting: ' + (response.message || 'Unknown error'));
+      }
+    } catch (error: any) {
+      console.error('Failed to toggle auto-accept:', error);
+      alert('Error updating auto-accept setting: ' + (error.response?.data?.message || error.message || 'Unknown error'));
+    } finally {
+      setAutoAcceptLoading(false);
     }
   };
 
@@ -272,23 +293,44 @@ export default function SellerDashboard() {
           <h1 className="text-xl font-bold text-gray-800">Dashboard</h1>
           <p className="text-sm text-gray-500">Overview of your store performance</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-          <span className={`text-sm font-medium ${isShopOpen ? 'text-green-600' : 'text-red-500'}`}>
-            {isShopOpen ? 'Shop is Live' : 'Shop is Closed'}
-          </span>
-          <button
-            onClick={handleToggleShop}
-            disabled={statusLoading}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
-              isShopOpen ? 'bg-teal-600' : 'bg-gray-200'
-            } ${statusLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          >
-            <span
-              className={`${
-                isShopOpen ? 'translate-x-6' : 'translate-x-1'
-              } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
-            />
-          </button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 w-full sm:w-auto">
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+            <span className={`text-sm font-medium ${autoAccept ? 'text-teal-600' : 'text-gray-500'}`}>
+              Auto-accept Orders
+            </span>
+            <button
+              onClick={handleToggleAutoAccept}
+              disabled={autoAcceptLoading}
+              title="When enabled, new orders are accepted automatically and delivery partners are notified immediately"
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
+                autoAccept ? 'bg-teal-600' : 'bg-gray-200'
+              } ${autoAcceptLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <span
+                className={`${
+                  autoAccept ? 'translate-x-6' : 'translate-x-1'
+                } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
+              />
+            </button>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+            <span className={`text-sm font-medium ${isShopOpen ? 'text-green-600' : 'text-red-500'}`}>
+              {isShopOpen ? 'Shop is Live' : 'Shop is Closed'}
+            </span>
+            <button
+              onClick={handleToggleShop}
+              disabled={statusLoading}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
+                isShopOpen ? 'bg-teal-600' : 'bg-gray-200'
+              } ${statusLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <span
+                className={`${
+                  isShopOpen ? 'translate-x-6' : 'translate-x-1'
+                } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
+              />
+            </button>
+          </div>
         </div>
       </div>
       {/* KPI Cards Grid */}

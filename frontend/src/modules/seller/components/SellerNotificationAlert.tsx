@@ -179,7 +179,30 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
         {/* Footer */}
         <div className="p-6 bg-neutral-50 border-t border-neutral-200">
 
-          {notification.type === 'NEW_ORDER' ? (
+          {notification.type === 'NEW_ORDER' && notification.status === 'Accepted' ? (
+             <div>
+               <p className="text-center text-sm font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg py-2 px-3 mb-4">
+                 ✅ This order was auto-accepted. Delivery partners have been notified.
+               </p>
+               <div className="flex gap-4">
+                 <button
+                   onClick={() => {
+                     onClose();
+                     navigate(`/seller/orders/${notification.orderId}`);
+                   }}
+                   className="flex-1 py-4 rounded-xl font-bold text-white shadow-lg bg-teal-600 hover:bg-teal-700 transition-transform active:scale-95"
+                 >
+                   View Order
+                 </button>
+                 <button
+                   onClick={onClose}
+                   className="flex-1 py-4 rounded-xl font-bold text-neutral-700 shadow-sm border border-neutral-200 bg-white hover:bg-neutral-50 transition-transform active:scale-95"
+                 >
+                   Dismiss
+                 </button>
+               </div>
+             </div>
+          ) : notification.type === 'NEW_ORDER' ? (
              <div className="flex gap-4">
                <button
                  onClick={() => handleStatusUpdate('Accepted')}

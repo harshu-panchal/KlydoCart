@@ -187,6 +187,11 @@ export const capturePayment = async (
         // Notify sellers
         if (shouldNotify && io) {
             try {
+                // Auto-accept first (if every seller opted in) so the seller notification
+                // reflects the final status and delivery partners get notified.
+                const { autoAcceptOrderForSellers } = await import('./orderNotificationService');
+                await autoAcceptOrderForSellers(io, orderId);
+
                 const fullOrder = await Order.findById(orderId).populate('items').lean();
                 if (fullOrder) {
                     const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');
@@ -362,6 +367,11 @@ const handlePaymentCaptured = async (payload: any, io?: any) => {
                 await order.save();
 
                 if (shouldNotify && io) {
+                    // Auto-accept first (if every seller opted in) so the seller notification
+                    // reflects the final status and delivery partners get notified.
+                    const { autoAcceptOrderForSellers } = await import('./orderNotificationService');
+                    await autoAcceptOrderForSellers(io, order._id as mongoose.Types.ObjectId);
+
                     const fullOrder = await Order.findById(order._id).populate('items').lean();
                     if (fullOrder) {
                         const { notifySellersOfOrderUpdate } = await import('./sellerNotificationService');

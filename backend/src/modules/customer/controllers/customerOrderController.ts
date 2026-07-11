@@ -549,6 +549,13 @@ export const createOrder = async (req: Request, res: Response) => {
         try {
             const io: SocketIOServer = (req.app.get("io") as SocketIOServer);
             if (io) {
+                // Auto-accept first (if every seller opted in) so the seller notification
+                // below reflects the final status and delivery partners get notified.
+                if (newOrder.status === 'Received') {
+                    const { autoAcceptOrderForSellers } = await import("../../../services/orderNotificationService");
+                    await autoAcceptOrderForSellers(io, newOrder._id as mongoose.Types.ObjectId);
+                }
+
                 // Reload order and populate items to get seller IDs for delivery boy proximity calculation
                 const savedOrder = await Order.findById(newOrder._id).populate('items').lean();
                 if (savedOrder && (savedOrder as any).status !== 'Pending') {

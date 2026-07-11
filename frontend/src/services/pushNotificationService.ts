@@ -125,8 +125,13 @@ export async function getFCMToken(): Promise<string | null> {
 /**
  * Full flow: check permission → request if needed → get token → register with backend.
  * Safe to call on every login. Will silently skip if permission is denied/blocked.
+ *
+ * @param forceUpdate - re-register even if a token is cached
+ * @param ownerKey - identity of the logged-in user (e.g. "Seller:abc123"). The token is
+ *   saved per-account on the backend, so when a different account logs in on the same
+ *   browser we must re-register the token for that account too.
  */
-export async function registerFCMToken(forceUpdate = false): Promise<string | null> {
+export async function registerFCMToken(forceUpdate = false, ownerKey?: string): Promise<string | null> {
     if (!messaging) return null;
 
     // Skip entirely if notifications are blocked — no point continuing
@@ -136,9 +141,11 @@ export async function registerFCMToken(forceUpdate = false): Promise<string | nu
     }
 
     try {
-        // Check if already registered and no force update
+        // Check if already registered for this same user and no force update
         const savedToken = localStorage.getItem('fcm_token_web');
-        if (savedToken && !forceUpdate) {
+        const savedOwner = localStorage.getItem('fcm_token_web_owner');
+        const ownerChanged = !!ownerKey && savedOwner !== ownerKey;
+        if (savedToken && !forceUpdate && !ownerChanged) {
             console.info('[FCM] Token already registered.');
             return savedToken;
         }
@@ -162,6 +169,7 @@ export async function registerFCMToken(forceUpdate = false): Promise<string | nu
             const response = await api.post('/fcm-tokens/save', { token, platform });
             if (response.data.success) {
                 localStorage.setItem('fcm_token_web', token);
+                if (ownerKey) localStorage.setItem('fcm_token_web_owner', ownerKey);
                 console.log(`✅ FCM token registered with backend as [${platform}].`);
                 return token;
             }
@@ -188,15 +196,17 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
             handler(payload);
         }
 
-        // Show system notification even in foreground if permission is granted
-        if (Notification.permission === 'granted' && payload.notification) {
-            const { title, body } = payload.notification;
+        // Show system notification even in foreground if permission is granted.
+        // The backend sends data-only messages for web, so title/body live in payload.data.
+        const title = payload.notification?.title || payload.data?.title;
+        const body = payload.notification?.body || payload.data?.body;
+        if (Notification.permission === 'granted' && (title || body)) {
             const notificationTitle = title || 'KlydoCart Notification';
             const notificationOptions: NotificationOptions = {
                 body: body,
                 icon: '/favicon.png',
                 badge: '/favicon.png',
-                tag: payload.data?.type || 'klydocart-general',
+                tag: payload.data?.tag || payload.data?.type || 'klydocart-general',
                 data: payload.data
             };
 

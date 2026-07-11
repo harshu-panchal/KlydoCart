@@ -67,6 +67,7 @@ export interface ISeller extends Document {
   categories: string[];
   logo?: string;
   isShopOpen: boolean;
+  autoAcceptOrders: boolean;
   fcmTokens?: string[];
   fcmTokenMobile?: string[];
 
@@ -280,6 +281,10 @@ const SellerSchema = new Schema<ISeller>(
     isShopOpen: {
       type: Boolean,
       default: true,
+    },
+    autoAcceptOrders: {
+      type: Boolean,
+      default: false,
     },
     fcmTokens: {
       type: [String],

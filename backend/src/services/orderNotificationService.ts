@@ -381,7 +381,8 @@ export async function notifyDeliveryBoysOfNewOrder(
                             type: 'NEW_ORDER',
                             orderId: orderId,
                             orderNumber: order.orderNumber?.toString() || '',
-                            total: order.total?.toString() || ''
+                            total: order.total?.toString() || '',
+                            link: '/delivery'
                         }
                     });
                     console.log(`📱 Sent FCM push notifications to ${uniqueTokens.length} unique tokens for ${deliveryBoysWithTokens.length} delivery boys`);
@@ -399,6 +400,79 @@ export async function notifyDeliveryBoysOfNewOrder(
         }
     } catch (error) {
         console.error('❌ Error notifying delivery boys:', error);
+    }
+}
+
+/**
+ * Auto-accept a freshly received order when every seller involved has
+ * auto-accept enabled, then notify delivery partners exactly like a manual
+ * seller acceptance would. Returns true if the order was auto-accepted.
+ */
+export async function autoAcceptOrderForSellers(
+    io: SocketIOServer,
+    orderId: string | mongoose.Types.ObjectId
+): Promise<boolean> {
+    try {
+        const order = await Order.findById(orderId).populate({
+            path: 'items',
+            populate: { path: 'seller' }
+        });
+
+        if (!order || order.status !== 'Received') return false;
+
+        const items: any[] = (order.items as any[]) || [];
+        const uniqueSellers = new Map<string, any>();
+        for (const item of items) {
+            const seller = item?.seller;
+            if (seller && seller._id) {
+                uniqueSellers.set(seller._id.toString(), seller);
+            }
+        }
+
+        if (uniqueSellers.size === 0) return false;
+
+        // Every seller on the order must have opted in — a single-status order
+        // can't be half accepted for multi-seller carts.
+        const allAutoAccept = [...uniqueSellers.values()].every(s => s.autoAcceptOrders === true);
+        if (!allAutoAccept) return false;
+
+        // Atomic guard so concurrent payment webhook + capture calls can't double-process
+        const updated = await Order.findOneAndUpdate(
+            { _id: order._id, status: 'Received' },
+            { $set: { status: 'Accepted' } },
+            { new: true }
+        );
+        if (!updated) return false;
+
+        const idStr = updated._id.toString();
+        console.log(`🤖 Order ${updated.orderNumber} auto-accepted on behalf of ${uniqueSellers.size} seller(s)`);
+
+        // Let the customer know their order was accepted
+        io.to(`order-${idStr}`).emit('status-update', {
+            orderId: idStr,
+            status: 'Accepted',
+            message: 'Your order has been accepted by the seller.'
+        });
+        if (updated.customer) {
+            io.to(`customer-${updated.customer}`).emit('order-delivered', {
+                orderId: idStr,
+                status: 'Accepted',
+                orderNumber: updated.orderNumber
+            });
+        }
+
+        // Notify delivery partners — same flow as manual seller acceptance
+        const fullOrder = await Order.findById(updated._id)
+            .populate({ path: 'items', populate: { path: 'seller' } })
+            .lean();
+        if (fullOrder) {
+            await notifyDeliveryBoysOfNewOrder(io, fullOrder);
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error auto-accepting order for sellers:', error);
+        return false;
     }
 }
 
@@ -883,6 +957,7 @@ export async function notifyDeliveryBoysOfNewReturn(io: SocketIOServer, returnRe
                         data: {
                             type: 'NEW_RETURN_PICKUP',
                             returnId: returnId,
+                            link: '/delivery'
                         }
                     });
                 }

@@ -62,6 +62,12 @@ export interface PushNotificationPayload {
     title: string;
     body: string;
     data?: { [key: string]: string };
+    /**
+     * Web notification tag. When set, repeated sends with the same tag replace the
+     * previous notification and (with renotify) replay the system sound/vibration —
+     * used to create a repeated "ring" effect for closed tabs.
+     */
+    webTag?: string;
 }
 
 /**
@@ -96,34 +102,47 @@ export async function sendPushNotification(tokens: string[], payload: PushNotifi
     }
 
     try {
+        // IMPORTANT: no top-level `notification` block. For web we send DATA-ONLY messages so
+        // the Firebase SDK does NOT auto-display them — the SDK's auto-displayed notifications
+        // swallow the click event (nothing opens, especially on http/localhost) and don't
+        // reliably honor sound options. Instead our service worker (firebase-messaging-sw.js)
+        // displays the notification itself from the data payload and handles clicks, which
+        // works on both localhost and production.
+        // Mobile still gets natively displayed notifications via the android/apns blocks below.
         const message: any = {
-            notification: {
+            data: {
+                ...(payload.data || {}),
+                // The service worker builds the visible notification from these:
                 title: payload.title,
                 body: payload.body,
+                ...(payload.webTag ? { tag: payload.webTag } : {}),
             },
-            data: payload.data || {},
             tokens: tokens,
             // Web Push Specifics (crucial for waking up PWA/Browsers in sleep mode)
             webpush: {
                 headers: {
                     Urgency: 'high'
                 },
-                notification: {
-                    requireInteraction: true // Keeps the notification on screen until interacted with
-                }
             },
             // Mobile Specifics
             android: {
                 priority: 'high',
                 notification: {
+                    title: payload.title,
+                    body: payload.body,
                     sound: 'default',
                     channelId: 'klydocart_notifications', // Ensure this matches your Flutter side channel if defined
                     clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+                    ...(payload.webTag ? { tag: payload.webTag } : {}),
                 },
             },
             apns: {
                 payload: {
                     aps: {
+                        alert: {
+                            title: payload.title,
+                            body: payload.body,
+                        },
                         sound: 'default',
                         badge: 1,
                         contentAvailable: true,

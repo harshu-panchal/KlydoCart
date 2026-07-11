@@ -305,7 +305,7 @@ const SellerDetails = lazyWithRetry(
 import { initializePushNotifications, setupForegroundNotificationHandler, registerFCMToken } from "./services/pushNotificationService";
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   // Initialize push notifications (service worker registration only)
   useEffect(() => {
@@ -313,12 +313,15 @@ function AppContent() {
     setupForegroundNotificationHandler();
   }, []);
 
-  // Register FCM Token with backend if user is authenticated
+  // Register FCM Token with backend if user is authenticated.
+  // The owner key ensures the token is re-registered when a different
+  // account (e.g. Seller vs Customer) logs in on the same browser.
   useEffect(() => {
     if (isAuthenticated) {
-      registerFCMToken();
+      const ownerKey = user?.id ? `${user.userType || 'Customer'}:${user.id}` : undefined;
+      registerFCMToken(false, ownerKey);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.id, user?.userType]);
 
   return (
     <ErrorBoundary>

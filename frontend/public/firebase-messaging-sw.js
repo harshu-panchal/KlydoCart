@@ -27,37 +27,62 @@ if (messaging) {
     messaging.onBackgroundMessage((payload) => {
         console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-        // Customize notification here
-        const notificationTitle = payload.notification?.title || 'New Message';
+        // Messages that carry a `notification` payload are displayed automatically
+        // by the Firebase SDK — showing them again here creates duplicates.
+        // Only display data-only messages manually (the backend sends data-only for web).
+        if (payload.notification) {
+            return;
+        }
+
+        const data = payload.data || {};
+        const notificationTitle = data.title || 'KlydoCart Notification';
         const notificationOptions = {
-            body: payload.notification?.body || '',
-            icon: '/favicon.ico',
-            data: payload.data
+            body: data.body || '',
+            icon: '/favicon.png',
+            badge: '/favicon.png',
+            vibrate: [200, 100, 200, 100, 200],
+            requireInteraction: true,
+            silent: false,
+            data: data
         };
+
+        // Same tag + renotify: repeated sends for the same order replace the previous
+        // banner and replay the system sound (the "ring" effect) instead of stacking.
+        if (data.tag) {
+            notificationOptions.tag = data.tag;
+            notificationOptions.renotify = true;
+        }
 
         self.registration.showNotification(notificationTitle, notificationOptions);
     });
 }
 
-// Handle notification click
+// Handle notification click (fires for notifications we showed ourselves;
+// SDK-displayed ones are handled by the SDK via webpush fcmOptions.link)
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
     // Firebase wraps the data in FCM_MSG sometimes when auto-displaying notifications
     const data = event.notification.data?.FCM_MSG?.data || event.notification.data || {};
     const urlToOpen = data?.link || '/';
+    const absoluteUrl = new URL(urlToOpen, self.location.origin).href;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-            // Check if there is already a window/tab open with the target URL
+            // Prefer a tab already on our origin: focus it and navigate to the target page
             for (const client of clientList) {
-                if (client.url && 'focus' in client) {
-                    return client.focus();
+                if (client.url && client.url.startsWith(self.location.origin) && 'focus' in client) {
+                    return client.focus().then((focusedClient) => {
+                        if (focusedClient && 'navigate' in focusedClient && focusedClient.url !== absoluteUrl) {
+                            return focusedClient.navigate(absoluteUrl).catch(() => focusedClient);
+                        }
+                        return focusedClient;
+                    });
                 }
             }
             // If no window/tab is open, open the URL
             if (clients.openWindow) {
-                return clients.openWindow(urlToOpen);
+                return clients.openWindow(absoluteUrl);
             }
         })
     );
