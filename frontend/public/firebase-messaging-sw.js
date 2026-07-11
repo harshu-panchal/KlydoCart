@@ -54,6 +54,15 @@ if (messaging) {
         }
 
         self.registration.showNotification(notificationTitle, notificationOptions);
+
+        // Bridge to open tabs: a service worker cannot play audio, but any open tab of
+        // the site can. Tell every open tab about the push so the page can play the
+        // real alert ringtone (mp3), which the OS notification sound can't provide.
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            clientList.forEach((client) => {
+                client.postMessage({ type: 'KLYDO_PUSH_RECEIVED', data: data });
+            });
+        });
     });
 }
 

@@ -293,8 +293,8 @@ export default function SellerDashboard() {
           <h1 className="text-xl font-bold text-gray-800">Dashboard</h1>
           <p className="text-sm text-gray-500">Overview of your store performance</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 w-full sm:w-auto">
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-6 w-full sm:w-auto">
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start bg-neutral-50 sm:bg-transparent rounded-lg px-3 py-2.5 sm:p-0 border border-neutral-200 sm:border-0">
             <span className={`text-sm font-medium ${autoAccept ? 'text-teal-600' : 'text-gray-500'}`}>
               Auto-accept Orders
             </span>
@@ -302,32 +302,32 @@ export default function SellerDashboard() {
               onClick={handleToggleAutoAccept}
               disabled={autoAcceptLoading}
               title="When enabled, new orders are accepted automatically and delivery partners are notified immediately"
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
+              className={`relative inline-flex h-7 w-12 sm:h-6 sm:w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
                 autoAccept ? 'bg-teal-600' : 'bg-gray-200'
               } ${autoAcceptLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <span
                 className={`${
                   autoAccept ? 'translate-x-6' : 'translate-x-1'
-                } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
+                } inline-block h-5 w-5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
               />
             </button>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start bg-neutral-50 sm:bg-transparent rounded-lg px-3 py-2.5 sm:p-0 border border-neutral-200 sm:border-0">
             <span className={`text-sm font-medium ${isShopOpen ? 'text-green-600' : 'text-red-500'}`}>
               {isShopOpen ? 'Shop is Live' : 'Shop is Closed'}
             </span>
             <button
               onClick={handleToggleShop}
               disabled={statusLoading}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
+              className={`relative inline-flex h-7 w-12 sm:h-6 sm:w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
                 isShopOpen ? 'bg-teal-600' : 'bg-gray-200'
               } ${statusLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <span
                 className={`${
                   isShopOpen ? 'translate-x-6' : 'translate-x-1'
-                } inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
+                } inline-block h-5 w-5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out`}
               />
             </button>
           </div>

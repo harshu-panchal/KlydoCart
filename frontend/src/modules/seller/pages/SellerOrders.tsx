@@ -328,10 +328,12 @@ export default function SellerOrders() {
                 >
                   <option>All Status</option>
                   <option>Pending</option>
+                  <option>Received</option>
                   <option>Accepted</option>
                   <option>Out for Delivery</option>
                   <option>Delivered</option>
                   <option>Cancelled</option>
+                  <option>Rejected</option>
                 </select>
               </div>
 

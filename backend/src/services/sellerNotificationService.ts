@@ -12,7 +12,7 @@ import { sendPushNotification } from './firebaseAdmin';
  * opens the site. Each repeat replays the system notification sound.
  * Tune via env: SELLER_PUSH_REPEAT_COUNT / SELLER_PUSH_REPEAT_INTERVAL_SECONDS.
  */
-const SELLER_PUSH_REPEAT_COUNT = Number(process.env.SELLER_PUSH_REPEAT_COUNT) || 4;
+const SELLER_PUSH_REPEAT_COUNT = Number(process.env.SELLER_PUSH_REPEAT_COUNT) || 1;
 const SELLER_PUSH_REPEAT_INTERVAL_MS =
     (Number(process.env.SELLER_PUSH_REPEAT_INTERVAL_SECONDS) || 20) * 1000;
 
@@ -147,7 +147,9 @@ async function sendSellerPushNotifications(
                 type,
                 orderId: orderIdStr,
                 orderNumber: order.orderNumber?.toString() || '',
-                link: `/seller/orders/${orderIdStr}`
+                link: `/seller/orders/${orderIdStr}`,
+                // Open tabs play this ringtone when the push arrives (SW sound bridge)
+                sound: 'seller_alert'
             },
             // Same tag on every send: repeats replace the previous notification and
             // replay the system sound instead of stacking up in the tray.
@@ -213,7 +215,11 @@ function scheduleSellerPushRepeats(
                 await sendPushNotification([...new Set(tokens)], {
                     ...payload,
                     title: `🔔 ${payload.title}`,
-                    body: `${payload.body} (Reminder ${attempt}/${SELLER_PUSH_REPEAT_COUNT})`
+                    body: `${payload.body}${SELLER_PUSH_REPEAT_COUNT > 1 ? ` (Reminder ${attempt}/${SELLER_PUSH_REPEAT_COUNT})` : ' (Reminder)'}`,
+                    // Unique tag per reminder: Windows doesn't reliably replay the sound
+                    // when a toast is replaced in-place (renotify), but a fresh toast
+                    // always gets a fresh sound.
+                    webTag: `${payload.webTag}-r${attempt}`
                 });
                 console.log(`🔁 Seller push ring ${attempt}/${SELLER_PUSH_REPEAT_COUNT} for order ${orderId} (${tokens.length} tokens)`);
             }

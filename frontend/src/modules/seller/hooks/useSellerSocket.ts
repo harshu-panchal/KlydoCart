@@ -60,6 +60,8 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
         newSocket.on('connect', () => {
             console.log('✅ Seller connected to socket server');
             setIsConnected(true);
+            // Tell the push sound bridge the seller modal handles ringing now
+            (window as any).__sellerSocketConnected = true;
 
             // Join seller room
             newSocket.emit('join-seller-room', user.id);
@@ -79,11 +81,13 @@ export const useSellerSocket = (onNotificationReceived?: (notification: SellerNo
         newSocket.on('disconnect', () => {
             console.log('❌ Seller disconnected from socket server');
             setIsConnected(false);
+            (window as any).__sellerSocketConnected = false;
         });
 
         setSocket(newSocket);
 
         return () => {
+            (window as any).__sellerSocketConnected = false;
             newSocket.disconnect();
         };
     }, [isAuthenticated, token, user?.id, user?.userType]); // Removed onNotificationReceived from dependencies

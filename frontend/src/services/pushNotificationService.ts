@@ -221,6 +221,50 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
     });
 }
 
+// --- Push sound bridge ---------------------------------------------------
+// Service workers cannot play audio, so when a push arrives in the background
+// the SW posts a message to every open tab and the page plays the ringtone.
+// Only known sounds can be played (whitelist keyed by the push's data.sound).
+const PUSH_SOUNDS: Record<string, string> = {
+    seller_alert: '/assets/sound/seller_alert.mp3',
+    delivery_new: '/assets/sound/DeliveryNew.mp3',
+    delivery_alert: '/assets/sound/delivery-alert.mp3',
+};
+
+let pushAlertAudio: HTMLAudioElement | null = null;
+let swMessageListenerAttached = false;
+
+function setupServiceWorkerSoundBridge() {
+    if (swMessageListenerAttached || !('serviceWorker' in navigator)) return;
+    swMessageListenerAttached = true;
+
+    navigator.serviceWorker.addEventListener('message', (event: MessageEvent) => {
+        const msg = event.data;
+        if (!msg || msg.type !== 'KLYDO_PUSH_RECEIVED') return;
+
+        const data = msg.data || {};
+        const soundUrl = data.sound ? PUSH_SOUNDS[data.sound] : undefined;
+        if (!soundUrl) return;
+
+        // If the seller panel's socket is live, its alert modal already plays a
+        // looping ring — don't double up.
+        if ((window as any).__sellerSocketConnected) return;
+
+        try {
+            if (!pushAlertAudio || !pushAlertAudio.src.endsWith(soundUrl)) {
+                pushAlertAudio = new Audio(soundUrl);
+            }
+            pushAlertAudio.currentTime = 0;
+            pushAlertAudio.play().catch((err) => {
+                // Autoplay can be blocked until the user has interacted with the site
+                console.warn('[Push] Could not play alert sound (autoplay policy):', err?.message || err);
+            });
+        } catch (err) {
+            console.warn('[Push] Error playing alert sound:', err);
+        }
+    });
+}
+
 // Initialize push notifications (just registers service worker — no permission prompt here)
 export async function initializePushNotifications() {
     if (!('serviceWorker' in navigator) || !('Notification' in window) || !('PushManager' in window)) {
@@ -232,6 +276,9 @@ export async function initializePushNotifications() {
         console.warn('[Push] Secure context required (HTTPS or localhost). Push notifications disabled.');
         return;
     }
+
+    // Listen for SW push messages so open tabs can play the alert ringtone
+    setupServiceWorkerSoundBridge();
 
     // Only register service worker here — do NOT ask for permission on app init
     await registerServiceWorker();
