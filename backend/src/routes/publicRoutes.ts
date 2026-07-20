@@ -1,5 +1,6 @@
 import { Router } from "express";
 import FAQ from "../models/FAQ";
+import AppSettings from "../models/AppSettings";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
@@ -20,6 +21,26 @@ router.get("/faqs", asyncHandler(async (req, res) => {
     return res.status(200).json({
         success: true,
         data: faqs
+    });
+}));
+
+/**
+ * Get App Settings (Public)
+ */
+router.get("/settings", asyncHandler(async (req, res) => {
+    const settings = await AppSettings.getSettings();
+    
+    // Only return safe public settings
+    return res.status(200).json({
+        success: true,
+        data: {
+            appName: settings.appName,
+            supportEmail: settings.supportEmail || settings.contactEmail,
+            supportPhone: settings.supportPhone || settings.contactPhone,
+            contactEmail: settings.contactEmail,
+            contactPhone: settings.contactPhone,
+            companyWebsite: settings.companyWebsite || "https://klydocart.com"
+        }
     });
 }));
 

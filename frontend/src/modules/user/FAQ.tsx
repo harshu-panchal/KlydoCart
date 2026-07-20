@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { getPublicFAQs, type FAQ as FAQType } from "../../services/api/publicService";
+import { getPublicFAQs, getPublicSettings, type FAQ as FAQType, type PublicSettings } from "../../services/api/publicService";
 
 interface FAQItem {
   id: string;
@@ -11,6 +11,7 @@ interface FAQItem {
 export default function FAQ() {
   const navigate = useNavigate();
   const [faqs, setFaqs] = useState<FAQType[]>([]);
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
 
@@ -22,10 +23,13 @@ export default function FAQ() {
         const customerResponse = await getPublicFAQs("Customer");
         // Fetch General FAQs
         const generalResponse = await getPublicFAQs("General");
+        // Fetch Public Settings
+        const settingsResponse = await getPublicSettings().catch(() => null);
 
         let allFaqs: FAQType[] = [];
         if (customerResponse.success) allFaqs = [...allFaqs, ...customerResponse.data];
         if (generalResponse.success) allFaqs = [...allFaqs, ...generalResponse.data];
+        if (settingsResponse?.success) setSettings(settingsResponse.data);
 
         // Deduplicate if needed (though categories should be distinct)
         const uniqueFaqs = allFaqs.filter((v, i, a) => a.findIndex(t => t._id === v._id) === i);
@@ -186,7 +190,7 @@ export default function FAQ() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
-                  href="mailto:help@klydocart.com"
+                  href={`mailto:${settings?.supportEmail || "help@klydocart.com"}`}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors text-sm">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                     <path
@@ -204,10 +208,10 @@ export default function FAQ() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  Email Us
+                  Email Us: {settings?.supportEmail || "help@klydocart.com"}
                 </a>
                 <a
-                  href="tel:+91-XXXXX-XXXXX"
+                  href={`tel:${settings?.supportPhone || "+91-XXXXX-XXXXX"}`}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-green-600 border-2 border-green-600 rounded-lg font-semibold hover:bg-green-50 transition-colors text-sm">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                     <path
@@ -218,7 +222,7 @@ export default function FAQ() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  Call Us
+                  Call Us: {settings?.supportPhone || "+91-XXXXX-XXXXX"}
                 </a>
               </div>
             </div>

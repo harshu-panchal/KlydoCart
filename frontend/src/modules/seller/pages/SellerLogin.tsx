@@ -7,6 +7,7 @@ import {
 } from "../../../services/api/auth/sellerAuthService";
 import OTPInput from "../../../components/OTPInput";
 import { useAuth } from "../../../context/AuthContext";
+import sellerLogo from "../../../../assets/login/sellerlog.png";
 
 export default function SellerLogin() {
   const navigate = useNavigate();
@@ -115,9 +116,9 @@ export default function SellerLogin() {
             <div className="relative z-10 w-full flex flex-col items-center">
               <div className="mb-3">
                 <img
-                  src="/KlydoCardLatest.png"
-                  alt="KlydoCart"
-                  className="h-10 w-auto object-contain"
+                  src={sellerLogo}
+                  alt="KlydoCart Seller Logo"
+                  className="h-16 w-auto object-contain"
                 />
               </div>
               <h1 className="text-xl font-black text-slate-800 tracking-tight">

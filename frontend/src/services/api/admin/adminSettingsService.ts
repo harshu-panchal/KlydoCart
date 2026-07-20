@@ -64,6 +64,7 @@ export interface AppSettings {
   contactPhone: string;
   supportEmail?: string;
   supportPhone?: string;
+  companyWebsite?: string;
   companyAddress?: string;
   companyCity?: string;
   companyState?: string;

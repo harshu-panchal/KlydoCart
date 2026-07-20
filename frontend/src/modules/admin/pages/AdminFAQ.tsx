@@ -8,6 +8,7 @@ import {
   type CreateFAQData,
   type UpdateFAQData,
 } from "../../../services/api/admin/adminContentService";
+import { getAppSettings, updateAppSettings } from "../../../services/api/admin/adminSettingsService";
 import { useAuth } from "../../../context/AuthContext";
 
 export default function AdminFAQ() {
@@ -26,6 +27,15 @@ export default function AdminFAQ() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Settings state
+  const [supportEmail, setSupportEmail] = useState("");
+  const [supportPhone, setSupportPhone] = useState("");
+  const [appName, setAppName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [companyWebsite, setCompanyWebsite] = useState("");
+  const [updatingSettings, setUpdatingSettings] = useState(false);
 
   // Fetch FAQs on component mount
   useEffect(() => {
@@ -52,11 +62,22 @@ export default function AdminFAQ() {
         } else {
           setError("Failed to load FAQs");
         }
+
+        // Fetch settings
+        const settingsResponse = await getAppSettings();
+        if (settingsResponse.success && settingsResponse.data) {
+          setSupportEmail(settingsResponse.data.supportEmail || "");
+          setSupportPhone(settingsResponse.data.supportPhone || "");
+          setAppName(settingsResponse.data.appName || "");
+          setContactEmail(settingsResponse.data.contactEmail || "");
+          setContactPhone(settingsResponse.data.contactPhone || "");
+          setCompanyWebsite(settingsResponse.data.companyWebsite || "");
+        }
       } catch (err: any) {
-        console.error("Error fetching FAQs:", err);
+        console.error("Error fetching FAQs and settings:", err);
         setError(
           err.response?.data?.message ||
-          "Failed to load FAQs. Please try again."
+          "Failed to load data. Please try again."
         );
       } finally {
         setLoading(false);
@@ -97,6 +118,31 @@ export default function AdminFAQ() {
       {sortColumn === column ? (sortDirection === "asc" ? "↑" : "↓") : "⇅"}
     </span>
   );
+
+  const handleUpdateContactSettings = async () => {
+    try {
+      setUpdatingSettings(true);
+      const response = await updateAppSettings({
+        supportEmail: supportEmail.trim(),
+        supportPhone: supportPhone.trim(),
+        appName: appName.trim(),
+        contactEmail: contactEmail.trim(),
+        contactPhone: contactPhone.trim(),
+        companyWebsite: companyWebsite.trim(),
+      });
+
+      if (response.success) {
+        alert("Contact settings updated successfully!");
+      } else {
+        alert("Failed to update contact settings: " + (response.message || "Unknown error"));
+      }
+    } catch (err: any) {
+      console.error("Error updating settings:", err);
+      alert("Failed to update contact settings.");
+    } finally {
+      setUpdatingSettings(false);
+    }
+  };
 
   const handleAddFAQ = async () => {
     if (!faqQuestion.trim() || !faqAnswer.trim()) {
@@ -258,8 +304,10 @@ export default function AdminFAQ() {
       {/* Page Content */}
       <div className="flex-1 px-6 pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-          {/* Left Panel: Add FAQ */}
-          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col">
+          {/* Left Column: Add FAQ and Contact Settings */}
+          <div className="flex flex-col gap-6">
+            {/* Add FAQ Card */}
+            <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col">
             <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg">
               <h2 className="text-lg font-semibold">Add FAQ</h2>
             </div>
@@ -337,8 +385,108 @@ export default function AdminFAQ() {
             </div>
           </div>
 
-          {/* Right Panel: View FAQ */}
-          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col">
+          {/* Contact Settings Card */}
+          <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col mt-6">
+            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg">
+              <h2 className="text-lg font-semibold">FAQ & Company Contact Details</h2>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Company Name (Invoice From)
+                </label>
+                <input
+                  type="text"
+                  value={appName}
+                  onChange={(e) => setAppName(e.target.value)}
+                  placeholder="e.g. KlydoCart"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Company Phone (Invoice)
+                  </label>
+                  <input
+                    type="tel"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder="e.g. +91 8956656429"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Company Email (Invoice)
+                  </label>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder="e.g. info@klydocart.com"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Company Website (Invoice)
+                </label>
+                <input
+                  type="url"
+                  value={companyWebsite}
+                  onChange={(e) => setCompanyWebsite(e.target.value)}
+                  placeholder="e.g. https://klydocart.com"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                />
+              </div>
+              <div className="border-t border-neutral-200 my-2"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Support Email (FAQ Page)
+                  </label>
+                  <input
+                    type="email"
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                    placeholder="e.g. support@klydocart.com"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Support Phone (FAQ Page)
+                  </label>
+                  <input
+                    type="tel"
+                    value={supportPhone}
+                    onChange={(e) => setSupportPhone(e.target.value)}
+                    placeholder="e.g. +91 9876543210"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleUpdateContactSettings}
+                disabled={updatingSettings}
+                className="w-full mt-2 bg-teal-600 hover:bg-teal-700 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium transition-colors flex items-center justify-center">
+                {updatingSettings ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Updating...
+                  </>
+                ) : (
+                  "Update Contact Details"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: View FAQ */}
+        <div className="h-full">
             <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg">
               <h2 className="text-lg font-semibold">View FAQ</h2>
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import klydocartLogo from "@assets/login/KlydoCardLatest.png";
+import klydocartLogo from "@assets/login/sellerlog.png";
 import { useAuth } from "../../../context/AuthContext";
 
 interface SellerHeaderProps {

@@ -11,6 +11,7 @@ export interface IAppSettings extends Document {
   contactPhone: string;
   supportEmail?: string;
   supportPhone?: string;
+  companyWebsite?: string;
 
   // Address
   companyAddress?: string;
@@ -155,6 +156,10 @@ const AppSettingsSchema = new Schema<IAppSettings>(
       trim: true,
     },
     supportPhone: {
+      type: String,
+      trim: true,
+    },
+    companyWebsite: {
       type: String,
       trim: true,
     },

@@ -6,6 +6,7 @@ import {
   OrderDetail,
 } from "../../../services/api/orderService";
 import { useSellerSocket } from "../hooks/useSellerSocket";
+import { getPublicSettings, type PublicSettings } from "../../../services/api/publicService";
 import { jsPDF } from "jspdf";
 
 export default function SellerOrderDetail() {
@@ -16,6 +17,22 @@ export default function SellerOrderDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [orderStatus, setOrderStatus] = useState<string>("");
+  const [companySettings, setCompanySettings] = useState<PublicSettings | null>(null);
+
+  // Fetch public settings for invoice details
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await getPublicSettings();
+        if (response.success && response.data) {
+          setCompanySettings(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching company settings:", err);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // Fetch order detail from API
   useEffect(() => {
@@ -181,21 +198,26 @@ export default function SellerOrderDetail() {
     yPos += 20;
 
     // Company Details
+    const appName = companySettings?.appName || "KlydoCart";
+    const contactPhone = companySettings?.contactPhone || "8956656429";
+    const contactEmail = companySettings?.contactEmail || "info@klydocart.com";
+    const companyWebsite = companySettings?.companyWebsite || "https://klydocart.com";
+
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("KlydoCart", margin, yPos);
+    doc.text(appName, margin, yPos);
     yPos += 7;
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("From: KlydoCart", margin, yPos);
+    doc.text(`From: ${appName}`, margin, yPos);
     yPos += 6;
-    doc.text("Phone: 8956656429", margin, yPos);
+    doc.text(`Phone: ${contactPhone}`, margin, yPos);
     yPos += 6;
-    doc.text("Email: info@klydocart.com", margin, yPos);
+    doc.text(`Email: ${contactEmail}`, margin, yPos);
     yPos += 6;
-    doc.text("Website: https://klydocart.com", margin, yPos);
+    doc.text(`Website: ${companyWebsite}`, margin, yPos);
     yPos += 12;
 
     // Invoice Details (Right aligned)
@@ -579,30 +601,32 @@ export default function SellerOrderDetail() {
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">A</span>
+                  <span className="text-white text-xs font-bold">
+                    {companySettings?.appName ? companySettings.appName.charAt(0).toUpperCase() : "A"}
+                  </span>
                 </div>
                 <div>
                   <div className="text-xs text-green-600 font-semibold">
-                    KlydoCart
+                    {companySettings?.appName || "KlydoCart"}
                   </div>
                 </div>
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 mb-2">
-                KlydoCart
+                {companySettings?.appName || "KlydoCart"}
               </h1>
               <div className="text-sm text-neutral-600 mb-1">
-                <span className="font-medium">From:</span> KlydoCart
+                <span className="font-medium">From:</span> {companySettings?.appName || "KlydoCart"}
               </div>
               <div className="text-sm text-neutral-600 space-y-1">
                 <div>
-                  <span className="font-medium">Phone:</span> 8956656429
+                  <span className="font-medium">Phone:</span> {companySettings?.contactPhone || "8956656429"}
                 </div>
                 <div>
-                  <span className="font-medium">Email:</span> info@klydocart.com
+                  <span className="font-medium">Email:</span> {companySettings?.contactEmail || "info@klydocart.com"}
                 </div>
                 <div>
                   <span className="font-medium">Website:</span>{" "}
-                  https://klydocart.com
+                  {companySettings?.companyWebsite || "https://klydocart.com"}
                 </div>
               </div>
             </div>
