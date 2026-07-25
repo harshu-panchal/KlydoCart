@@ -15,7 +15,7 @@ import {
 } from "../../../services/api/headerCategoryService";
 import LocationPickerMap from "../../../components/LocationPickerMap";
 import { useJsApiLoader } from "@react-google-maps/api";
-import sellerLogo from "../../../../assets/login/sellerlog.png";
+
 
 const libraries: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
 
@@ -317,7 +317,7 @@ export default function SellerSignUp() {
             <div className="relative z-10 w-full flex flex-col items-center">
               <div className="mb-4">
                 <img
-                  src={sellerLogo}
+                  src="/SellerLogo222.png"
                   alt="KlydoCart Seller Logo"
                   className="h-16 w-auto object-contain"
                 />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import klydocartLogo from "@assets/login/sellerlog.png";
+
 import { useAuth } from "../../../context/AuthContext";
 
 interface SellerHeaderProps {
@@ -113,7 +113,7 @@ export default function SellerHeader({
             onClick={handleLogoClick}
             className="hover:opacity-80 transition-opacity">
             <img
-              src={klydocartLogo}
+              src="/SellerLogo222.png"
               alt="KLYDO CART"
               className="h-14 sm:h-16 w-auto object-contain cursor-pointer"
               style={{ maxWidth: "240px" }}
