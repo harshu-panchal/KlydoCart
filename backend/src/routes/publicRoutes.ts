@@ -27,7 +27,7 @@ router.get("/faqs", asyncHandler(async (req, res) => {
 /**
  * Get App Settings (Public)
  */
-router.get("/settings", asyncHandler(async (req, res) => {
+router.get("/settings", asyncHandler(async (_req, res) => {
     const settings = await AppSettings.getSettings();
     
     // Only return safe public settings
