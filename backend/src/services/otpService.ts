@@ -2,13 +2,15 @@ import axios from 'axios';
 import Otp from '../models/Otp';
 
 // SMS India HUB Configuration
+const SMS_INDIA_HUB_USERNAME = process.env.SMS_INDIA_HUB_USERNAME;
 const SMS_INDIA_HUB_API_KEY = process.env.SMS_INDIA_HUB_API_KEY;
 const SMS_INDIA_HUB_SENDER_ID = process.env.SMS_INDIA_HUB_SENDER_ID;
 const SMS_INDIA_HUB_DLT_TEMPLATE_ID = process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID;
+const SMS_INDIA_HUB_PE_ID = process.env.SMS_INDIA_HUB_PE_ID || process.env.SMS_INDIA_HUB_ENTITY_ID; // DLT Principal Entity ID (peid)
 const SMS_INDIA_HUB_API_URL = 'http://cloud.smsindiahub.in/vendorsms/pushsms.aspx';
 const API_TIMEOUT = 30000; // 30 seconds
 
-if (!SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID) {
+if (!SMS_INDIA_HUB_USERNAME || !SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID) {
   if (process.env.NODE_ENV === 'production') {
     console.warn('SMS India HUB credentials are not fully set in environment variables');
   }
@@ -85,11 +87,13 @@ function normalizeMobileNumber(mobile: string): string {
 }
 
 /**
- * Build DLT-compliant message
+ * Build DLT-compliant message.
+ * IMPORTANT: This message must EXACTLY match the DLT-registered template on SMS India HUB.
+ * Registered template: "Welcome to the ##var## powered by Appzeto.Your OTP for registration is ##var##.BGADEC"
+ * Where ##var##[0] = Klydocart, ##var##[1] = OTP digits.
  */
 function buildOtpMessage(otp: string): string {
-  const appName = process.env.APP_NAME || 'klydocart';
-  return `Welcome to the ${appName} powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
+  return `Welcome to the Klydocart powered by Appzeto.Your OTP for registration is ${otp}.BGADEC`;
 }
 
 /**
@@ -125,13 +129,15 @@ function handleSmsResponse(responseData: SmsIndiaHubResponse): void {
  * Send SMS via SMS India HUB API
  */
 async function sendSmsViaApi(mobile: string, message: string): Promise<void> {
-  if (!SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID) {
+  if (!SMS_INDIA_HUB_USERNAME || !SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID) {
     throw new Error('SMS India HUB credentials are missing. Please check environment variables.');
   }
 
   const cleanMobile = normalizeMobileNumber(mobile);
 
+  // SMS India HUB API requires 'user' and 'APIKey' params per their vendor API.
   const params: Record<string, string> = {
+    user: SMS_INDIA_HUB_USERNAME.trim(),
     APIKey: SMS_INDIA_HUB_API_KEY.trim(),
     msisdn: cleanMobile,
     sid: SMS_INDIA_HUB_SENDER_ID.trim(),
@@ -140,9 +146,27 @@ async function sendSmsViaApi(mobile: string, message: string): Promise<void> {
     gwid: '2',
   };
 
+  // DLT Template ID (mandatory for TRAI-compliant SMS in India)
   if (SMS_INDIA_HUB_DLT_TEMPLATE_ID?.trim()) {
     params.DLT_TE_ID = SMS_INDIA_HUB_DLT_TEMPLATE_ID.trim();
+  } else {
+    console.warn('[SMS] WARNING: DLT_TE_ID not set — DLT-registered template ID is required for delivery in India.');
   }
+
+  // Principal Entity ID (peid) — required for DLT scrubbing layer validation
+  if (SMS_INDIA_HUB_PE_ID?.trim()) {
+    params.peid = SMS_INDIA_HUB_PE_ID.trim();
+  } else {
+    console.warn('[SMS] WARNING: SMS_INDIA_HUB_PE_ID (peid) not set — this is required for DLT compliance. Get it from your DLT portal.');
+  }
+
+  // Debug log: show exactly what is being sent (mask APIKey for security)
+  const debugParams = { ...params, APIKey: '***MASKED***' };
+  console.log('[SMS] Sending API request to SMS India HUB:', {
+    url: SMS_INDIA_HUB_API_URL,
+    params: debugParams,
+    message,
+  });
 
   const response = await axios.get<SmsIndiaHubResponse>(SMS_INDIA_HUB_API_URL, {
     params,
@@ -154,6 +178,7 @@ async function sendSmsViaApi(mobile: string, message: string): Promise<void> {
     timeout: API_TIMEOUT,
   });
 
+  console.log('[SMS] SMS India HUB raw response:', response.data);
   handleSmsResponse(response.data);
 }
 
@@ -221,7 +246,7 @@ function isSpecialBypass(mobile: string): boolean {
  * Check if mock mode should be used
  */
 function isMockMode(): boolean {
-  return process.env.USE_MOCK_OTP === 'true' || !SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID;
+  return process.env.USE_MOCK_OTP === 'true' || !SMS_INDIA_HUB_USERNAME || !SMS_INDIA_HUB_API_KEY || !SMS_INDIA_HUB_SENDER_ID;
 }
 
 /**
