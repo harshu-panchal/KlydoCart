@@ -13,6 +13,7 @@ export interface Address {
     latitude?: number;
     longitude?: number;
     landmark?: string;
+    flat?: string;
 }
 
 export interface AddressResponse {

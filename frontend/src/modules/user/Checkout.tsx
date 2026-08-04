@@ -210,7 +210,7 @@ export default function Checkout() {
           const mappedAddress: OrderAddress = {
             name: defaultAddr.fullName,
             phone: defaultAddr.phone,
-            flat: defaultAddr.flat || "",
+            flat: (defaultAddr as any).flat || "",
             street: defaultAddr.address,
             city: defaultAddr.city,
             state: defaultAddr.state,
