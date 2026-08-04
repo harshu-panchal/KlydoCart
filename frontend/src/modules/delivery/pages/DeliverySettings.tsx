@@ -8,6 +8,7 @@ import {
   getNotificationPermissionStatus,
   requestNotificationPermission,
   registerFCMToken,
+  type ExtendedNotificationPermission,
 } from '../../../services/pushNotificationService';
 
 export default function DeliverySettings() {
@@ -18,9 +19,10 @@ export default function DeliverySettings() {
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   // Browser-level notification permission state
-  const [browserPermission, setBrowserPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const [browserPermission, setBrowserPermission] = useState<ExtendedNotificationPermission>('default');
   const [isRegisteringFCM, setIsRegisteringFCM] = useState(false);
   const [fcmStatus, setFcmStatus] = useState<'idle' | 'success' | 'failed'>('idle');
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
   const refreshPermissionStatus = useCallback(() => {
     const status = getNotificationPermissionStatus();
@@ -54,7 +56,11 @@ export default function DeliverySettings() {
       refreshPermissionStatus();
 
       if (!granted) {
-        showToast('Notifications blocked. Please enable in browser settings.', 'error');
+        if (!window.isSecureContext) {
+          showToast('HTTPS required for push notifications on mobile.', 'error');
+        } else {
+          showToast('Notifications blocked. Please enable in browser/phone settings.', 'error');
+        }
         setFcmStatus('failed');
         return;
       }
@@ -123,6 +129,9 @@ export default function DeliverySettings() {
 
   const isGranted = browserPermission === 'granted';
   const isDenied = browserPermission === 'denied';
+  const isInsecure = browserPermission === 'insecure-context';
+  const isIOSPWA = browserPermission === 'ios-pwa-required';
+  const isUnsupported = browserPermission === 'unsupported';
 
   return (
     <div className="min-h-screen bg-neutral-100 pb-20">
@@ -141,12 +150,28 @@ export default function DeliverySettings() {
         </div>
 
         {/* ── Browser Notification Permission Banner ── */}
-        <div className={`mb-4 rounded-xl border p-4 ${
-          isGranted ? 'bg-teal-50 border-teal-200' : isDenied ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
+        <div className={`mb-4 rounded-xl border p-4 shadow-sm transition-all ${
+          isGranted
+            ? 'bg-teal-50 border-teal-200'
+            : isDenied
+            ? 'bg-red-50 border-red-200'
+            : isInsecure
+            ? 'bg-amber-50 border-amber-300'
+            : isIOSPWA
+            ? 'bg-blue-50 border-blue-200'
+            : 'bg-amber-50 border-amber-200'
         }`}>
           <div className="flex items-start gap-3">
             <div className={`mt-0.5 flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${
-              isGranted ? 'bg-teal-100' : isDenied ? 'bg-red-100' : 'bg-amber-100'
+              isGranted
+                ? 'bg-teal-100'
+                : isDenied
+                ? 'bg-red-100'
+                : isInsecure
+                ? 'bg-amber-100'
+                : isIOSPWA
+                ? 'bg-blue-100'
+                : 'bg-amber-100'
             }`}>
               {isGranted ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.5" strokeLinecap="round">
@@ -156,6 +181,16 @@ export default function DeliverySettings() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round">
                   <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
                 </svg>
+              ) : isInsecure ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2.5" strokeLinecap="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                </svg>
+              ) : isIOSPWA ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2.5" strokeLinecap="round">
+                  <rect x="5" y="2" width="14" height="20" rx="3" />
+                  <line x1="12" y1="18" x2="12.01" y2="18" />
+                </svg>
               ) : (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -163,18 +198,54 @@ export default function DeliverySettings() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-bold ${isGranted ? 'text-teal-800' : isDenied ? 'text-red-800' : 'text-amber-800'}`}>
-                {isGranted ? 'Notifications Active' : isDenied ? 'Notifications Blocked' : 'Notifications Not Enabled'}
+              <p className={`text-sm font-bold ${
+                isGranted
+                  ? 'text-teal-800'
+                  : isDenied
+                  ? 'text-red-800'
+                  : isInsecure
+                  ? 'text-amber-900'
+                  : isIOSPWA
+                  ? 'text-blue-900'
+                  : 'text-amber-800'
+              }`}>
+                {isGranted
+                  ? 'Notifications Active'
+                  : isDenied
+                  ? 'Notifications Blocked'
+                  : isInsecure
+                  ? 'HTTPS Connection Required for Mobile'
+                  : isIOSPWA
+                  ? 'Add to Home Screen Required (iOS)'
+                  : isUnsupported
+                  ? 'Notifications Unsupported'
+                  : 'Notifications Not Enabled'}
               </p>
-              <p className={`text-xs mt-1 leading-relaxed ${isGranted ? 'text-teal-600' : isDenied ? 'text-red-600' : 'text-amber-600'}`}>
+              <p className={`text-xs mt-1 leading-relaxed ${
+                isGranted
+                  ? 'text-teal-600'
+                  : isDenied
+                  ? 'text-red-600'
+                  : isInsecure
+                  ? 'text-amber-800'
+                  : isIOSPWA
+                  ? 'text-blue-700'
+                  : 'text-amber-600'
+              }`}>
                 {isGranted
                   ? 'You will receive push notifications for new orders even when the app is in the background.'
                   : isDenied
-                  ? 'Blocked by browser. Open browser Settings → Site Settings → Notifications → Allow this site.'
+                  ? 'Notifications are blocked in your browser or phone app settings. Open browser settings or phone settings to allow.'
+                  : isInsecure
+                  ? 'Mobile browsers require HTTPS for push notifications. On HTTP IP addresses (e.g. http://192.168.x.x), notifications are blocked by browser security.'
+                  : isIOSPWA
+                  ? 'On iPhone/iPad, Web Push Notifications require saving this website to your Home Screen first.'
+                  : isUnsupported
+                  ? 'Your browser does not support push notifications.'
                   : 'Tap the button below to start receiving new order alerts on your device.'}
               </p>
 
-              {!isGranted && !isDenied && (
+              {browserPermission === 'default' && (
                 <button
                   id="enable-notifications-btn"
                   onClick={handleEnableNotifications}
@@ -203,8 +274,78 @@ export default function DeliverySettings() {
               {fcmStatus === 'success' && (
                 <p className="mt-2 text-xs font-semibold text-teal-700">Token registered — notifications ready!</p>
               )}
+
+              {/* Toggle troubleshooting steps button */}
+              {(isDenied || isInsecure || isIOSPWA) && (
+                <button
+                  onClick={() => setShowTroubleshooting(!showTroubleshooting)}
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-neutral-700 underline hover:text-neutral-900"
+                >
+                  <span>{showTroubleshooting ? 'Hide Mobile Fix Guide' : 'How to fix on Mobile Phone?'}</span>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className={`transform transition-transform ${showTroubleshooting ? 'rotate-180' : ''}`}
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
+
+          {/* ── Accordion Mobile Troubleshooting Guide ── */}
+          {showTroubleshooting && (
+            <div className="mt-4 pt-3 border-t border-neutral-200 text-xs text-neutral-700 space-y-3">
+              {isInsecure && (
+                <div className="bg-amber-100/60 p-3 rounded-lg border border-amber-200">
+                  <p className="font-bold text-amber-900 mb-1">🌐 Why desktop works but mobile shows blocked:</p>
+                  <p className="leading-relaxed text-amber-800">
+                    Desktop uses <code className="bg-amber-200/70 px-1 py-0.5 rounded font-mono">http://localhost</code>, which browsers treat as secure.
+                    Mobile phones connect via IP (<code className="bg-amber-200/70 px-1 py-0.5 rounded font-mono">http://192.168.x.x</code>), which mobile browsers classify as <strong>Insecure HTTP</strong> and automatically block notifications.
+                  </p>
+                  <p className="font-bold text-amber-900 mt-2 mb-1">🛠️ How to fix for Mobile testing:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-amber-800 pl-1">
+                    <li><strong>Option 1 (Recommended):</strong> Run an HTTPS tunnel on host computer:
+                      <div className="my-1 bg-amber-900 text-amber-100 p-1.5 rounded font-mono text-[11px] overflow-x-auto">
+                        npx cloudflared tunnel --url http://localhost:5173
+                      </div>
+                      Open the generated <code className="bg-amber-200/70 px-1 py-0.5 rounded font-mono">https://...</code> link on your mobile phone.
+                    </li>
+                    <li><strong>Option 2:</strong> Deploy frontend to Vercel/Netlify with standard HTTPS.</li>
+                  </ol>
+                </div>
+              )}
+
+              {isDenied && (
+                <div className="bg-red-100/60 p-3 rounded-lg border border-red-200 space-y-2">
+                  <p className="font-bold text-red-900">📱 Mobile Android Chrome Unblock Steps:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-red-800">
+                    <li>Tap the <strong>Lock / Settings icon 🔒</strong> next to the URL bar in mobile Chrome.</li>
+                    <li>Tap <strong>Permissions</strong> → <strong>Notifications</strong> → select <strong>Allow</strong>.</li>
+                    <li>If still blocked, open Android Phone <strong>Settings → Apps → Chrome → Notifications</strong> and ensure <em>All notifications</em> are turned <strong>ON</strong>.</li>
+                    <li>Refresh this page after allowing.</li>
+                  </ol>
+                </div>
+              )}
+
+              {isIOSPWA && (
+                <div className="bg-blue-100/60 p-3 rounded-lg border border-blue-200 space-y-2">
+                  <p className="font-bold text-blue-900">🍎 iPhone / iOS Setup Steps:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-blue-800">
+                    <li>Open this site in <strong>Safari</strong> on your iPhone.</li>
+                    <li>Tap the <strong>Share button 📤</strong> at the bottom of Safari.</li>
+                    <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+                    <li>Open <strong>KlydoCart</strong> from your iPhone Home Screen and return to Settings to enable notifications.</li>
+                  </ol>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── App Settings Toggles ── */}

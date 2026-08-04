@@ -23,13 +23,31 @@ async function registerServiceWorker() {
     }
 }
 
+export type ExtendedNotificationPermission = NotificationPermission | 'unsupported' | 'insecure-context' | 'ios-pwa-required';
+
 /**
  * Checks the current notification permission status.
- * Returns 'granted' | 'denied' | 'default'
+ * Evaluates secure context (HTTPS/localhost), iOS PWA state, and browser permission.
  * This does NOT prompt the user.
  */
-export function getNotificationPermissionStatus(): NotificationPermission | 'unsupported' {
+export function getNotificationPermissionStatus(): ExtendedNotificationPermission {
+    if (typeof window === 'undefined') return 'unsupported';
+
+    // Insecure HTTP on mobile IP addresses (e.g. http://192.168.x.x) blocks push notifications
+    if (!window.isSecureContext) {
+        return 'insecure-context';
+    }
+
     if (!('Notification' in window)) return 'unsupported';
+
+    // iOS Safari requires the web app to be added to Home Screen (PWA standalone mode)
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+
+    if (isIOS && !isStandalone && Notification.permission !== 'granted') {
+        return 'ios-pwa-required';
+    }
+
     return Notification.permission;
 }
 
@@ -37,13 +55,19 @@ export function getNotificationPermissionStatus(): NotificationPermission | 'uns
  * Request notification permission from the user.
  * Will NOT prompt if:
  *   - Notifications are not supported
+ *   - Context is insecure (HTTP on mobile IP)
  *   - Permission is already 'denied' (browser-level block — re-prompting is impossible)
  *   - Permission is already 'granted'
  * Returns true only if permission is granted.
  */
 export async function requestNotificationPermission(): Promise<boolean> {
-    if (!('Notification' in window)) {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
         console.info('[Notifications] Not supported in this browser.');
+        return false;
+    }
+
+    if (!window.isSecureContext) {
+        console.warn('[Notifications] Insecure context (HTTP on mobile IP). Push notifications require HTTPS or localhost.');
         return false;
     }
 
