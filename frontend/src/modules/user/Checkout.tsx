@@ -170,15 +170,9 @@ export default function Checkout() {
     }
   }, [showOrderSuccess, placedOrderId, navigate]);
 
-  // Sync address with global userLocation unless map is explicitly selected on checkout
+  // Fallback address with global userLocation ONLY if no saved or selected address exists yet
   useEffect(() => {
-    if (userLocation && userLocation.latitude && userLocation.longitude && !isMapSelected) {
-      const latDiff = Math.abs(userLocation.latitude - (selectedAddress?.latitude || 0));
-      const lngDiff = Math.abs(userLocation.longitude - (selectedAddress?.longitude || 0));
-      
-      // Don't override if it's the exact same location coordinates
-      if (selectedAddress && latDiff < 0.00001 && lngDiff < 0.00001) return;
-
+    if (userLocation && userLocation.latitude && userLocation.longitude && !selectedAddress && !savedAddress) {
       const locAddress: OrderAddress = {
         name: user?.name || "User",
         phone: user?.phone || "",
@@ -194,7 +188,7 @@ export default function Checkout() {
       setSavedAddress(locAddress);
       setSelectedAddress(locAddress);
     }
-  }, [userLocation, isMapSelected, selectedAddress, user]);
+  }, [userLocation, selectedAddress, savedAddress, user]);
 
   // Load addresses and coupons
   useEffect(() => {
@@ -216,7 +210,7 @@ export default function Checkout() {
           const mappedAddress: OrderAddress = {
             name: defaultAddr.fullName,
             phone: defaultAddr.phone,
-            flat: "",
+            flat: defaultAddr.flat || "",
             street: defaultAddr.address,
             city: defaultAddr.city,
             state: defaultAddr.state,
@@ -228,22 +222,8 @@ export default function Checkout() {
             _id: defaultAddr._id,
           };
           
-          // Only use DB address if no userLocation exists, OR if the DB address matches userLocation
-          // This ensures that if the user explicitly changed their location on the homepage,
-          // we respect that newly picked location instead of forcing their default DB address.
-          if (!userLocation || !userLocation.latitude) {
-            setSavedAddress(mappedAddress);
-            setSelectedAddress(mappedAddress);
-          } else {
-            const latDiff = Math.abs(userLocation.latitude - (mappedAddress.latitude || 0));
-            const lngDiff = Math.abs(userLocation.longitude - (mappedAddress.longitude || 0));
-            // If the coordinates match closely, use the DB address since it has full details (name, flat, etc)
-            if (latDiff < 0.001 && lngDiff < 0.001) {
-              setSavedAddress(mappedAddress);
-              setSelectedAddress(mappedAddress);
-            }
-            // Otherwise, we leave savedAddress as the userLocation that was set by the other useEffect
-          }
+          setSavedAddress(mappedAddress);
+          setSelectedAddress(mappedAddress);
         }
 
         if (couponResponse.success) {
@@ -612,51 +592,101 @@ export default function Checkout() {
   };
 
   const handleUpdateLocation = async () => {
-    if (!selectedAddress?.id || !mapLocation) return;
+    if (!mapLocation) return;
     setIsUpdatingLocation(true);
     try {
-      // Prepare update payload
-      const updatePayload: any = {
-        latitude: mapLocation.lat,
-        longitude: mapLocation.lng,
-      };
+      const lat = mapLocation.lat;
+      const lng = mapLocation.lng;
+      let fetchedAddr = mapLocation.address;
 
-      // If address details are available from map, update them too
-      if (mapLocation.address) {
-        if (mapLocation.address.street)
-          updatePayload.address = mapLocation.address.street;
-        if (mapLocation.address.city)
-          updatePayload.city = mapLocation.address.city;
-        if (mapLocation.address.state)
-          updatePayload.state = mapLocation.address.state;
-        if (mapLocation.address.pincode)
-          updatePayload.pincode = mapLocation.address.pincode;
-        if (mapLocation.address.landmark)
-          updatePayload.landmark = mapLocation.address.landmark;
+      // If address details are missing, attempt reverse geocoding
+      if (!fetchedAddr || (!fetchedAddr.street && !fetchedAddr.city)) {
+        try {
+          if (window.google && window.google.maps && window.google.maps.Geocoder) {
+            const geocoder = new google.maps.Geocoder();
+            const results = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+              geocoder.geocode({ location: { lat, lng } }, (res, status) => {
+                if (status === 'OK' && res && res.length > 0) resolve(res);
+                else reject(status);
+              });
+            });
+            if (results && results[0]) {
+              const components = results[0].address_components;
+              let flat = '', street = '', city = '', state = '', pincode = '', landmark = '';
+              components.forEach(comp => {
+                const types = comp.types;
+                if (types.includes('street_number')) flat = comp.long_name;
+                if (types.includes('route')) street = comp.long_name;
+                if (types.includes('locality')) city = comp.long_name;
+                if (types.includes('administrative_area_level_1')) state = comp.long_name;
+                if (types.includes('postal_code')) pincode = comp.long_name;
+                if (types.includes('subpremise') || types.includes('premise')) {
+                  flat = flat ? `${comp.long_name}, ${flat}` : comp.long_name;
+                }
+                if (types.includes('point_of_interest') || types.includes('establishment')) {
+                  if (!landmark) landmark = comp.long_name;
+                } else if (!landmark && (types.includes('sublocality') || types.includes('sublocality_level_1'))) {
+                  landmark = comp.long_name;
+                }
+              });
+              fetchedAddr = { flat, street, city, state, pincode, landmark };
+            }
+          }
+        } catch (e) {
+          console.warn("Geocoding failed during location update:", e);
+        }
       }
 
-      // Update the address in backend
-      await updateAddress(selectedAddress.id, updatePayload);
+      const addressId = selectedAddress?.id || selectedAddress?._id;
+      const newStreet = fetchedAddr?.street || fetchedAddr?.landmark || selectedAddress?.street || "Pinned Map Location";
+      const newCity = fetchedAddr?.city || selectedAddress?.city || "";
+      const newState = fetchedAddr?.state || selectedAddress?.state || "";
+      const newPincode = fetchedAddr?.pincode || selectedAddress?.pincode || "";
+      const newLandmark = fetchedAddr?.landmark || selectedAddress?.landmark || "";
+      const newFlat = fetchedAddr?.flat || selectedAddress?.flat || "";
 
-      // Update local state
-      const updated = {
-        ...selectedAddress,
-        latitude: mapLocation.lat,
-        longitude: mapLocation.lng,
-        street: mapLocation.address?.street || selectedAddress.street,
-        city: mapLocation.address?.city || selectedAddress.city,
-        state: mapLocation.address?.state || selectedAddress.state,
-        pincode: mapLocation.address?.pincode || selectedAddress.pincode,
-        landmark: mapLocation.address?.landmark || selectedAddress.landmark,
+      // Update backend record if a valid ObjectId address exists
+      if (addressId && /^[0-9a-fA-F]{24}$/.test(addressId)) {
+        try {
+          const updatePayload: any = {
+            latitude: lat,
+            longitude: lng,
+            address: newStreet,
+            city: newCity,
+            state: newState,
+            pincode: newPincode,
+            landmark: newLandmark,
+          };
+          await updateAddress(addressId, updatePayload);
+        } catch (backendErr) {
+          console.warn("Failed to update backend address record:", backendErr);
+        }
+      }
+
+      // Update state for instant UI update
+      const updatedAddress: OrderAddress = {
+        name: selectedAddress?.name || user?.name || "User",
+        phone: selectedAddress?.phone || user?.phone || "",
+        flat: newFlat,
+        street: newStreet,
+        city: newCity,
+        state: newState,
+        pincode: newPincode,
+        landmark: newLandmark,
+        latitude: lat,
+        longitude: lng,
+        id: addressId,
+        _id: addressId,
       };
-      setSelectedAddress(updated);
-      setSavedAddress(updated); // Sync
+
+      setSelectedAddress(updatedAddress);
+      setSavedAddress(updatedAddress);
+      setIsMapSelected(true);
       setShowMapPicker(false);
-      setIsMapSelected(true); // Mark map as selected
-      showGlobalToast("Location and address updated successfully!");
+      showGlobalToast("Location updated successfully!");
     } catch (err) {
-      console.error(err);
-      // showGlobalToast('Failed to update location');
+      console.error("Error updating map location:", err);
+      showGlobalToast("Failed to update location", "error");
     } finally {
       setIsUpdatingLocation(false);
     }
@@ -1387,47 +1417,47 @@ export default function Checkout() {
                 <div className="px-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-black text-neutral-900 uppercase tracking-wider">Delivery Details</h3>
-                    <button onClick={() => navigate("/checkout/address", { state: { editAddress: savedAddress } })} className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase italic">Change</button>
+                    <button onClick={() => navigate("/checkout/address", { state: { editAddress: selectedAddress || savedAddress } })} className="text-xs font-black text-green-600 bg-green-50 px-3 py-1 rounded-full uppercase italic">Change</button>
                   </div>
 
-                  {savedAddress ? (
-                    <div className="space-y-4">
-                      <div
-                        className={`p-3 rounded-xl border-2 transition-all cursor-pointer ${selectedAddress?.id === savedAddress.id && !isMapSelected ? "border-green-600 bg-green-50" : "bg-neutral-50 border-neutral-100"}`}
-                        onClick={() => {
-                          setSelectedAddress(savedAddress);
-                          setIsMapSelected(false);
-                        }}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${selectedAddress?.id === savedAddress.id && !isMapSelected ? "bg-green-600 text-white" : "bg-neutral-200 text-neutral-500"}`}>
-                            {selectedAddress?.id === savedAddress.id && !isMapSelected ? (
+                  {(() => {
+                    const displayAddress = selectedAddress || savedAddress;
+                    return displayAddress ? (
+                      <div className="space-y-4">
+                        <div
+                          className="p-3 rounded-xl border-2 border-green-600 bg-green-50 transition-all cursor-pointer"
+                          onClick={() => {
+                            if (savedAddress) {
+                              setSelectedAddress(savedAddress);
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center transition-colors bg-green-600 text-white">
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg>
-                            ) : (
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                            )}
+                            </div>
+                            <div>
+                              <p className="text-xs font-black text-neutral-900">{displayAddress.name}</p>
+                              <p className="text-[10px] font-bold text-neutral-500 italic">{displayAddress.phone}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs font-black text-neutral-900">{savedAddress.name}</p>
-                            <p className="text-[10px] font-bold text-neutral-500 italic">{savedAddress.phone}</p>
-                          </div>
+                          <p className="text-[11px] font-medium text-neutral-600 leading-relaxed pl-10">
+                            {displayAddress.flat ? `${displayAddress.flat}, ` : ""}{displayAddress.street}
+                            {displayAddress.landmark && <span className="block text-green-700 italic mt-1 underline decoration-green-200 font-bold">Near {displayAddress.landmark}</span>}
+                            <span className="block mt-1 uppercase font-black text-neutral-400">{displayAddress.city} - {displayAddress.pincode}</span>
+                          </p>
                         </div>
-                        <p className="text-[11px] font-medium text-neutral-600 leading-relaxed pl-10">
-                          {savedAddress.flat ? `${savedAddress.flat}, ` : ""}{savedAddress.street}
-                          {savedAddress.landmark && <span className="block text-green-700 italic mt-1 underline decoration-green-200 font-bold">Near {savedAddress.landmark}</span>}
-                          <span className="block mt-1 uppercase font-black text-neutral-400">{savedAddress.city} - {savedAddress.pincode}</span>
-                        </p>
-                      </div>
 
-                      <button onClick={() => { setMapLocation({ lat: userLocation?.latitude || selectedAddress?.latitude || 0, lng: userLocation?.longitude || selectedAddress?.longitude || 0 }); setShowMapPicker(true); }}
-                        className={`w-full py-3 rounded-xl border-2 font-black text-[11px] uppercase tracking-widest transition-all italic flex items-center justify-center gap-2 ${isMapSelected ? "bg-green-600 border-green-600 text-white shadow-lg" : "bg-white border-neutral-100 text-neutral-400 shadow-sm hover:border-green-200"}`}>
-                        {isMapSelected ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /></svg>}
-                        {isMapSelected ? "Precise Map Location set" : "Pin precise location on map"}
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={handlePlaceOrder} className="w-full py-6 bg-neutral-100 rounded-2xl border-2 border-dashed border-neutral-300 text-neutral-500 font-black italic uppercase tracking-widest">ADD ADDRESS TO CONTINUE</button>
-                  )}
+                        <button onClick={() => { setMapLocation({ lat: userLocation?.latitude || displayAddress?.latitude || 0, lng: userLocation?.longitude || displayAddress?.longitude || 0 }); setShowMapPicker(true); }}
+                          className={`w-full py-3 rounded-xl border-2 font-black text-[11px] uppercase tracking-widest transition-all italic flex items-center justify-center gap-2 ${isMapSelected ? "bg-green-600 border-green-600 text-white shadow-lg" : "bg-white border-neutral-100 text-neutral-400 shadow-sm hover:border-green-200"}`}>
+                          {isMapSelected ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /></svg>}
+                          {isMapSelected ? "Precise Map Location set" : "Pin precise location on map"}
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={handlePlaceOrder} className="w-full py-6 bg-neutral-100 rounded-2xl border-2 border-dashed border-neutral-300 text-neutral-500 font-black italic uppercase tracking-widest">ADD ADDRESS TO CONTINUE</button>
+                    );
+                  })()}
                 </div>
               </div>
 
