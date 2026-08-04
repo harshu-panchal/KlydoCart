@@ -1,4 +1,4 @@
-import { messaging, getToken, onMessage } from '../firebase';
+import { messaging, getMessagingInstance, getToken, onMessage } from '../firebase';
 import api from './api/config';
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || "";
@@ -16,6 +16,21 @@ async function registerServiceWorker() {
             scope: '/'
         });
         console.log('✅ Service Worker registered:', registration.scope);
+
+        // Ensure worker is active
+        if (registration.installing) {
+            await new Promise<void>((resolve) => {
+                const worker = registration.installing;
+                if (!worker) return resolve();
+                worker.addEventListener('statechange', () => {
+                    if (worker.state === 'activated' || worker.state === 'redundant') {
+                        resolve();
+                    }
+                });
+                setTimeout(resolve, 3000);
+            });
+        }
+
         return registration;
     } catch (error) {
         console.error('❌ Service Worker registration failed:', error);
@@ -110,7 +125,11 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 // Get FCM token (only callable after permission is granted)
 export async function getFCMToken(): Promise<string | null> {
-    if (!messaging) return null;
+    const msgInstance = await getMessagingInstance();
+    if (!msgInstance) {
+        console.warn('[FCM] Firebase messaging instance unavailable.');
+        return null;
+    }
     if (Notification.permission !== 'granted') return null;
     if (!VAPID_KEY) {
         console.warn('[FCM] VAPID key is missing. Cannot get FCM token.');
@@ -123,13 +142,13 @@ export async function getFCMToken(): Promise<string | null> {
 
         await navigator.serviceWorker.ready;
 
-        const token = await getToken(messaging, {
+        const token = await getToken(msgInstance, {
             vapidKey: VAPID_KEY,
             serviceWorkerRegistration: registration
         });
 
         if (token) {
-            console.log('✅ FCM Token obtained.');
+            console.log('✅ FCM Token obtained:', token.substring(0, 15) + '...');
             return token;
         } else {
             console.warn('[FCM] No token returned — check Firebase project configuration and VAPID key.');
@@ -156,7 +175,11 @@ export async function getFCMToken(): Promise<string | null> {
  *   browser we must re-register the token for that account too.
  */
 export async function registerFCMToken(forceUpdate = false, ownerKey?: string): Promise<string | null> {
-    if (!messaging) return null;
+    const msgInstance = await getMessagingInstance();
+    if (!msgInstance) {
+        console.warn('[FCM] Skipping registration — messaging instance unavailable.');
+        return null;
+    }
 
     // Skip entirely if notifications are blocked — no point continuing
     if (Notification.permission === 'denied') {
@@ -210,10 +233,11 @@ export async function registerFCMToken(forceUpdate = false, ownerKey?: string): 
 }
 
 // Setup foreground notification handler
-export function setupForegroundNotificationHandler(handler?: (payload: any) => void) {
-    if (!messaging) return;
+export async function setupForegroundNotificationHandler(handler?: (payload: any) => void) {
+    const msgInstance = await getMessagingInstance();
+    if (!msgInstance) return;
 
-    onMessage(messaging, (payload) => {
+    onMessage(msgInstance, (payload) => {
         console.log('📬 Foreground message received:', payload);
 
         if (handler) {
@@ -221,7 +245,6 @@ export function setupForegroundNotificationHandler(handler?: (payload: any) => v
         }
 
         // Show system notification even in foreground if permission is granted.
-        // The backend sends data-only messages for web, so title/body live in payload.data.
         const title = payload.notification?.title || payload.data?.title;
         const body = payload.notification?.body || payload.data?.body;
         if (Notification.permission === 'granted' && (title || body)) {

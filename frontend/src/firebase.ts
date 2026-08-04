@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
+import { getMessaging, getToken, onMessage, isSupported, Messaging } from 'firebase/messaging';
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -17,15 +17,38 @@ const analytics = getAnalytics(app);
 
 let messaging: Messaging | null = null;
 
-try {
-    messaging = getMessaging(app);
-} catch (error: any) {
-    console.warn('Firebase Messaging not supported in this environment.', error);
-    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Only alert on mobile to avoid annoying desktop devs
-        alert(`⚠️ Firebase Messaging Init Failed: ${error.message || 'Unknown error'}`);
+/**
+ * Safely retrieves or initializes the Firebase Messaging instance.
+ * Checks `isSupported()` to prevent throwing errors in unsupported environments.
+ */
+export async function getMessagingInstance(): Promise<Messaging | null> {
+    if (messaging) return messaging;
+    if (typeof window === 'undefined') return null;
+
+    try {
+        const supported = await isSupported();
+        if (supported) {
+            messaging = getMessaging(app);
+            return messaging;
+        } else {
+            console.warn('[Firebase] Push Messaging is not supported in this browser environment.');
+        }
+    } catch (error: any) {
+        console.warn('[Firebase] Failed to initialize Firebase Messaging:', error?.message || error);
     }
+    return null;
 }
+
+// Attempt initial synchronous setup if supported
+isSupported().then((supported) => {
+    if (supported) {
+        try {
+            messaging = getMessaging(app);
+        } catch {
+            // Ignore error here; getMessagingInstance() will retry on demand
+        }
+    }
+}).catch(() => {});
 
 export { messaging, getToken, onMessage };
 export default app;

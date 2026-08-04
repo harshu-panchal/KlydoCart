@@ -32,6 +32,18 @@ export default function DeliverySettings() {
   useEffect(() => {
     refreshPermissionStatus();
 
+    const onFocus = () => refreshPermissionStatus();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('visibilitychange', onFocus);
+
+    let permStatusObj: PermissionStatus | null = null;
+    if ('permissions' in navigator && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'notifications' as PermissionName }).then((status) => {
+        permStatusObj = status;
+        status.onchange = () => refreshPermissionStatus();
+      }).catch(() => {});
+    }
+
     const fetchSettings = async () => {
       try {
         const profile = await getProfile();
@@ -46,7 +58,22 @@ export default function DeliverySettings() {
       }
     };
     fetchSettings();
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('visibilitychange', onFocus);
+      if (permStatusObj) permStatusObj.onchange = null;
+    };
   }, [refreshPermissionStatus]);
+
+  // Auto register token if permission becomes granted
+  useEffect(() => {
+    if (browserPermission === 'granted') {
+      registerFCMToken().then((token) => {
+        if (token) setFcmStatus('success');
+      }).catch(() => {});
+    }
+  }, [browserPermission]);
 
   const handleEnableNotifications = async () => {
     setIsRegisteringFCM(true);
