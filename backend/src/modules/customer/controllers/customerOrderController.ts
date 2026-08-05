@@ -10,6 +10,7 @@ import { calculateDistance } from "../../../utils/locationHelper";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
 import { generateDeliveryOtp } from "../../../services/deliveryOtpService";
 import { Server as SocketIOServer } from "socket.io";
+import axios from "axios";
 
 // Create a new order
 export const createOrder = async (req: Request, res: Response) => {
@@ -54,6 +55,43 @@ export const createOrder = async (req: Request, res: Response) => {
             });
         }
 
+        // Validate delivery address location
+        const deliveryLat = address.latitude != null
+            ? (typeof address.latitude === 'number' ? address.latitude : parseFloat(address.latitude))
+            : null;
+        const deliveryLng = address.longitude != null
+            ? (typeof address.longitude === 'number' ? address.longitude : parseFloat(address.longitude))
+            : null;
+
+        // Server-side auto-repair if city or pincode is missing but coordinates exist
+        if ((!address.city || !address.pincode) && deliveryLat != null && deliveryLng != null && !isNaN(deliveryLat) && !isNaN(deliveryLng)) {
+            try {
+                const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
+                if (apiKey) {
+                    const resp = await axios.get(
+                        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${deliveryLat},${deliveryLng}&key=${apiKey}&language=en`,
+                        { timeout: 6000 }
+                    );
+                    if (resp.data && resp.data.status === 'OK' && resp.data.results?.length > 0) {
+                        for (const resItem of resp.data.results) {
+                            for (const comp of resItem.address_components || []) {
+                                const types = comp.types || [];
+                                if (!address.pincode && types.includes('postal_code')) address.pincode = comp.long_name;
+                                if (!address.city) {
+                                    if (types.includes('locality')) address.city = comp.long_name;
+                                    else if (types.includes('postal_town')) address.city = comp.long_name;
+                                    else if (types.includes('administrative_area_level_2')) address.city = comp.long_name;
+                                }
+                                if (!address.state && types.includes('administrative_area_level_1')) address.state = comp.long_name;
+                            }
+                        }
+                    }
+                }
+            } catch (repairErr) {
+                console.warn("[customerOrderController] ⚠️ Server-side reverse geocode repair timed out or failed:", repairErr);
+            }
+        }
+
         // Validate required address fields
         if (!address.city || (typeof address.city === 'string' && address.city.trim() === '')) {
             if (session) await session.abortTransaction();
@@ -88,15 +126,6 @@ export const createOrder = async (req: Request, res: Response) => {
                 message: "Customer not found",
             });
         }
-
-        // Validate delivery address location
-        // Handle both string and number types, and check for null/undefined (not truthy, since 0 is valid)
-        const deliveryLat = address.latitude != null
-            ? (typeof address.latitude === 'number' ? address.latitude : parseFloat(address.latitude))
-            : null;
-        const deliveryLng = address.longitude != null
-            ? (typeof address.longitude === 'number' ? address.longitude : parseFloat(address.longitude))
-            : null;
 
         if (deliveryLat == null || deliveryLng == null || isNaN(deliveryLat) || isNaN(deliveryLng)) {
             if (session) await session.abortTransaction();

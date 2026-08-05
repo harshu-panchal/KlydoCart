@@ -4,6 +4,7 @@ import api from '../services/api/config';
 import { checkServiceArea } from '../services/api/customerHomeService';
 import { LocationContext, Location } from './locationContext.types';
 import { useJsApiLoader } from '@react-google-maps/api';
+import { AddressService } from '../services/addressService';
 
 // Geocoding result interface
 interface GeocodeResult {
@@ -390,42 +391,10 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // Reverse geocode coordinates to address - OPTIMIZED with caching and retry logic
-  const reverseGeocode = async (lat: number, lng: number, signal?: AbortSignal, skipCache: boolean = false): Promise<GeocodeResult> => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      console.warn('⚠️ Google Maps API key not found, using Nominatim fallback');
-      try {
-        const nomRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-        if (nomRes.ok) {
-          const nomData = await nomRes.json();
-          if (nomData && nomData.display_name) {
-            return {
-              formatted_address: nomData.display_name,
-              area: nomData.address?.neighbourhood || nomData.address?.suburb || nomData.address?.residential || nomData.address?.city_district || '',
-              city: nomData.address?.city || nomData.address?.town || nomData.address?.village || '',
-              state: nomData.address?.state || '',
-              pincode: nomData.address?.postcode || ''
-            };
-          }
-        }
-      } catch (e) {
-        console.error('Nominatim fallback failed:', e);
-      }
-      return { formatted_address: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
-    }
-
-    // Validate input coordinates
-    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      console.error('❌ Invalid coordinates for geocoding:', lat, lng);
-      return { formatted_address: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
-    }
-
-    // Generate cache key (needed for both cache lookup and storage)
+  // Reverse geocode coordinates to address - OPTIMIZED using AddressService
+  const reverseGeocode = async (lat: number, lng: number, _signal?: AbortSignal, skipCache: boolean = false): Promise<GeocodeResult> => {
     const cacheKey = getCacheKey(lat, lng);
 
-    // Skip cache for fresh location requests (when skipCache is true)
-    // This ensures we always get the correct address for current coordinates
     if (!skipCache) {
       const cached = geocodeCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
@@ -433,379 +402,26 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Try using Google Places Service first to find the closest establishment/place at coordinates (bypasses Geocoding API restriction)
-    if (window.google?.maps?.places?.PlacesService) {
-      try {
-        console.log('[LocationContext] Reverse geocoding using Google Places Service nearbySearch...');
-        const dummyDiv = document.createElement('div');
-        const service = new window.google.maps.places.PlacesService(dummyDiv);
-
-        // 1. Search for nearby places within 50 meters
-        const nearbyResults = await new Promise<any[]>((resolve, reject) => {
-          service.nearbySearch(
-            {
-              location: { lat, lng },
-              radius: 50,
-            },
-            (results, status) => {
-              if (status === 'OK' && results && results.length > 0) {
-                resolve(results);
-              } else {
-                reject(new Error(`nearbySearch failed: ${status}`));
-              }
-            }
-          );
-        });
-
-        // 2. Get details for the closest place
-        const bestPlace = nearbyResults[0];
-        const placeDetails = await new Promise<any>((resolve, reject) => {
-          service.getDetails(
-            {
-              placeId: bestPlace.place_id,
-              fields: ['name', 'formatted_address', 'address_components'],
-            },
-            (result, status) => {
-              if (status === 'OK' && result) {
-                resolve(result);
-              } else {
-                reject(new Error(`getDetails failed: ${status}`));
-              }
-            }
-          );
-        });
-
-        const addressComponents = placeDetails.address_components || [];
-        let city = '';
-        let state = '';
-        let pincode = '';
-        let area = '';
-
-        addressComponents.forEach((component: any) => {
-          const types = component.types || [];
-          if (!area) {
-            if (types.includes('neighborhood')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality_level_3')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality_level_2')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality_level_1')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality')) {
-              area = component.long_name || '';
-            } else if (types.includes('route')) {
-              area = component.long_name || '';
-            }
-          }
-          if (!city) {
-            if (types.includes('locality')) {
-              city = component.long_name || '';
-            } else if (types.includes('administrative_area_level_2')) {
-              city = component.long_name || '';
-            }
-          }
-          if (!state && types.includes('administrative_area_level_1')) {
-            state = component.long_name || '';
-          }
-          if (!pincode && types.includes('postal_code')) {
-            pincode = component.long_name || '';
-          }
-        });
-
-        // Include place name at the beginning of the formatted address
-        let rawAddress = placeDetails.formatted_address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-        if (placeDetails.name && !rawAddress.toLowerCase().includes(placeDetails.name.toLowerCase())) {
-          rawAddress = `${placeDetails.name}, ${rawAddress}`;
-        }
-        
-        const cleanedAddress = cleanAddress(rawAddress);
-
-        const geocodeResult = {
-          formatted_address: cleanedAddress,
-          area: area || placeDetails.name || '',
-          city,
-          state,
-          pincode,
-        };
-
-        // Cache the result
-        geocodeCache.set(cacheKey, {
-          data: geocodeResult,
-          timestamp: Date.now(),
-        });
-
-        console.log('[LocationContext] Google Places Service geocoding success:', geocodeResult);
-        return geocodeResult;
-      } catch (placesError) {
-        console.warn('[LocationContext] Google Places Service geocoding failed, falling back to Geocoder:', placesError);
-      }
-    }
-
-    // Try using Google Maps JS SDK Geocoder next if loaded (bypasses HTTP referrer restrictions)
-    if (window.google?.maps?.Geocoder) {
-      try {
-        console.log('[LocationContext] Reverse geocoding using Google Maps JS SDK Geocoder...');
-        const results = await new Promise<any[]>((resolve, reject) => {
-          const geocoder = new window.google.maps.Geocoder();
-          geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-            if (status === 'OK' && results && results.length > 0) {
-              resolve(results);
-            } else {
-              reject(new Error(`Google Geocoder JS SDK failed with status: ${status}`));
-            }
-          });
-        });
-
-        const result = results[0];
-        const addressComponents = result.address_components || [];
-        let city = '';
-        let state = '';
-        let pincode = '';
-        let area = '';
-
-        addressComponents.forEach((component: any) => {
-          const types = component.types || [];
-          if (!area) {
-            if (types.includes('neighborhood')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality_level_3')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality_level_2')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality_level_1')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality')) {
-              area = component.long_name || '';
-            } else if (types.includes('route')) {
-              area = component.long_name || '';
-            } else if (types.includes('political') && !types.includes('locality') && !types.includes('administrative_area_level_1') && !types.includes('administrative_area_level_2') && !types.includes('country')) {
-              area = component.long_name || '';
-            }
-          }
-          if (!city) {
-            if (types.includes('locality')) {
-              city = component.long_name || '';
-            } else if (types.includes('administrative_area_level_2')) {
-              city = component.long_name || '';
-            }
-          }
-          if (!state && types.includes('administrative_area_level_1')) {
-            state = component.long_name || '';
-          }
-          if (!pincode && types.includes('postal_code')) {
-            pincode = component.long_name || '';
-          }
-        });
-
-        const rawAddress = result.formatted_address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-        const cleanedAddress = cleanAddress(rawAddress);
-
-        const geocodeResult = {
-          formatted_address: cleanedAddress,
-          area,
-          city,
-          state,
-          pincode,
-        };
-
-        // Cache the result
-        geocodeCache.set(cacheKey, {
-          data: geocodeResult,
-          timestamp: Date.now(),
-        });
-
-        console.log('[LocationContext] JS SDK geocoding success:', geocodeResult);
-        return geocodeResult;
-      } catch (sdkError) {
-        console.warn('[LocationContext] Google Maps JS SDK geocoding failed, falling back to HTTP fetch:', sdkError);
-      }
-    }
-
-    // Retry logic for robustness
-    const maxRetries = 2;
-    let lastError: Error | null = null;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      // Check if request was cancelled
-      if (signal?.aborted) {
-        throw new Error('Request cancelled');
-      }
-
-      try {
-        // Add timeout to fetch request
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-        // Use precise coordinates (6 decimal places = ~10cm accuracy)
-        const preciseLat = lat.toFixed(6);
-        const preciseLng = lng.toFixed(6);
-
-        // Use standard unrestricted geocoding URL to get all matching results including GEOMETRIC_CENTER and APPROXIMATE
-        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${preciseLat},${preciseLng}&key=${apiKey}&language=en`;
-
-        const response = await fetch(geocodeUrl, {
-          signal: signal || controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        // Handle API errors
-        if (data.status === 'ZERO_RESULTS') {
-          return { formatted_address: `${lat}, ${lng}` };
-        }
-
-        if (data.status !== 'OK') {
-          throw new Error(`Geocoding API error: ${data.status}`);
-        }
-
-        if (data.results.length === 0) {
-          return { formatted_address: `${lat}, ${lng}` };
-        }
-
-        // Google Maps Geocoding API returns results in order of specificity, with the most specific address first.
-        // The distance-based centroid matching is flawed because city/locality centroids can be closer to the user
-        // than street-level centroids, causing the API to incorrectly pick city/state instead of the precise address.
-        const result = data.results[0];
-        const addressComponents = result.address_components || [];
-
-        // Verify the geocoded location matches input coordinates
-        const geocodedLocation = result.geometry?.location;
-        if (geocodedLocation) {
-          const latDiff = Math.abs(geocodedLocation.lat - lat);
-          const lngDiff = Math.abs(geocodedLocation.lng - lng);
-          const distanceMeters = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff) * 111000;
-
-          // Warn if geocoded location is more than 100m away
-          if (distanceMeters > 100) {
-            console.warn('Geocoded location differs from input:', {
-              input: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-              geocoded: `${geocodedLocation.lat.toFixed(6)}, ${geocodedLocation.lng.toFixed(6)}`,
-              distance: `${distanceMeters.toFixed(0)}m`
-            });
-          }
-        }
-
-        let city = '';
-        let state = '';
-        let pincode = '';
-        let area = '';
-
-        // Improved address component parsing - prioritize more specific types
-        addressComponents.forEach((component: { types?: string[]; long_name?: string; short_name?: string }) => {
-          const types = component.types || [];
-          
-          // Area: prefer neighborhood, then sublocality levels, then route
-          if (!area) {
-            if (types.includes('neighborhood')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality_level_3')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality_level_2')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality_level_1')) {
-              area = component.long_name || '';
-            } else if (types.includes('sublocality')) {
-              area = component.long_name || '';
-            } else if (types.includes('route')) {
-              area = component.long_name || '';
-            } else if (types.includes('political') && !types.includes('locality') && !types.includes('administrative_area_level_1') && !types.includes('administrative_area_level_2') && !types.includes('country')) {
-              area = component.long_name || '';
-            }
-          }
-
-          // City: prefer locality, then administrative_area_level_2
-          if (!city) {
-            if (types.includes('locality')) {
-              city = component.long_name || '';
-            } else if (types.includes('administrative_area_level_2') && !city) {
-              city = component.long_name || city;
-            }
-          }
-          // State: administrative_area_level_1
-          if (!state && types.includes('administrative_area_level_1')) {
-            state = component.long_name || '';
-          }
-          // Pincode: postal_code
-          if (!pincode && types.includes('postal_code')) {
-            pincode = component.long_name || '';
-          }
-        });
-
-        // Clean the formatted address to remove Plus Codes
-        const rawAddress = result.formatted_address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-        const cleanedAddress = cleanAddress(rawAddress);
-
-        const geocodeResult = {
-          formatted_address: cleanedAddress,
-          area,
-          city,
-          state,
-          pincode,
-        };
-
-        // Cache the result
-        geocodeCache.set(cacheKey, {
-          data: geocodeResult,
-          timestamp: Date.now(),
-        });
-
-        // Limit cache size (keep last 100 entries)
-        if (geocodeCache.size > 100) {
-          const firstKey = geocodeCache.keys().next().value;
-          if (firstKey) {
-            geocodeCache.delete(firstKey);
-          }
-        }
-
-        return geocodeResult;
-      } catch (error: unknown) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        lastError = err;
-
-
-        // Don't retry on abort
-        if (signal?.aborted || err.name === 'AbortError') {
-          throw err;
-        }
-
-        // Don't retry on last attempt
-        if (attempt < maxRetries) {
-          // Exponential backoff: wait 200ms, 400ms
-          await new Promise(resolve => setTimeout(resolve, 200 * (attempt + 1)));
-          continue;
-        }
-      }
-    }
-
-    // All retries failed
-    console.error('Reverse geocoding failed after retries:', lastError);
-    // Try Nominatim fallback if Google Maps failed
     try {
-      const nomRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-      if (nomRes.ok) {
-        const nomData = await nomRes.json();
-        if (nomData && nomData.display_name) {
-          return {
-            formatted_address: nomData.display_name,
-            area: nomData.address?.neighbourhood || nomData.address?.suburb || nomData.address?.residential || nomData.address?.city_district || nomData.address?.county || '',
-            city: nomData.address?.city || nomData.address?.town || nomData.address?.village || '',
-            state: nomData.address?.state || '',
-            pincode: nomData.address?.postcode || ''
-          };
-        }
-      }
-    } catch (e) {
-      console.error('Nominatim fallback failed after Google failure:', e);
+      const parsed = await AddressService.reverseGeocode(lat, lng);
+      const geocodeResult: GeocodeResult = {
+        formatted_address: parsed.formattedAddress,
+        area: parsed.area || parsed.landmark,
+        city: parsed.city,
+        state: parsed.state,
+        pincode: parsed.pincode,
+      };
+
+      geocodeCache.set(cacheKey, {
+        data: geocodeResult,
+        timestamp: Date.now(),
+      });
+
+      return geocodeResult;
+    } catch (err) {
+      console.warn('[LocationContext] AddressService reverseGeocode failed, using fallback:', err);
+      return { formatted_address: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
     }
-    
-    return { formatted_address: `${lat}, ${lng}` };
   };
 
   // Update location manually - OPTIMIZED for instant UI update

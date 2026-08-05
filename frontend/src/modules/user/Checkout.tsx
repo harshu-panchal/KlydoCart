@@ -7,6 +7,7 @@ import { useLocation as useLocationContext } from "../../hooks/useLocation";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../context/AuthContext";
 import RazorpayCheckout from "../../components/RazorpayCheckout";
+import { AddressService } from "../../services/addressService";
 
 // import { products } from '../../data/products'; // Removed
 import { OrderAddress, Order } from "../../types/order";
@@ -100,6 +101,7 @@ export default function Checkout() {
   });
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   // Map Picker State
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -222,8 +224,11 @@ export default function Checkout() {
             _id: defaultAddr._id,
           };
           
-          setSavedAddress(mappedAddress);
-          setSelectedAddress(mappedAddress);
+          // Auto-repair missing city/pincode/state/coords in background
+          const { repairedAddress } = await AddressService.repairAddress(mappedAddress, userLocation);
+
+          setSavedAddress(repairedAddress);
+          setSelectedAddress(repairedAddress);
         }
 
         if (couponResponse.success) {
@@ -479,6 +484,11 @@ export default function Checkout() {
   };
 
   const handlePlaceOrder = async (arg?: any) => {
+    if (isPlacingOrder) {
+      console.warn("[AddressLifecycle] 🛑 Order placement request ignored (already in progress).");
+      return;
+    }
+
     if (!isAuthenticated) {
       navigate('/login', { state: { redirectTo: '/checkout' } });
       return;
@@ -506,61 +516,59 @@ export default function Checkout() {
       return;
     }
 
-    // Validate required address fields
-    if (!selectedAddress.city || !selectedAddress.pincode) {
-      console.error("Address is missing required fields (city or pincode)");
-      alert("Please ensure your address has city and pincode.");
-      return;
-    }
-
-    // Use user's current location as fallback if address doesn't have coordinates
-    const finalLatitude = selectedAddress.latitude ?? userLocation?.latitude;
-    const finalLongitude = selectedAddress.longitude ?? userLocation?.longitude;
-
-    // Validate that we have location data (either from address or user's current location)
-    if (finalLatitude == null || finalLongitude == null) {
-      console.error(
-        "Address is missing location data (latitude/longitude) and user location is not available"
-      );
-      alert(
-        "Location is required for delivery. Please ensure your address has location data or enable location access."
-      );
-      return;
-    }
-
-    // Create address object with location data (use fallback if needed)
-    const addressWithLocation: OrderAddress = {
-      ...selectedAddress,
-      latitude: finalLatitude,
-      longitude: finalLongitude,
-    };
-
-    const orderId = `ORD-${Date.now()}-${Math.random()
-      .toString(36)
-      .substr(2, 6)
-      .toUpperCase()}`;
-
-    const order: Order = {
-      id: orderId,
-      items: cart.items,
-      totalItems: cart.itemCount,
-      subtotal: discountedTotal,
-      fees: {
-        platformFee: handlingCharge,
-        deliveryFee: deliveryCharge,
-      },
-      totalAmount: grandTotal,
-      address: addressWithLocation,
-      paymentMethod: paymentMethod,
-      status: "Placed",
-      createdAt: new Date().toISOString(),
-      tipAmount: finalTipAmount,
-      gstin: gstin || undefined,
-      couponCode: selectedCoupon?.code || undefined,
-      giftPackaging: giftPackaging,
-    };
+    setIsPlacingOrder(true);
 
     try {
+      // Attempt auto-repair on selectedAddress before proceeding
+      const { repairedAddress } = await AddressService.repairAddress(selectedAddress, userLocation);
+      setSelectedAddress(repairedAddress);
+
+      // Validate required address fields using AddressService
+      const validation = AddressService.validateAddressForCheckout(repairedAddress);
+      if (!validation.valid) {
+        console.warn("[AddressLifecycle] ⚠️ Address is missing required fields:", validation.missingFields);
+        showGlobalToast("Please complete your delivery address details", "info");
+        navigate("/checkout/address", { state: { editAddress: repairedAddress } });
+        return;
+      }
+
+      const finalLatitude = repairedAddress.latitude!;
+      const finalLongitude = repairedAddress.longitude!;
+
+      // Create address object with location data
+      const addressWithLocation: OrderAddress = {
+        ...repairedAddress,
+        latitude: finalLatitude,
+        longitude: finalLongitude,
+      };
+
+      const orderId = `ORD-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 6)
+        .toUpperCase()}`;
+
+      const order: Order = {
+        id: orderId,
+        items: cart.items,
+        totalItems: cart.itemCount,
+        subtotal: discountedTotal,
+        fees: {
+          platformFee: handlingCharge,
+          deliveryFee: deliveryCharge,
+        },
+        totalAmount: grandTotal,
+        address: addressWithLocation,
+        paymentMethod: paymentMethod,
+        status: "Placed",
+        createdAt: new Date().toISOString(),
+        tipAmount: finalTipAmount,
+        gstin: gstin || undefined,
+        couponCode: selectedCoupon?.code || undefined,
+        giftPackaging: giftPackaging,
+      };
+
+      console.log("[AddressLifecycle] 🚀 Dispatching Order Payload to Backend:", order);
+
       const placedId = await addOrder(order);
       if (placedId) {
         if (paymentMethod === "COD") {
@@ -573,13 +581,14 @@ export default function Checkout() {
         }
       }
     } catch (error: any) {
-      console.error("Order placement failed", error);
-      // Show user-friendly error message
+      console.error("[AddressLifecycle] ❌ Order placement failed:", error);
       const errorMessage =
         error.message ||
         error.response?.data?.message ||
         "Failed to place order. Please try again.";
-      alert(errorMessage);
+      showGlobalToast(errorMessage, "error");
+    } finally {
+      setIsPlacingOrder(false);
     }
   };
 
@@ -599,41 +608,12 @@ export default function Checkout() {
       const lng = mapLocation.lng;
       let fetchedAddr = mapLocation.address;
 
-      // If address details are missing, attempt reverse geocoding
+      // If address details are missing, attempt reverse geocoding via AddressService
       if (!fetchedAddr || (!fetchedAddr.street && !fetchedAddr.city)) {
         try {
-          if (window.google && window.google.maps && window.google.maps.Geocoder) {
-            const geocoder = new google.maps.Geocoder();
-            const results = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
-              geocoder.geocode({ location: { lat, lng } }, (res, status) => {
-                if (status === 'OK' && res && res.length > 0) resolve(res);
-                else reject(status);
-              });
-            });
-            if (results && results[0]) {
-              const components = results[0].address_components;
-              let flat = '', street = '', city = '', state = '', pincode = '', landmark = '';
-              components.forEach(comp => {
-                const types = comp.types;
-                if (types.includes('street_number')) flat = comp.long_name;
-                if (types.includes('route')) street = comp.long_name;
-                if (types.includes('locality')) city = comp.long_name;
-                if (types.includes('administrative_area_level_1')) state = comp.long_name;
-                if (types.includes('postal_code')) pincode = comp.long_name;
-                if (types.includes('subpremise') || types.includes('premise')) {
-                  flat = flat ? `${comp.long_name}, ${flat}` : comp.long_name;
-                }
-                if (types.includes('point_of_interest') || types.includes('establishment')) {
-                  if (!landmark) landmark = comp.long_name;
-                } else if (!landmark && (types.includes('sublocality') || types.includes('sublocality_level_1'))) {
-                  landmark = comp.long_name;
-                }
-              });
-              fetchedAddr = { flat, street, city, state, pincode, landmark };
-            }
-          }
+          fetchedAddr = await AddressService.reverseGeocode(lat, lng);
         } catch (e) {
-          console.warn("Geocoding failed during location update:", e);
+          console.warn("AddressService reverseGeocode failed during location update:", e);
         }
       }
 
@@ -879,18 +859,7 @@ export default function Checkout() {
               </div>
 
               <GoogleMapsLocationPicker
-                initialLat={
-                  mapLocation?.lat ||
-                  userLocation?.latitude ||
-                  selectedAddress?.latitude ||
-                  0
-                }
-                initialLng={
-                  mapLocation?.lng ||
-                  userLocation?.longitude ||
-                  selectedAddress?.longitude ||
-                  0
-                }
+                initialLocation={selectedAddress || savedAddress || userLocation}
                 onLocationSelect={(lat, lng, address) =>
                   setMapLocation({ lat, lng, address })
                 }
@@ -1448,7 +1417,7 @@ export default function Checkout() {
                           </p>
                         </div>
 
-                        <button onClick={() => { setMapLocation({ lat: userLocation?.latitude || displayAddress?.latitude || 0, lng: userLocation?.longitude || displayAddress?.longitude || 0 }); setShowMapPicker(true); }}
+                        <button onClick={() => { setMapLocation({ lat: displayAddress?.latitude || userLocation?.latitude || 0, lng: displayAddress?.longitude || userLocation?.longitude || 0 }); setShowMapPicker(true); }}
                           className={`w-full py-3 rounded-xl border-2 font-black text-[11px] uppercase tracking-widest transition-all italic flex items-center justify-center gap-2 ${isMapSelected ? "bg-green-600 border-green-600 text-white shadow-lg" : "bg-white border-neutral-100 text-neutral-400 shadow-sm hover:border-green-200"}`}>
                           {isMapSelected ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5" /></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /></svg>}
                           {isMapSelected ? "Precise Map Location set" : "Pin precise location on map"}
@@ -1581,9 +1550,16 @@ export default function Checkout() {
                 <div className="hidden lg:block px-6 mt-8">
                   <button
                     onClick={() => handlePlaceOrder()}
-                    disabled={cart.items.length === 0}
-                    className="w-full py-5 bg-green-600 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-green-600/30 hover:bg-green-700 hover:shadow-green-600/40 transition-all active:scale-[0.98] disabled:bg-neutral-200 disabled:shadow-none italic">
-                    Place Final Order
+                    disabled={cart.items.length === 0 || isPlacingOrder}
+                    className="w-full py-5 bg-green-600 text-white font-black uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-green-600/30 hover:bg-green-700 hover:shadow-green-600/40 transition-all active:scale-[0.98] disabled:bg-neutral-200 disabled:shadow-none italic flex items-center justify-center gap-2">
+                    {isPlacingOrder ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Processing Order...</span>
+                      </>
+                    ) : (
+                      "Place Final Order"
+                    )}
                   </button>
                   <p className="mt-4 text-[9px] text-center text-neutral-400 font-bold uppercase tracking-widest">Secured by KlydoTrust</p>
                 </div>
@@ -1863,28 +1839,24 @@ export default function Checkout() {
 
       {/* Bottom Sticky Button (Mobile Only) */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 z-[60] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] pb-safe lg:hidden">
-        {selectedAddress ? (
-          <div className="px-4 py-3">
-            <button
-              onClick={handlePlaceOrder}
-              disabled={cart.items.length === 0}
-              className={`w-full py-4 px-4 font-bold text-sm uppercase tracking-widest transition-all rounded-xl shadow-lg active:scale-[0.98] ${cart.items.length > 0
-                ? "bg-green-600 text-white hover:bg-green-700 shadow-green-600/20"
-                : "bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none"
-                }`}>
-              Place Order
-            </button>
-          </div>
-        ) : (
-          <div className="px-4 py-3">
-            <button
-              onClick={handlePlaceOrder}
-              disabled={cart.items.length === 0}
-              className="w-full bg-green-600 text-white py-4 px-4 font-bold text-sm uppercase tracking-widest rounded-xl hover:bg-green-700 shadow-lg shadow-green-600/20 transition-all active:scale-[0.98]">
-              PLACE ORDER
-            </button>
-          </div>
-        )}
+        <div className="px-4 py-3">
+          <button
+            onClick={() => handlePlaceOrder()}
+            disabled={cart.items.length === 0 || isPlacingOrder}
+            className={`w-full py-4 px-4 font-bold text-sm uppercase tracking-widest transition-all rounded-xl shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 ${cart.items.length > 0 && !isPlacingOrder
+              ? "bg-green-600 text-white hover:bg-green-700 shadow-green-600/20"
+              : "bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none"
+              }`}>
+            {isPlacingOrder ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span>Processing...</span>
+              </>
+            ) : (
+              "Place Order"
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Razorpay Checkout Modal */}

@@ -10,6 +10,7 @@ import { getAddresses, addAddress, updateAddress, Address } from '../../services
 import { appConfig } from '../../services/configService';
 import { calculateProductPrice } from '../../utils/priceUtils';
 import GoogleMapsLocationPicker from '../../components/GoogleMapsLocationPicker';
+import { AddressService } from '../../services/addressService';
 
 const libraries: ("places")[] = ['places'];
 
@@ -204,19 +205,33 @@ export default function CheckoutAddress() {
       return;
     }
 
-    if (!validateForm()) {
-      return;
-    }
-
     setIsSaving(true);
 
     try {
-      let finalLat = selectedLatitude || 0;
-      let finalLng = selectedLongitude || 0;
+      let currentAddressState: OrderAddress = {
+        ...address,
+        latitude: selectedLatitude || userLocation?.latitude || 0,
+        longitude: selectedLongitude || userLocation?.longitude || 0,
+      };
+
+      // Perform automatic address repair if fields are missing
+      const { repairedAddress } = await AddressService.repairAddress(currentAddressState, userLocation);
+      setAddress(repairedAddress);
+
+      if (!repairedAddress.city || !repairedAddress.pincode || !repairedAddress.name || !repairedAddress.phone || !repairedAddress.street) {
+        setAddress(repairedAddress);
+        if (!validateForm()) {
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      let finalLat = repairedAddress.latitude || selectedLatitude || 0;
+      let finalLng = repairedAddress.longitude || selectedLongitude || 0;
 
       // Try to geocode if map wasn't used but we have text address
       if (isLoaded && (!finalLat || !finalLng)) {
-        const fullAddress = `${address.flat}, ${address.street}, ${address.city}, ${address.state}, ${address.pincode}`;
+        const fullAddress = `${repairedAddress.flat}, ${repairedAddress.street}, ${repairedAddress.city}, ${repairedAddress.state}, ${repairedAddress.pincode}`;
         try {
           const geocoder = new google.maps.Geocoder();
           const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
@@ -240,17 +255,17 @@ export default function CheckoutAddress() {
       }
 
       const payload = {
-        fullName: address.name,
-        phone: address.phone,
-        flat: address.flat,
-        street: address.street,
-        city: address.city,
-        state: address.state,
-        pincode: address.pincode,
-        landmark: address.landmark,
-        type: addressType.charAt(0).toUpperCase() + addressType.slice(1) as 'Home' | 'Work' | 'Hotel' | 'Other', // Capitalize
-        isDefault: true, // Auto set as default for now
-        address: `${address.flat}, ${address.street}`, // Fallback combined string
+        fullName: repairedAddress.name,
+        phone: repairedAddress.phone,
+        flat: repairedAddress.flat,
+        street: repairedAddress.street,
+        city: repairedAddress.city,
+        state: repairedAddress.state,
+        pincode: repairedAddress.pincode,
+        landmark: repairedAddress.landmark,
+        type: addressType.charAt(0).toUpperCase() + addressType.slice(1) as 'Home' | 'Work' | 'Hotel' | 'Other',
+        isDefault: true,
+        address: `${repairedAddress.flat ? repairedAddress.flat + ', ' : ''}${repairedAddress.street}`,
         latitude: finalLat,
         longitude: finalLng,
       };
@@ -258,7 +273,6 @@ export default function CheckoutAddress() {
       // If editing an existing address, use updateAddress instead
       if (editAddress && (editAddress.id || editAddress._id)) {
         const addressId = editAddress.id || editAddress._id;
-        // Verify it's a valid MongoDB ObjectId (24 hex characters) to prevent Cast errors
         if (addressId && /^[0-9a-fA-F]{24}$/.test(addressId)) {
           await updateAddress(addressId, payload);
         } else {
@@ -328,8 +342,10 @@ export default function CheckoutAddress() {
         </label>
         <div className="rounded-xl overflow-hidden border border-neutral-200 shadow-sm">
           <GoogleMapsLocationPicker
-            initialLat={selectedLatitude || userLocation?.latitude || 0}
-            initialLng={selectedLongitude || userLocation?.longitude || 0}
+            initialLocation={{
+              latitude: selectedLatitude || userLocation?.latitude || 0,
+              longitude: selectedLongitude || userLocation?.longitude || 0,
+            }}
             onLocationSelect={(lat, lng, addr) => {
               setSelectedLatitude(lat);
               setSelectedLongitude(lng);
