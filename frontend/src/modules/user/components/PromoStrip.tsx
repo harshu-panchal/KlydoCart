@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { getTheme } from "../../../utils/themes";
 import { getHomeContent } from "../../../services/api/customerHomeService";
 import { getSubcategories } from "../../../services/api/categoryService";
+import { getProducts as getCustomerProducts } from "../../../services/api/customerProductService";
 import { apiCache } from "../../../utils/apiCache";
 import { useLocation } from "../../../hooks/useLocation";
 import { calculateProductPrice } from "../../../utils/priceUtils";
@@ -97,20 +98,42 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
         if (!categoryId) return;
 
         try {
-          const response = await getSubcategories(categoryId, { limit: 4 });
-          if (response.success && response.data) {
-            const images = response.data
-              .filter((subcat) => subcat.subcategoryImage)
-              .map((subcat) => subcat.subcategoryImage!)
-              .slice(0, 4);
+          let images: string[] = [];
+          // 1. Try fetching products for this header category / category
+          const prodRes = await getCustomerProducts({
+            headerCategoryId: categoryId,
+            limit: 4
+          }).catch(() => null);
 
-            if (images.length > 0) {
-              imagesMap[card.id] = images;
+          if (prodRes && prodRes.success && prodRes.data && prodRes.data.length > 0) {
+            images = prodRes.data
+              .map((p: any) => p.mainImage)
+              .filter((img: any): img is string => Boolean(img && typeof img === 'string' && img.trim() !== ""))
+              .slice(0, 4);
+          }
+
+          // 2. If fewer than 4 product images, fallback to subcategories
+          if (images.length < 4) {
+            const response = await getSubcategories(categoryId, { limit: 4 }).catch(() => null);
+            if (response && response.success && response.data) {
+              const subcatImages = response.data
+                .filter((subcat) => subcat.subcategoryImage)
+                .map((subcat) => subcat.subcategoryImage!)
+                .slice(0, 4 - images.length);
+
+              images = [...images, ...subcatImages];
             }
           }
+
+          // 3. Duplicate images if needed so all 4 sub-boxes look complete
+          if (images.length > 0) {
+            while (images.length < 4) {
+              images.push(images[images.length % images.length]);
+            }
+            imagesMap[card.id] = images;
+          }
         } catch (error) {
-              // Silently fail - emoji fallback will be used
-          console.error(`Error fetching subcategories for category ${categoryId}:`, error);
+          console.error(`Error fetching images for category ${categoryId}:`, error);
         }
       })
     );
@@ -142,8 +165,8 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
           activeTab,
           location?.latitude,
           location?.longitude,
-          true,
-          5 * 60 * 1000
+          false,
+          0
         );
 
         // Reset current product index when fetching new data
@@ -732,7 +755,11 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                     "2px 2px 2px rgba(0, 0, 0, 0.5)",
                 } as React.CSSProperties
               }>
-              {headingText.split("").map((letter, index) => (
+              {(
+                headingText.toUpperCase() === "HOUSEFULLSALE" || (headingText.toUpperCase().endsWith("SALE") && saleTextValue)
+                  ? headingText.replace(/SALE$/i, "").trim()
+                  : headingText
+              ).split("").map((letter, index) => (
                 <span key={index} className="housefull-letter inline-block">
                   {letter}
                 </span>

@@ -593,16 +593,19 @@ export const getHomeContent = async (req: Request, res: Response) => {
       }),
     );
 
-    // 10. Fetch PromoStrip for the current header category (with caching)
+    // 10. Fetch PromoStrip for the current header category (location-aware caching)
     const currentHeaderCategorySlug = (headerCategorySlug as string) || "all";
-    const promoStripCacheKey = `promoStrip-${currentHeaderCategorySlug.toLowerCase()}`;
+    const locationCacheKey = nearbySellerIds && nearbySellerIds.length > 0
+      ? nearbySellerIds.map((id) => id.toString()).sort().join(",")
+      : "all-locs";
+    const promoStripCacheKey = `promoStrip-${currentHeaderCategorySlug.toLowerCase()}-${locationCacheKey}`;
 
     // Try to get from cache first
     let promoStrip = cache.get(promoStripCacheKey) as any;
 
     if (!promoStrip) {
       const now = new Date();
-      const promoStripDoc = await PromoStrip.findOne({
+      let promoStripDoc = await PromoStrip.findOne({
         headerCategorySlug: currentHeaderCategorySlug.toLowerCase(),
         isActive: true,
         startDate: { $lte: now },
@@ -615,6 +618,23 @@ export const getHomeContent = async (req: Request, res: Response) => {
         )
         .sort({ order: 1 })
         .lean();
+
+      // If no active PromoStrip document in DB, build dynamic fallback promoStrip object
+      if (!promoStripDoc) {
+        promoStripDoc = {
+          _id: "dynamic-promostrip",
+          headerCategorySlug: currentHeaderCategorySlug.toLowerCase(),
+          heading: "HOUSEFULL",
+          saleText: "SALE",
+          startDate: now,
+          endDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+          categoryCards: [],
+          featuredProducts: [],
+          crazyDealsTitle: "CRAZY DEALS",
+          isActive: true,
+          order: 1,
+        } as any;
+      }
 
       promoStrip = promoStripDoc;
 
@@ -633,84 +653,134 @@ export const getHomeContent = async (req: Request, res: Response) => {
         });
       }
 
-      // Auto-populate categoryCards with 4 random categories that have real products
-      if (promoStrip && (!(promoStrip as any).categoryCards || (promoStrip as any).categoryCards.length === 0)) {
-        // Use $lookup to pick only categories that have at least 1 active+published product
-        const randomCategories = await Category.aggregate([
-          // Step 1: Only active root categories
-          { $match: { status: "Active", parentId: null } },
-          // Step 2: Join with products collection — keep only cats with at least 1 product
-          {
-            $lookup: {
-              from: "products",
-              let: { catId: "$_id" },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: { $eq: ["$category", "$$catId"] },
-                    status: "Active",
-                    publish: true,
-                  },
-                },
-                { $limit: 1 },           // We only need to know IF a product exists
-                { $project: { _id: 1 } },
-              ],
-              as: "productSample",
-            },
-          },
-          // Step 3: Keep only categories that matched at least one product
-          { $match: { "productSample.0": { $exists: true } } },
-          // Step 4: Randomly pick 4 from those
-          { $sample: { size: 4 } },
-          { $project: { name: 1, slug: 1, image: 1 } },
-        ]);
+      // Always populate categoryCards with the 4 target Header Categories: Fast Food, Restaurant & Food, Vagitable, Cake & Bakery
+      if (promoStrip) {
+        const targetCategoryQueries = [
+          ["fast food", "fast-food"],
+          ["restaurant", "restaurant-food"],
+          ["vagitable", "vegetable", "fruits-veg"],
+          ["cake", "bakery", "cake-bakery"],
+        ];
 
-        // For each selected category, fetch 4 real product images to show in the grid
-        const autoCategoryCards = await Promise.all(
-          randomCategories.map(async (cat: any, idx: number) => {
-            // Fetch 4 active products from this category to use as preview images
+        // Fetch all Published Header Categories
+        const allHeaderCats = await HeaderCategory.find({
+          status: "Published",
+          slug: { $ne: "all" },
+        })
+          .sort({ order: 1 })
+          .lean();
+
+        // Find matching HeaderCategory for each target slot, or pick from allHeaderCats
+        const selectedHeaderCats: any[] = [];
+
+        for (const queries of targetCategoryQueries) {
+          const found = allHeaderCats.find((hc: any) =>
+            queries.some((q) =>
+              (hc.slug || "").toLowerCase().includes(q) ||
+              (hc.name || "").toLowerCase().includes(q)
+            )
+          );
+          if (found && !selectedHeaderCats.some((sc) => sc._id.toString() === found._id.toString())) {
+            selectedHeaderCats.push(found);
+          }
+        }
+
+        // Fill remaining slots up to 4 if any target category wasn't found by keyword match
+        for (const hc of allHeaderCats) {
+          if (selectedHeaderCats.length >= 4) break;
+          if (!selectedHeaderCats.some((sc) => sc._id.toString() === hc._id.toString())) {
+            selectedHeaderCats.push(hc);
+          }
+        }
+
+        // Build cards for selected 4 header categories
+        const validCategoryCards = await Promise.all(
+          selectedHeaderCats.slice(0, 4).map(async (hCat: any, idx: number) => {
+            // Find linked categories
+            const linkedCats = await Category.find({
+              $or: [
+                { headerCategoryId: hCat._id },
+                { slug: hCat.slug },
+                { name: { $regex: new RegExp(hCat.name, "i") } },
+              ],
+            })
+              .select("_id image")
+              .lean();
+
+            const linkedCatIds = linkedCats.map((c: any) => c._id);
+
+            // Fetch active products for preview
             const categoryProducts = await Product.find({
-              category: cat._id,
+              $or: [
+                { headerCategoryId: hCat._id },
+                { category: { $in: [hCat._id, ...linkedCatIds] } },
+              ],
               status: "Active",
               publish: true,
               mainImage: { $exists: true, $ne: "" },
             })
-              .select("mainImage")
+              .select("mainImage productName")
+              .sort({ createdAt: -1 })
               .limit(4)
               .lean();
 
-            const subcategoryImages = categoryProducts
+            let images = categoryProducts
               .map((p: any) => p.mainImage)
-              .filter((img: string) => img && img.trim() !== "")
-              .slice(0, 4);
+              .filter((img: string) => Boolean(img && img.trim() !== ""));
+
+            // If fewer than 4 product images, fetch category/subcategory images
+            if (images.length < 4) {
+              const subcatDocs = await Category.find({
+                $or: [
+                  { headerCategoryId: hCat._id },
+                  { parentId: { $in: [hCat._id, ...linkedCatIds] } },
+                ],
+                image: { $exists: true, $ne: "" },
+              })
+                .select("image")
+                .limit(4 - images.length)
+                .lean();
+
+              const subcatImgs = subcatDocs
+                .map((s: any) => s.image)
+                .filter((img: string) => Boolean(img && img.trim() !== ""));
+
+              images = [...images, ...subcatImgs];
+            }
+
+            // If still fewer than 4, pad available images
+            if (images.length > 0) {
+              while (images.length < 4) {
+                images.push(images[images.length % images.length]);
+              }
+            }
 
             return {
-              _id: cat._id.toString(),
+              _id: hCat._id.toString(),
+              id: hCat._id.toString(),
               categoryId: {
-                _id: cat._id.toString(),
-                name: cat.name,
-                slug: cat.slug,
-                image: cat.image || "",
+                _id: hCat._id.toString(),
+                name: hCat.name,
+                slug: hCat.slug,
+                image: hCat.image || "",
               },
-              title: cat.name,
+              title: hCat.name,
               badge: "Up to 55% OFF",
               discountPercentage: 55,
               order: idx,
-              subcategoryImages,   // Real product images from this category
+              slug: hCat.slug,
+              productCount: categoryProducts.length,
+              subcategoryImages: images.slice(0, 4),
             };
-          }),
+          })
         );
 
-        (promoStrip as any).categoryCards = autoCategoryCards;
+        (promoStrip as any).categoryCards = validCategoryCards;
       }
 
-
-      // Cache for 3 minutes (PromoStrip data doesn't change frequently)
+      // Cache for 1 minute for faster response
       if (promoStrip) {
-        cache.set(promoStripCacheKey, promoStrip, 3 * 60 * 1000);
-      } else {
-        // Cache null result for 1 minute to prevent repeated DB queries
-        cache.set(promoStripCacheKey, null, 60 * 1000);
+        cache.set(promoStripCacheKey, promoStrip, 60 * 1000);
       }
     }
 

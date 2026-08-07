@@ -12,6 +12,57 @@ import { ICON_LIBRARY, getIconByName, IconDef } from '../../../utils/iconLibrary
 import { uploadImage } from '../../../services/api/uploadService';
 import { getCategories, Category } from '../../../services/api/categoryService';
 
+function OrderInput({
+  currentOrder,
+  totalItems,
+  onOrderChange,
+  disabled
+}: {
+  currentOrder: number;
+  totalItems: number;
+  onOrderChange: (newOrder: number) => void;
+  disabled?: boolean;
+}) {
+  const [val, setVal] = useState<string>(String(currentOrder));
+
+  useEffect(() => {
+    setVal(String(currentOrder));
+  }, [currentOrder]);
+
+  const handleCommit = () => {
+    const num = parseInt(val, 10);
+    if (isNaN(num)) {
+      setVal(String(currentOrder));
+      return;
+    }
+    const clamped = Math.max(1, Math.min(totalItems, num));
+    setVal(String(clamped));
+    if (clamped !== currentOrder) {
+      onOrderChange(clamped);
+    }
+  };
+
+  return (
+    <input
+      type="number"
+      min={1}
+      max={totalItems}
+      value={val}
+      disabled={disabled}
+      onChange={(e) => setVal(e.target.value)}
+      onBlur={handleCommit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          handleCommit();
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      className="w-12 px-1 py-0.5 border border-neutral-300 rounded text-center text-xs font-semibold text-neutral-800 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:bg-neutral-100 disabled:opacity-50"
+      title={disabled ? "Clear search/sort to reorder" : "Type order number and press Enter or click outside"}
+    />
+  );
+}
+
 export default function AdminHeaderCategory() {
   const [headerCategories, setHeaderCategories] = useState<HeaderCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -24,6 +75,7 @@ export default function AdminHeaderCategory() {
   const [selectedCategory, setSelectedCategory] = useState(''); // This maps to relatedCategory
   const [selectedTheme, setSelectedTheme] = useState('grocery'); // This maps to slug
   const [selectedStatus, setSelectedStatus] = useState<'Published' | 'Unpublished'>('Published');
+  const [headerCategoryOrder, setHeaderCategoryOrder] = useState<number>(1);
   const [headerCategoryImage, setHeaderCategoryImage] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -63,6 +115,9 @@ export default function AdminHeaderCategory() {
       // Ensure sorted by order
       data.sort((a, b) => (a.order || 0) - (b.order || 0));
       setHeaderCategories(data);
+      if (!editingId) {
+        setHeaderCategoryOrder(data.length + 1);
+      }
     } catch (error) {
       console.error('Failed to fetch header categories', error);
       alert('Failed to fetch categories');
@@ -129,49 +184,30 @@ export default function AdminHeaderCategory() {
     });
   }
 
-  const handleMoveUp = async (index: number) => {
-    if (index === 0) return;
+  const handleOrderChange = async (fromIndex: number, newOrder: number) => {
     if (searchTerm || sortColumn) {
-       alert("Please clear search and sorting to reorder items.");
-       return;
+      alert("Please clear search and sorting to reorder items.");
+      fetchCategories();
+      return;
     }
-    
-    const newCategories = [...headerCategories];
-    const temp = newCategories[index - 1];
-    newCategories[index - 1] = newCategories[index];
-    newCategories[index] = temp;
-    
-    setHeaderCategories(newCategories);
-    
-    try {
-       await reorderHeaderCategories(newCategories.map(c => c._id));
-    } catch (error) {
-       console.error("Failed to reorder", error);
-       alert("Failed to save new order");
-       fetchCategories();
-    }
-  };
 
-  const handleMoveDown = async (index: number) => {
-    if (index === headerCategories.length - 1) return;
-    if (searchTerm || sortColumn) {
-       alert("Please clear search and sorting to reorder items.");
-       return;
-    }
-    
+    const toIndex = Math.max(0, Math.min(headerCategories.length - 1, newOrder - 1));
+    if (fromIndex === toIndex) return;
+
     const newCategories = [...headerCategories];
-    const temp = newCategories[index + 1];
-    newCategories[index + 1] = newCategories[index];
-    newCategories[index] = temp;
-    
+    // Swap the two items with each other
+    const temp = newCategories[fromIndex];
+    newCategories[fromIndex] = newCategories[toIndex];
+    newCategories[toIndex] = temp;
+
     setHeaderCategories(newCategories);
-    
+
     try {
-       await reorderHeaderCategories(newCategories.map(c => c._id));
+      await reorderHeaderCategories(newCategories.map(c => c._id));
     } catch (error) {
-       console.error("Failed to reorder", error);
-       alert("Failed to save new order");
-       fetchCategories();
+      console.error("Failed to reorder", error);
+      alert("Failed to save new order");
+      fetchCategories();
     }
   };
 
@@ -190,6 +226,7 @@ export default function AdminHeaderCategory() {
     setHeaderCategoryImage('');
     setEditingId(null);
     setIconSearchTerm('');
+    setHeaderCategoryOrder(headerCategories.length + 1);
   };
 
   const handleAddOrUpdate = async () => {
@@ -211,9 +248,38 @@ export default function AdminHeaderCategory() {
 
       if (editingId) {
         await updateHeaderCategory(editingId, payload);
+
+        // Handle order swap if order position was changed in form
+        const fromIndex = headerCategories.findIndex(c => c._id === editingId);
+        const toIndex = Math.max(0, Math.min(headerCategories.length - 1, headerCategoryOrder - 1));
+
+        if (fromIndex !== -1 && fromIndex !== toIndex) {
+          const newCategories = [...headerCategories];
+          const temp = newCategories[fromIndex];
+          newCategories[fromIndex] = newCategories[toIndex];
+          newCategories[toIndex] = temp;
+          setHeaderCategories(newCategories);
+          await reorderHeaderCategories(newCategories.map(c => c._id));
+        }
+
         alert('Header Category updated successfully!');
       } else {
-        await createHeaderCategory(payload);
+        const newCat = await createHeaderCategory(payload);
+
+        // Handle target order swap for new category
+        const data = await getHeaderCategoriesAdmin();
+        data.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        const createdIndex = data.findIndex(c => c._id === newCat._id);
+        const toIndex = Math.max(0, Math.min(data.length - 1, headerCategoryOrder - 1));
+
+        if (createdIndex !== -1 && createdIndex !== toIndex) {
+          const temp = data[createdIndex];
+          data[createdIndex] = data[toIndex];
+          data[toIndex] = temp;
+          await reorderHeaderCategories(data.map(c => c._id));
+        }
+
         alert('Header Category added successfully!');
       }
 
@@ -235,6 +301,9 @@ export default function AdminHeaderCategory() {
     setSelectedStatus(category.status);
     setHeaderCategoryImage(category.image || '');
     setIconSearchTerm('');
+
+    const index = headerCategories.findIndex(c => c._id === category._id);
+    setHeaderCategoryOrder(index !== -1 ? index + 1 : 1);
   };
 
   const handleDelete = async (id: string) => {
@@ -278,15 +347,15 @@ export default function AdminHeaderCategory() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6">
         {/* Left Panel - Add Header Category */}
-        <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+        <div className="xl:col-span-4 bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
           <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">
               {editingId ? 'Edit Header Category' : 'Add Header Category'}
             </h2>
           </div>
-          <div className="p-4 sm:p-6 space-y-4">
+          <div className="p-4 space-y-3">
             {/* Header Category Name */}
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-2">
@@ -316,7 +385,7 @@ export default function AdminHeaderCategory() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 bg-neutral-50 p-3 rounded border border-neutral-200 h-64 overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 bg-neutral-50 p-2 rounded border border-neutral-200 h-48 overflow-y-auto custom-scrollbar">
                 {filteredIcons.length > 0 ? filteredIcons.map((option) => {
                   const isSelected = headerCategoryIcon === option.name;
                   return (
@@ -327,7 +396,7 @@ export default function AdminHeaderCategory() {
                         setSelectedIconLibrary('Custom');
                       }}
                       className={`
-                        cursor-pointer flex flex-col items-center justify-center gap-2 p-3 rounded-lg border transition-all
+                        cursor-pointer flex flex-col items-center justify-center gap-1 p-2 rounded-lg border transition-all
                         ${isSelected
                           ? 'bg-teal-50 border-teal-500 ring-1 ring-teal-500 text-teal-700'
                           : 'bg-white border-neutral-200 hover:border-teal-300 hover:shadow-sm text-neutral-600'}
@@ -476,19 +545,35 @@ export default function AdminHeaderCategory() {
               </select>
             </div>
 
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Status:
-              </label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value as any)}
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500"
-              >
-                <option value="Published">Published</option>
-                <option value="Unpublished">Unpublished</option>
-              </select>
+            {/* Status & Order Position */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
+                  Status:
+                </label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value as any)}
+                  className="w-full px-2.5 py-1.5 border border-neutral-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-teal-500"
+                >
+                  <option value="Published">Published</option>
+                  <option value="Unpublished">Unpublished</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
+                  Order Position:
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={headerCategories.length + (editingId ? 0 : 1)}
+                  value={headerCategoryOrder}
+                  onChange={(e) => setHeaderCategoryOrder(parseInt(e.target.value, 10) || 1)}
+                  className="w-full px-2.5 py-1.5 border border-neutral-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-teal-500 font-semibold"
+                />
+              </div>
             </div>
 
             {/* Buttons */}
@@ -512,9 +597,9 @@ export default function AdminHeaderCategory() {
         </div>
 
         {/* Right Panel - List & Search */}
-        <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col h-full">
-          <div className="p-4 border-b border-neutral-200 flex justify-between items-center bg-neutral-50">
-            <h3 className="font-semibold text-neutral-700">Category List</h3>
+        <div className="xl:col-span-8 bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col h-full overflow-hidden">
+          <div className="p-3 sm:p-4 border-b border-neutral-200 flex justify-between items-center bg-neutral-50">
+            <h3 className="font-semibold text-neutral-700 text-sm sm:text-base">Category List</h3>
 
             <div className="relative">
               <input
@@ -522,10 +607,10 @@ export default function AdminHeaderCategory() {
                 placeholder="Search category..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-sm border border-neutral-300 rounded-full w-48 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="pl-8 pr-3 py-1 text-xs sm:text-sm border border-neutral-300 rounded-full w-40 sm:w-48 focus:outline-none focus:ring-1 focus:ring-teal-500"
               />
               <svg
-                className="w-4 h-4 text-neutral-400 absolute left-2.5 top-2"
+                className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 top-2.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -543,7 +628,9 @@ export default function AdminHeaderCategory() {
                     <th
                       key={header}
                       onClick={() => handleSort(header.toLowerCase())}
-                      className="px-4 py-3 text-xs font-semibold text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors border-b border-neutral-200"
+                      className={`px-3 py-2.5 text-xs font-semibold text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors border-b border-neutral-200 ${
+                        header === 'Order' || header === 'Actions' ? 'text-center' : ''
+                      }`}
                     >
                       {header} {sortColumn === header.toLowerCase() && (sortDirection === 'asc' ? '↑' : '↓')}
                     </th>
@@ -558,12 +645,12 @@ export default function AdminHeaderCategory() {
                     
                     return (
                     <tr key={category._id} className="hover:bg-neutral-50 transition-colors group">
-                      <td className="px-4 py-3 text-sm font-medium text-neutral-800">
+                      <td className="px-3 py-2 text-xs sm:text-sm font-medium text-neutral-800">
                         {category.name}
                       </td>
-                      <td className="px-4 py-3 text-sm text-neutral-600">
+                      <td className="px-3 py-2 text-xs text-neutral-600">
                         <div className="flex items-center gap-2">
-                          <div className="text-teal-600 w-10 h-10 flex items-center justify-center bg-neutral-100 rounded">
+                          <div className="text-teal-600 w-8 h-8 flex items-center justify-center bg-neutral-100 rounded shrink-0">
                             {category.image ? (
                               <img src={category.image} alt={category.name} className="w-full h-full object-contain" />
                             ) : (
@@ -571,28 +658,28 @@ export default function AdminHeaderCategory() {
                             )}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-xs text-neutral-400 font-mono">
+                            <span className="text-[11px] text-neutral-500 font-mono">
                               {category.iconName}
                             </span>
                             {category.image && (
-                              <span className="text-[10px] text-teal-600 font-medium">Custom Image</span>
+                              <span className="text-[9px] text-teal-600 font-medium">Custom Image</span>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-neutral-600">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-100 text-neutral-800 capitalize border border-neutral-200">
+                      <td className="px-3 py-2 text-xs text-neutral-600">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-neutral-100 text-neutral-800 capitalize border border-neutral-200">
                           <div
-                            className="w-2 h-2 rounded-full mr-1.5"
+                            className="w-1.5 h-1.5 rounded-full mr-1.5"
                             style={{ background: themes[category.slug]?.primary[0] || '#ccc' }}
                           />
                           {category.slug}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-3 py-2 text-xs">
                         <span
                           className={`
-                            px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                            px-2 py-0.5 inline-flex text-[11px] leading-4 font-semibold rounded-full
                             ${category.status === 'Published'
                               ? 'bg-green-100 text-green-800 border border-green-200'
                               : 'bg-red-100 text-red-800 border border-red-200'}
@@ -601,45 +688,35 @@ export default function AdminHeaderCategory() {
                           {category.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="flex flex-col items-center gap-1 w-8">
+                      <td className="px-3 py-2 text-xs text-center">
+                        <OrderInput
+                          currentOrder={globalIndex + 1}
+                          totalItems={headerCategories.length}
+                          onOrderChange={(newOrder) => handleOrderChange(globalIndex, newOrder)}
+                          disabled={!!searchTerm || !!sortColumn}
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-xs text-center">
+                        <div className="flex items-center justify-center gap-1">
                           <button
-                            onClick={() => handleMoveUp(globalIndex)}
-                            disabled={globalIndex === 0 || !!searchTerm || !!sortColumn}
-                            className={`p-1 rounded bg-neutral-100 hover:bg-neutral-200 text-neutral-600 ${(globalIndex === 0 || searchTerm || sortColumn) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title="Move Up"
+                            onClick={() => handleEdit(category)}
+                            className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors"
+                            title="Edit"
                           >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
                           </button>
                           <button
-                            onClick={() => handleMoveDown(globalIndex)}
-                            disabled={globalIndex === headerCategories.length - 1 || !!searchTerm || !!sortColumn}
-                            className={`p-1 rounded bg-neutral-100 hover:bg-neutral-200 text-neutral-600 ${(globalIndex === headerCategories.length - 1 || searchTerm || sortColumn) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title="Move Down"
+                            onClick={() => handleDelete(category._id)}
+                            className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors"
+                            title="Delete"
                           >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                           </button>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm flex gap-2">
-                        <button
-                          onClick={() => handleEdit(category)}
-                          className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mt-2"
-                          title="Edit"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(category._id)}
-                          className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors mt-2"
-                          title="Delete"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
                       </td>
                     </tr>
                   );
