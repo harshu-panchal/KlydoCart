@@ -15,6 +15,14 @@ export interface IPromoStrip extends Document {
   }>;
   featuredProducts: mongoose.Types.ObjectId[]; // Array of Product IDs for "CRAZY DEALS"
   crazyDealsTitle?: string; // Custom title for the CRAZY DEALS section (e.g., "CRAZY DEALS", "SPECIAL OFFERS")
+  // Explicit Header Category mapping for the 4 Housefull Sale right-side boxes
+  // Slot 0 = Box 1, Slot 1 = Box 2, Slot 2 = Box 3, Slot 3 = Box 4
+  housefullCategorySlots?: Array<{
+    slotIndex: number; // 0-3, determines box position
+    headerCategoryId: mongoose.Types.ObjectId; // Reference to HeaderCategory
+    headerCategoryName: string; // Denormalized name for fast reads
+    headerCategorySlug: string; // Denormalized slug for navigation
+  }>;
   isActive: boolean; // Enable/disable the PromoStrip
   order: number; // For sorting if multiple PromoStrips per category
   createdAt: Date;
@@ -88,6 +96,32 @@ const PromoStripSchema = new Schema<IPromoStrip>(
       {
         type: Schema.Types.ObjectId,
         ref: "Product",
+      },
+    ],
+    // Explicit 4-slot Header Category mapping for the Housefull Sale right-side boxes
+    housefullCategorySlots: [
+      {
+        slotIndex: {
+          type: Number,
+          required: true,
+          min: [0, "Slot index must be 0-3"],
+          max: [3, "Slot index must be 0-3"],
+        },
+        headerCategoryId: {
+          type: Schema.Types.ObjectId,
+          ref: "HeaderCategory",
+          required: true,
+        },
+        headerCategoryName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        headerCategorySlug: {
+          type: String,
+          required: true,
+          trim: true,
+        },
       },
     ],
     crazyDealsTitle: {

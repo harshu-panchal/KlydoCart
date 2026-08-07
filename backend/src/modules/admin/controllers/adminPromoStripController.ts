@@ -19,6 +19,7 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
     categoryCards,
     featuredProducts,
     crazyDealsTitle,
+    housefullCategorySlots,
     isActive = true,
     order = 0,
   } = req.body;
@@ -86,6 +87,21 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
     }
   }
 
+  // Validate housefullCategorySlots if provided
+  if (housefullCategorySlots && Array.isArray(housefullCategorySlots)) {
+    for (const slot of housefullCategorySlots) {
+      if (slot.headerCategoryId) {
+        const hc = await HeaderCategory.findById(slot.headerCategoryId);
+        if (!hc) {
+          return res.status(404).json({
+            success: false,
+            message: `Header category with ID "${slot.headerCategoryId}" not found`,
+          });
+        }
+      }
+    }
+  }
+
   const promoStrip = await PromoStrip.create({
     headerCategorySlug: headerCategorySlug.toLowerCase(),
     heading,
@@ -95,6 +111,7 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
     categoryCards: categoryCards || [],
     featuredProducts: featuredProducts || [],
     crazyDealsTitle: crazyDealsTitle || "CRAZY DEALS",
+    housefullCategorySlots: housefullCategorySlots || [],
     isActive,
     order,
   });
@@ -186,6 +203,8 @@ export const updatePromoStrip = asyncHandler(async (req: Request, res: Response)
     endDate,
     categoryCards,
     featuredProducts,
+    crazyDealsTitle,
+    housefullCategorySlots,
     isActive,
     order,
   } = req.body;
@@ -262,8 +281,25 @@ export const updatePromoStrip = asyncHandler(async (req: Request, res: Response)
     promoStrip.featuredProducts = featuredProducts;
   }
 
+  // Validate and set housefullCategorySlots if provided
+  if (housefullCategorySlots && Array.isArray(housefullCategorySlots)) {
+    for (const slot of housefullCategorySlots) {
+      if (slot.headerCategoryId) {
+        const hc = await HeaderCategory.findById(slot.headerCategoryId);
+        if (!hc) {
+          return res.status(404).json({
+            success: false,
+            message: `Header category with ID "${slot.headerCategoryId}" not found`,
+          });
+        }
+      }
+    }
+    promoStrip.housefullCategorySlots = housefullCategorySlots;
+  }
+
   if (heading !== undefined) promoStrip.heading = heading;
   if (saleText !== undefined) promoStrip.saleText = saleText;
+  if (crazyDealsTitle !== undefined) promoStrip.crazyDealsTitle = crazyDealsTitle;
   if (isActive !== undefined) promoStrip.isActive = isActive;
   if (order !== undefined) promoStrip.order = order;
 

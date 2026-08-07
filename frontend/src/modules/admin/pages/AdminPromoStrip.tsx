@@ -7,6 +7,7 @@ import {
   type PromoStrip,
   type PromoStripFormData,
   type CategoryCard,
+  type HousefullCategorySlot,
 } from "../../../services/api/admin/adminPromoStripService";
 import { getCategories, type Category } from "../../../services/api/categoryService";
 import { getHeaderCategoriesAdmin, type HeaderCategory } from "../../../services/api/headerCategoryService";
@@ -41,6 +42,20 @@ export default function AdminPromoStrip() {
   const [products, setProducts] = useState<Product[]>([]);
   const [productSearch, setProductSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
+
+  // Housefull Sale Category Mapping slots (4 boxes)
+  const [housefullSlots, setHousefullSlots] = useState<{
+    [slotIndex: number]: {
+      headerCategoryId: string;
+      headerCategoryName: string;
+      headerCategorySlug: string;
+    };
+  }>({});
+
+  // Header category details map (hcId -> { productCount: number; images: string[] })
+  const [headerCatDetailsMap, setHeaderCatDetailsMap] = useState<
+    Record<string, { productCount: number; images: string[] }>
+  >({});
 
   // Category details map (id -> details)
   const [categoryDetailsMap, setCategoryDetailsMap] = useState<Record<string, { productCount: number; images: string[] }>>({});
@@ -89,7 +104,30 @@ export default function AdminPromoStrip() {
   const fetchHeaderCategories = async () => {
     try {
       const data = await getHeaderCategoriesAdmin();
-      setHeaderCategories(data.filter((hc) => hc.status === "Published"));
+      const published = data.filter((hc) => hc.status === "Published" && hc.slug?.toLowerCase() !== "all");
+      setHeaderCategories(published);
+
+      // Fetch details (product count + thumbnails) for each header category
+      const detailsMap: Record<string, { productCount: number; images: string[] }> = {};
+      await Promise.all(
+        published.map(async (hc) => {
+          try {
+            const res = await getAdminProducts({ headerCategoryId: hc._id, limit: 4 });
+            if (res.success && Array.isArray(res.data)) {
+              const imgs = res.data
+                .map((p: any) => p.mainImage || p.image)
+                .filter((img: string) => Boolean(img && img.trim() !== ""));
+              detailsMap[hc._id] = {
+                productCount: res.data.length,
+                images: imgs.slice(0, 4),
+              };
+            }
+          } catch (e) {
+            detailsMap[hc._id] = { productCount: 0, images: [] };
+          }
+        })
+      );
+      setHeaderCatDetailsMap(detailsMap);
     } catch (err: any) {
       console.error("Failed to fetch header categories:", err);
     }
@@ -254,6 +292,7 @@ export default function AdminPromoStrip() {
     setCrazyDealsTitle("CRAZY DEALS");
     setDefaultDates();
     setCategoryCards([]);
+    setHousefullSlots({});
     setFeaturedProducts([]);
     setSelectedProductMap({});
     setIsActive(true);
@@ -274,6 +313,19 @@ export default function AdminPromoStrip() {
     setEndDate(promoStrip.endDate.split("T")[0]);
     setIsActive(promoStrip.isActive);
     setOrder(promoStrip.order);
+
+    // Map Housefull Category Slots (Box 1-4)
+    const slotMap: Record<number, { headerCategoryId: string; headerCategoryName: string; headerCategorySlug: string }> = {};
+    if (promoStrip.housefullCategorySlots && promoStrip.housefullCategorySlots.length > 0) {
+      promoStrip.housefullCategorySlots.forEach((slot) => {
+        slotMap[slot.slotIndex] = {
+          headerCategoryId: slot.headerCategoryId,
+          headerCategoryName: slot.headerCategoryName,
+          headerCategorySlug: slot.headerCategorySlug,
+        };
+      });
+    }
+    setHousefullSlots(slotMap);
 
     // Map Category Cards
     setCategoryCards(
@@ -326,6 +378,7 @@ export default function AdminPromoStrip() {
         })),
         featuredProducts: promoStrip.featuredProducts.map((p) => (typeof p === "string" ? p : p._id)),
         crazyDealsTitle: promoStrip.crazyDealsTitle,
+        housefullCategorySlots: promoStrip.housefullCategorySlots,
         isActive: !promoStrip.isActive,
         order: promoStrip.order,
       };
@@ -389,6 +442,16 @@ export default function AdminPromoStrip() {
       }
     }
 
+    // Format housefullCategorySlots array
+    const housefullCategorySlots: HousefullCategorySlot[] = [0, 1, 2, 3]
+      .filter((slotIdx) => housefullSlots[slotIdx]?.headerCategoryId)
+      .map((slotIdx) => ({
+        slotIndex: slotIdx,
+        headerCategoryId: housefullSlots[slotIdx].headerCategoryId,
+        headerCategoryName: housefullSlots[slotIdx].headerCategoryName,
+        headerCategorySlug: housefullSlots[slotIdx].headerCategorySlug,
+      }));
+
     const formData: PromoStripFormData = {
       headerCategorySlug,
       heading,
@@ -404,6 +467,7 @@ export default function AdminPromoStrip() {
       })),
       featuredProducts,
       crazyDealsTitle,
+      housefullCategorySlots,
       isActive,
       order,
     };
@@ -582,16 +646,17 @@ export default function AdminPromoStrip() {
                     {displayedPromoStrips.map((ps) => {
                       const isActiveDate = new Date() >= new Date(ps.startDate) && new Date() <= new Date(ps.endDate);
 
-                      // Resolve category cards to display:
-                      // 1. Use saved categoryCards titles if they exist
-                      // 2. Otherwise fall back to first 4 published header categories (excluding "All")
+                      // Resolve category cards & housefull slots to display in table:
+                      const savedSlots = ps.housefullCategorySlots || [];
                       const savedCards = (ps.categoryCards || []).filter((c) => c.title?.trim());
                       const dynamicCards = headerCategories
                         .filter((hc) => hc.slug?.toLowerCase() !== "all" && hc.status === "Published")
                         .slice(0, 4);
 
                       const displayCards: { name: string; badge?: string }[] =
-                        savedCards.length > 0
+                        savedSlots.length > 0
+                          ? savedSlots.map((s) => ({ name: s.headerCategoryName }))
+                          : savedCards.length > 0
                           ? savedCards.map((c) => ({ name: c.title, badge: c.badge }))
                           : dynamicCards.map((hc) => ({ name: hc.name }));
 
@@ -655,7 +720,7 @@ export default function AdminPromoStrip() {
                               <td colSpan={7} className="px-4 pb-3 pt-2">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wide mr-1">
-                                    📦 Category Cards:
+                                    📦 Housefull Categories:
                                   </span>
                                   {displayCards.map((card, idx) => {
                                     const colors = [
@@ -663,8 +728,6 @@ export default function AdminPromoStrip() {
                                       "bg-blue-100 text-blue-800 border-blue-200",
                                       "bg-green-100 text-green-800 border-green-200",
                                       "bg-purple-100 text-purple-800 border-purple-200",
-                                      "bg-pink-100 text-pink-800 border-pink-200",
-                                      "bg-yellow-100 text-yellow-800 border-yellow-200",
                                     ];
                                     const color = colors[idx % colors.length];
                                     return (
@@ -672,7 +735,7 @@ export default function AdminPromoStrip() {
                                         key={idx}
                                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[11px] font-semibold ${color}`}
                                       >
-                                        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60 inline-block"></span>
+                                        <span className="text-[9px] font-bold opacity-60">Box {idx + 1}:</span>
                                         {card.name}
                                         {card.badge && (
                                           <span className="ml-1 text-[9px] bg-white/70 px-1 py-0.5 rounded font-medium opacity-80">
@@ -682,7 +745,7 @@ export default function AdminPromoStrip() {
                                       </span>
                                     );
                                   })}
-                                  {savedCards.length === 0 && (
+                                  {savedSlots.length === 0 && savedCards.length === 0 && (
                                     <span className="text-[10px] text-neutral-400 italic ml-1">(auto from header categories)</span>
                                   )}
                                 </div>
@@ -828,6 +891,129 @@ export default function AdminPromoStrip() {
                       className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none"
                       required
                     />
+                  </div>
+                </div>
+
+                {/* Housefull Sale Category Mapping (4 Fixed Right-side Boxes) */}
+                <div className="border border-teal-200 rounded-xl p-4 bg-gradient-to-br from-teal-50/40 to-emerald-50/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-bold text-teal-900 flex items-center gap-1.5">
+                        <span>📦</span> Housefull Sale Category Mapping (4 Right-side Boxes)
+                      </h3>
+                      <p className="text-[11px] text-neutral-500 mt-0.5">
+                        Select which Header Category feeds each of the 4 boxes on the Customer Home Page
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-semibold bg-teal-100 text-teal-800 px-2.5 py-1 rounded-full border border-teal-200">
+                      4 Boxes Configured
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {[0, 1, 2, 3].map((slotIdx) => {
+                      const currentSlot = housefullSlots[slotIdx];
+                      const selectedHcId = currentSlot?.headerCategoryId || "";
+
+                      // Auto-select fallback default if slot not explicitly set
+                      const targetCategoryQueries = [
+                        ["fast food", "fast-food"],
+                        ["restaurant", "restaurant-food"],
+                        ["vagitable", "vegetable", "fruits-veg", "fruits"],
+                        ["cake", "bakery", "cake-bakery"],
+                      ];
+                      const queries = targetCategoryQueries[slotIdx] || [];
+                      const defaultHc = headerCategories.find((hc) => {
+                        const name = (hc.name || "").toLowerCase();
+                        const slug = (hc.slug || "").toLowerCase();
+                        return queries.some((q) => name.includes(q) || slug.includes(q));
+                      }) || headerCategories[slotIdx];
+
+                      const activeHcId = selectedHcId || defaultHc?._id || "";
+                      const activeDetails = activeHcId
+                        ? headerCatDetailsMap[activeHcId] || { productCount: 0, images: [] }
+                        : null;
+
+                      return (
+                        <div
+                          key={slotIdx}
+                          className="bg-white border border-teal-100 rounded-lg p-3 shadow-2xs space-y-2 relative hover:border-teal-300 transition"
+                        >
+                          <div className="flex items-center justify-between border-b border-neutral-100 pb-1.5">
+                            <span className="text-[11px] font-extrabold text-teal-700 uppercase tracking-wider flex items-center gap-1">
+                              <span>Box {slotIdx + 1}</span>
+                              {selectedHcId && (
+                                <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.2 rounded">
+                                  Saved in DB
+                                </span>
+                              )}
+                            </span>
+                            {activeDetails && (
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  activeDetails.productCount > 0
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    : "bg-amber-50 text-amber-700 border border-amber-200"
+                                }`}
+                              >
+                                {activeDetails.productCount} Products Found
+                              </span>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-semibold text-neutral-600 mb-1">
+                              Header Category:
+                            </label>
+                            <select
+                              value={activeHcId}
+                              onChange={(e) => {
+                                const selectedId = e.target.value;
+                                const selectedObj = headerCategories.find((hc) => hc._id === selectedId);
+                                setHousefullSlots((prev) => ({
+                                  ...prev,
+                                  [slotIdx]: {
+                                    headerCategoryId: selectedId,
+                                    headerCategoryName: selectedObj?.name || "",
+                                    headerCategorySlug: selectedObj?.slug || "",
+                                  },
+                                }));
+                              }}
+                              className="w-full px-2.5 py-1.5 border border-neutral-300 rounded-md text-xs font-semibold text-neutral-800 bg-white focus:ring-1 focus:ring-teal-500 outline-none"
+                            >
+                              <option value="">-- Select Header Category --</option>
+                              {headerCategories.map((hc) => (
+                                <option key={hc._id} value={hc._id}>
+                                  {hc.name} ({hc.slug})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* 4 Preview Thumbnails */}
+                          <div>
+                            <span className="text-[9px] font-semibold text-neutral-400 block mb-1">Preview Thumbnails:</span>
+                            <div className="grid grid-cols-4 gap-1">
+                              {[0, 1, 2, 3].map((imgIdx) => {
+                                const img = activeDetails?.images[imgIdx];
+                                return (
+                                  <div
+                                    key={imgIdx}
+                                    className="aspect-square bg-neutral-50 rounded border border-neutral-200 flex items-center justify-center overflow-hidden"
+                                  >
+                                    {img ? (
+                                      <img src={img} alt="" className="w-full h-full object-contain p-0.5" />
+                                    ) : (
+                                      <span className="text-[9px] text-neutral-300">📦</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1177,24 +1363,37 @@ export default function AdminPromoStrip() {
 
                   {/* Right Category Cards (2x2 Grid) */}
                   <div className="flex-1 grid grid-cols-2 gap-1">
-                    {(categoryCards.length > 0 ? categoryCards.slice(0, 4) : [
-                      { categoryId: "", title: "Fast Food", badge: "Up to 55% OFF" },
-                      { categoryId: "", title: "Restaurant", badge: "Up to 55% OFF" },
-                      { categoryId: "", title: "Stationery", badge: "Up to 55% OFF" },
-                      { categoryId: "", title: "Dairy", badge: "Up to 55% OFF" }
-                    ]).map((card, i) => {
-                      const details = categoryDetailsMap[(card as any).categoryId as string] || { images: [] };
+                    {[0, 1, 2, 3].map((slotIdx) => {
+                      const slotData = housefullSlots[slotIdx];
+                      // Find default header category if not explicitly set
+                      const targetCategoryQueries = [
+                        ["fast food", "fast-food"],
+                        ["restaurant", "restaurant-food"],
+                        ["vagitable", "vegetable", "fruits-veg", "fruits"],
+                        ["cake", "bakery", "cake-bakery"],
+                      ];
+                      const queries = targetCategoryQueries[slotIdx] || [];
+                      const defaultHc = headerCategories.find((hc) => {
+                        const name = (hc.name || "").toLowerCase();
+                        const slug = (hc.slug || "").toLowerCase();
+                        return queries.some((q) => name.includes(q) || slug.includes(q));
+                      }) || headerCategories[slotIdx];
+
+                      const title = slotData?.headerCategoryName || defaultHc?.name || `Box ${slotIdx + 1}`;
+                      const hcId = slotData?.headerCategoryId || defaultHc?._id || "";
+                      const details = hcId ? headerCatDetailsMap[hcId] || { images: [] } : { images: [] };
+
                       return (
                         <div
-                          key={i}
+                          key={slotIdx}
                           className="bg-orange-50/95 rounded-xl p-1 text-center text-neutral-800 flex flex-col justify-between shadow-xs"
                         >
                           <div className="bg-green-600 text-white text-[7px] font-bold px-1 rounded-full w-max mx-auto">
-                            {card.badge || "Up to 55% OFF"}
+                            Up to 55% OFF
                           </div>
 
                           <div className="text-[8px] font-bold truncate px-0.5 leading-tight my-0.5">
-                            {card.title || `Category ${i + 1}`}
+                            {title}
                           </div>
 
                           {/* 2x2 Sub-boxes */}

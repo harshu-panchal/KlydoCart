@@ -653,47 +653,82 @@ export const getHomeContent = async (req: Request, res: Response) => {
         });
       }
 
-      // Always populate categoryCards with the 4 target Header Categories: Fast Food, Restaurant & Food, Vagitable, Cake & Bakery
+      // Populate categoryCards for the 4 Housefull Sale right-side boxes:
+      // Priority 1: Use explicitly saved housefullCategorySlots from DB if available
+      // Priority 2: Fall back to dynamic matching of target Header Categories (Fast Food, Restaurant, Vegetable, Cake & Bakery)
       if (promoStrip) {
-        const targetCategoryQueries = [
-          ["fast food", "fast-food"],
-          ["restaurant", "restaurant-food"],
-          ["vagitable", "vegetable", "fruits-veg"],
-          ["cake", "bakery", "cake-bakery"],
-        ];
+        let selectedHeaderCats: any[] = [];
 
-        // Fetch all Published Header Categories
-        const allHeaderCats = await HeaderCategory.find({
-          status: "Published",
-          slug: { $ne: "all" },
-        })
-          .sort({ order: 1 })
-          .lean();
-
-        // Find matching HeaderCategory for each target slot, or pick from allHeaderCats
-        const selectedHeaderCats: any[] = [];
-
-        for (const queries of targetCategoryQueries) {
-          const found = allHeaderCats.find((hc: any) =>
-            queries.some((q) =>
-              (hc.slug || "").toLowerCase().includes(q) ||
-              (hc.name || "").toLowerCase().includes(q)
-            )
+        if (
+          promoStrip.housefullCategorySlots &&
+          Array.isArray(promoStrip.housefullCategorySlots) &&
+          promoStrip.housefullCategorySlots.length > 0
+        ) {
+          // Sort slots by slotIndex 0-3
+          const sortedSlots = [...promoStrip.housefullCategorySlots].sort(
+            (a: any, b: any) => (a.slotIndex || 0) - (b.slotIndex || 0)
           );
-          if (found && !selectedHeaderCats.some((sc) => sc._id.toString() === found._id.toString())) {
-            selectedHeaderCats.push(found);
+
+          // Fetch full HeaderCategory objects for the saved slot IDs
+          const slotIds = sortedSlots.map((s: any) => s.headerCategoryId);
+          const headerCatDocs = await HeaderCategory.find({ _id: { $in: slotIds } }).lean();
+          const hcMap = new Map(headerCatDocs.map((hc: any) => [hc._id.toString(), hc]));
+
+          for (const slot of sortedSlots) {
+            const hc = hcMap.get(slot.headerCategoryId?.toString());
+            if (hc) {
+              selectedHeaderCats.push(hc);
+            } else if (slot.headerCategoryName) {
+              // Fallback if document was deleted
+              selectedHeaderCats.push({
+                _id: slot.headerCategoryId,
+                name: slot.headerCategoryName,
+                slug: slot.headerCategorySlug || "all",
+              });
+            }
           }
         }
 
-        // Fill remaining slots up to 4 if any target category wasn't found by keyword match
-        for (const hc of allHeaderCats) {
-          if (selectedHeaderCats.length >= 4) break;
-          if (!selectedHeaderCats.some((sc) => sc._id.toString() === hc._id.toString())) {
-            selectedHeaderCats.push(hc);
+        // Fallback to dynamic matching if no saved slots exist or fewer than 4
+        if (selectedHeaderCats.length === 0) {
+          const targetCategoryQueries = [
+            ["fast food", "fast-food"],
+            ["restaurant", "restaurant-food"],
+            ["vagitable", "vegetable", "fruits-veg"],
+            ["cake", "bakery", "cake-bakery"],
+          ];
+
+          // Fetch all Published Header Categories
+          const allHeaderCats = await HeaderCategory.find({
+            status: "Published",
+            slug: { $ne: "all" },
+          })
+            .sort({ order: 1 })
+            .lean();
+
+          for (const queries of targetCategoryQueries) {
+            const found = allHeaderCats.find((hc: any) =>
+              queries.some(
+                (q) =>
+                  (hc.slug || "").toLowerCase().includes(q) ||
+                  (hc.name || "").toLowerCase().includes(q)
+              )
+            );
+            if (found && !selectedHeaderCats.some((sc) => sc._id.toString() === found._id.toString())) {
+              selectedHeaderCats.push(found);
+            }
+          }
+
+          // Fill remaining slots up to 4 if any target category wasn't found by keyword match
+          for (const hc of allHeaderCats) {
+            if (selectedHeaderCats.length >= 4) break;
+            if (!selectedHeaderCats.some((sc) => sc._id.toString() === hc._id.toString())) {
+              selectedHeaderCats.push(hc);
+            }
           }
         }
 
-        // Build cards for selected 4 header categories
+        // Build cards for selected header categories
         const validCategoryCards = await Promise.all(
           selectedHeaderCats.slice(0, 4).map(async (hCat: any, idx: number) => {
             // Find linked categories
