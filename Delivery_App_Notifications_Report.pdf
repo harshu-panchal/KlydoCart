@@ -1,0 +1,222 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [9 0 R 10 0 R 11 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Length 4731 >>
+stream
+q
+0.117 0.105 0.294 rg 40 760 515 50 re f
+1 1 1 rg /F2 16 Tf 55 792 TD (KlydoCart -- Delivery App Notifications Report) Tj ET
+1 1 1 rg /F1 9.5 Tf 55 776 TD (Technical Specification of Delivery Partner Notifications | Date: Aug 6, 2026) Tj ET
+
+0.12 0.12 0.12 rg /F2 13 Tf 40 735 TD (1. Executive Overview & Architecture) Tj ET
+0.3 0.3 0.3 rg /F1 9 Tf
+40 715 TD (The KlydoCart Delivery Partner App utilizes a 3-tier hybrid notification architecture:) Tj ET
+40 700 TD (- Socket.io (Real-Time): Delivers sub-second order alerts, driver location streaming, & responses.) Tj ET
+40 687 TD (- FCM Admin SDK (Push): Reaches drivers when device is locked or app is in background.) Tj ET
+40 674 TD (- In-App Feed (MongoDB): Stores immutable logs for broadcasts, status, & earnings.) Tj ET
+
+0.117 0.105 0.294 rg /F2 13 Tf 40 645 TD (2. Delivery App Notification Catalog) Tj ET
+
+0.96 0.97 0.98 rg 40 520 515 105 re f
+0.31 0.27 0.90 RG 1.5 w 40 520 0 105 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 610 TD (1. New Order Available Alert) Tj ET
+0.28 0.33 0.41 rg /F2 8.5 Tf 420 610 TD ([ Socket + FCM Push ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 595 TD (Event / Channel:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 595 TD (new-order  |  Room: delivery-{deliveryBoyId}) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 582 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 582 TD (Customer order placed & accepted. Sent to active, online, non-busy drivers.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 569 TD (Payload:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 569 TD (orderId, orderNumber, customerName, customerPhone, deliveryAddress, total) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 556 TD (FCM Push:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 556 TD (Title: New Order Available! | Body: New order #{orderNumber} for Rs.{total}) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 543 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 543 TD (backend/src/services/orderNotificationService.ts (line 327)) Tj ET
+
+0.96 0.97 0.98 rg 40 395 515 105 re f
+0.31 0.27 0.90 RG 1.5 w 40 395 0 105 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 485 TD (2. New Return Pickup Request) Tj ET
+0.28 0.33 0.41 rg /F2 8.5 Tf 420 485 TD ([ Socket + FCM Push ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 470 TD (Event / Channel:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 470 TD (NEW_RETURN_PICKUP  |  Room: delivery-{deliveryBoyId}) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 457 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 457 TD (Return request approved by seller/admin requiring product pickup.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 444 TD (Payload:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 444 TD (returnId, orderId, reason, quantity, storeName, pickupAddress, customerName) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 431 TD (FCM Push:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 431 TD (Title: New Return Pickup! | Body: New return pickup available at {storeName}) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 418 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 418 TD (backend/src/services/orderNotificationService.ts (line 916)) Tj ET
+
+0.96 0.97 0.98 rg 40 285 515 95 re f
+0.31 0.27 0.90 RG 1.5 w 40 285 0 95 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 365 TD (3. Order Claimed by Another Driver) Tj ET
+0.12 0.25 0.68 rg /F2 8.5 Tf 435 365 TD ([ Socket.io Only ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 350 TD (Event / Channel:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 350 TD (order-accepted  |  Room: delivery-{deliveryBoyId}) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 337 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 337 TD (Another delivery partner accepts the broadcasted order first.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 324 TD (Frontend Action:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 324 TD (Automatically clears the offer popup card from all other drivers screens.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 311 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 311 TD (backend/src/services/orderNotificationService.ts (line 561)) Tj ET
+
+0.96 0.97 0.98 rg 40 175 515 95 re f
+0.31 0.27 0.90 RG 1.5 w 40 175 0 95 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 255 TD (4. Return Claimed by Another Driver) Tj ET
+0.12 0.25 0.68 rg /F2 8.5 Tf 435 255 TD ([ Socket.io Only ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 240 TD (Event / Channel:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 240 TD (return-accepted  |  Room: delivery-{deliveryBoyId}) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 227 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 227 TD (Another driver accepts return task first. Clears return popup from queue.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 214 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 214 TD (frontend/src/hooks/useDeliveryOrderNotifications.ts (line 207)) Tj ET
+
+0.5 0.5 0.5 rg /F1 8 Tf 220 30 TD (KlydoCart Delivery App Report - Page 1 of 3) Tj ET
+Q
+
+endstream
+endobj
+4 0 obj
+<< /Length 4570 >>
+stream
+q
+0.117 0.105 0.294 rg /F2 13 Tf 40 790 TD (2. Delivery App Notification Catalog (Continued)) Tj ET
+
+0.96 0.97 0.98 rg 40 675 515 95 re f
+0.31 0.27 0.90 RG 1.5 w 40 675 0 95 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 755 TD (5. Order Rejection Acknowledgment) Tj ET
+0.12 0.25 0.68 rg /F2 8.5 Tf 435 755 TD ([ Socket.io Only ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 740 TD (Event / Channel:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 740 TD (order-rejection-acknowledged) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 727 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 727 TD (Current driver clicks Reject on offer. System tracks rejections in-memory.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 714 TD (System Action:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 714 TD (If all drivers reject, updates order to Rejected & notifies customer.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 701 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 701 TD (backend/src/services/orderNotificationService.ts (line 663)) Tj ET
+
+0.96 0.97 0.98 rg 40 565 515 95 re f
+0.31 0.27 0.90 RG 1.5 w 40 565 0 95 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 645 TD (6. Seller Pickup Confirmation Alert) Tj ET
+0.12 0.25 0.68 rg /F2 8.5 Tf 435 645 TD ([ Socket.io Only ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 630 TD (Event / Channel:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 630 TD (seller-pickup-confirmed  |  Room: order-{orderId}) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 617 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 617 TD (Driver confirms pickup at seller location (verified via GPS <= 500m).) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 604 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 604 TD (backend/src/modules/delivery/controllers/deliveryOrderController.ts:761) Tj ET
+
+0.96 0.97 0.98 rg 40 455 515 95 re f
+0.31 0.27 0.90 RG 1.5 w 40 455 0 95 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 535 TD (7. All Sellers Picked Up Signal) Tj ET
+0.12 0.25 0.68 rg /F2 8.5 Tf 435 535 TD ([ Socket.io Only ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 520 TD (Event / Channel:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 520 TD (all-sellers-picked-up  |  Room: delivery-{deliveryId}) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 507 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 507 TD (All items from multi-seller order collected. Status -> Out for Delivery.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 494 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 494 TD (backend/src/modules/delivery/controllers/deliveryOrderController.ts:771) Tj ET
+
+0.96 0.97 0.98 rg 40 345 515 95 re f
+0.31 0.27 0.90 RG 1.5 w 40 345 0 95 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 425 TD (8. Delivery OTP Sent Confirmation) Tj ET
+0.12 0.25 0.68 rg /F2 8.5 Tf 435 425 TD ([ Socket.io + SMS ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 410 TD (Event / Channel:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 410 TD (otp-sent  |  Room: delivery-{deliveryId}) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 397 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 397 TD (Driver requests delivery OTP code upon arriving at customer location.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 384 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 384 TD (backend/src/modules/delivery/controllers/deliveryOrderController.ts:495) Tj ET
+
+0.96 0.97 0.98 rg 40 235 515 95 re f
+0.31 0.27 0.90 RG 1.5 w 40 235 0 95 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 315 TD (9. Order Delivered Confirmation) Tj ET
+0.12 0.25 0.68 rg /F2 8.5 Tf 435 315 TD ([ Socket.io Only ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 300 TD (Event / Channel:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 300 TD (order-delivered  |  Room: delivery-{deliveryId}) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 287 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 287 TD (OTP verified successfully and order status updated to Delivered.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 274 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 274 TD (backend/src/modules/delivery/controllers/deliveryOrderController.ts:585) Tj ET
+
+0.96 0.97 0.98 rg 40 125 515 95 re f
+0.31 0.27 0.90 RG 1.5 w 40 125 0 95 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 205 TD (10. Auto-Release Task Reclaim) Tj ET
+0.08 0.4 0.2 rg /F2 8.5 Tf 435 205 TD ([ Background Job ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 190 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 190 TD (Undelivered assignment idle > 45 mins. Unassigns driver, resets order.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 177 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 177 TD (backend/src/services/deliveryAutoReleaseService.ts (line 66)) Tj ET
+
+0.5 0.5 0.5 rg /F1 8 Tf 220 30 TD (KlydoCart Delivery App Report - Page 2 of 3) Tj ET
+Q
+
+endstream
+endobj
+5 0 obj
+<< /Length 3914 >>
+stream
+q
+0.117 0.105 0.294 rg /F2 13 Tf 40 790 TD (3. Reconnection Scan & In-App Feed) Tj ET
+
+0.96 0.97 0.98 rg 40 685 515 90 re f
+0.31 0.27 0.90 RG 1.5 w 40 685 0 90 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 760 TD (11. Reconnection Catch-Up Rescan) Tj ET
+0.12 0.25 0.68 rg /F2 8.5 Tf 410 760 TD ([ Socket.io On-Connect ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 745 TD (Trigger Condition:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 745 TD (Driver opens app/reconnects. Rescans recent orders created in last 30 min.) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 732 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 732 TD (backend/src/services/orderNotificationService.ts (line 687)) Tj ET
+
+0.96 0.97 0.98 rg 40 580 515 90 re f
+0.31 0.27 0.90 RG 1.5 w 40 580 0 90 re S
+0.05 0.09 0.16 rg /F2 11 Tf 50 655 TD (12. In-App Persistent Feed Notifications) Tj ET
+0.08 0.4 0.2 rg /F2 8.5 Tf 435 655 TD ([ REST API + DB ]) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 640 TD (Target Role:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 640 TD (recipientType: Delivery | Types: Info, Order, Payment, Warning, System) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 627 TD (Endpoints:) Tj ET 0.1 0.1 0.1 rg /F1 8.5 Tf 135 627 TD (GET /api/delivery/notifications | PATCH /api/delivery/notifications/:id/read) Tj ET
+0.4 0.4 0.4 rg /F2 8.5 Tf 50 614 TD (Source Code:) Tj ET 0.19 0.18 0.5 rg /F1 8.5 Tf 135 614 TD (backend/src/modules/delivery/controllers/deliveryNotificationController.ts) Tj ET
+
+0.117 0.105 0.294 rg /F2 13 Tf 40 545 TD (4. Master Delivery Notification Matrix) Tj ET
+
+0.19 0.18 0.5 rg 40 515 515 20 re f
+1 1 1 rg /F2 9 Tf
+45 528 TD (Event Name) Tj ET
+160 528 TD (Channel / Room) Tj ET
+300 528 TD (Transport) Tj ET
+410 528 TD (Source File Reference) Tj ET
+
+0.96 0.97 0.98 rg 40 495 515 20 re f
+0.1 0.1 0.1 rg /F2 8.5 Tf 45 508 TD (new-order) Tj ET /F1 8.5 Tf 160 508 TD (delivery-{deliveryBoyId}) Tj ET 300 508 TD (Socket.io + FCM) Tj ET 410 508 TD (orderNotificationService.ts:327) Tj ET
+
+0.1 0.1 0.1 rg /F2 8.5 Tf 45 488 TD (NEW_RETURN_PICKUP) Tj ET /F1 8.5 Tf 160 488 TD (delivery-{deliveryBoyId}) Tj ET 300 488 TD (Socket.io + FCM) Tj ET 410 488 TD (orderNotificationService.ts:916) Tj ET
+
+0.96 0.97 0.98 rg 40 455 515 20 re f
+0.1 0.1 0.1 rg /F2 8.5 Tf 45 468 TD (order-accepted) Tj ET /F1 8.5 Tf 160 468 TD (delivery-{deliveryBoyId}) Tj ET 300 468 TD (Socket.io) Tj ET 410 468 TD (orderNotificationService.ts:561) Tj ET
+
+0.1 0.1 0.1 rg /F2 8.5 Tf 45 448 TD (return-accepted) Tj ET /F1 8.5 Tf 160 448 TD (delivery-{deliveryBoyId}) Tj ET 300 448 TD (Socket.io) Tj ET 410 448 TD (useDeliveryNotifications.ts:207) Tj ET
+
+0.96 0.97 0.98 rg 40 415 515 20 re f
+0.1 0.1 0.1 rg /F2 8.5 Tf 45 428 TD (order-rejection-ack) Tj ET /F1 8.5 Tf 160 428 TD (Direct Socket) Tj ET 300 428 TD (Socket.io) Tj ET 410 428 TD (orderNotificationService.ts:663) Tj ET
+
+0.1 0.1 0.1 rg /F2 8.5 Tf 45 408 TD (seller-pickup-confirmed) Tj ET /F1 8.5 Tf 160 408 TD (order-{orderId}) Tj ET 300 408 TD (Socket.io) Tj ET 410 408 TD (deliveryOrderController.ts:761) Tj ET
+
+0.96 0.97 0.98 rg 40 375 515 20 re f
+0.1 0.1 0.1 rg /F2 8.5 Tf 45 388 TD (all-sellers-picked-up) Tj ET /F1 8.5 Tf 160 388 TD (delivery-{deliveryId}) Tj ET 300 388 TD (Socket.io) Tj ET 410 388 TD (deliveryOrderController.ts:771) Tj ET
+
+0.1 0.1 0.1 rg /F2 8.5 Tf 45 368 TD (otp-sent) Tj ET /F1 8.5 Tf 160 368 TD (delivery-{deliveryId}) Tj ET 300 368 TD (Socket.io + SMS) Tj ET 410 368 TD (deliveryOrderController.ts:495) Tj ET
+
+0.96 0.97 0.98 rg 40 335 515 20 re f
+0.1 0.1 0.1 rg /F2 8.5 Tf 45 348 TD (order-delivered) Tj ET /F1 8.5 Tf 160 348 TD (delivery-{deliveryId}) Tj ET 300 348 TD (Socket.io) Tj ET 410 348 TD (deliveryOrderController.ts:585) Tj ET
+
+0.1 0.1 0.1 rg /F2 8.5 Tf 45 328 TD (auto-release) Tj ET /F1 8.5 Tf 160 328 TD (Background Job) Tj ET 300 328 TD (DB Daemon) Tj ET 410 328 TD (deliveryAutoReleaseService.ts:66) Tj ET
+
+0.5 0.5 0.5 rg /F1 8 Tf 220 30 TD (KlydoCart Delivery App Report - Page 3 of 3) Tj ET
+Q
+
+endstream
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+8 0 obj
+<< /Font << /F1 6 0 R /F2 7 0 R >> >>
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 3 0 R /Resources 8 0 R >>
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources 8 0 R >>
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 5 0 R /Resources 8 0 R >>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000129 00000 n 
+0000004911 00000 n 
+0000009532 00000 n 
+0000013497 00000 n 
+0000013567 00000 n 
+0000013642 00000 n 
+0000013695 00000 n 
+0000013799 00000 n 
+0000013904 00000 n 
+trailer
+<< /Size 12 /Root 1 0 R >>
+startxref
+14009
+%%EOF

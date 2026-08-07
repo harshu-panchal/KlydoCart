@@ -4,6 +4,7 @@ import {
   createHeaderCategory,
   updateHeaderCategory,
   deleteHeaderCategory,
+  reorderHeaderCategories,
   HeaderCategory
 } from '../../../services/api/headerCategoryService';
 import { themes } from '../../../utils/themes';
@@ -59,6 +60,8 @@ export default function AdminHeaderCategory() {
     try {
       setLoading(true);
       const data = await getHeaderCategoriesAdmin();
+      // Ensure sorted by order
+      data.sort((a, b) => (a.order || 0) - (b.order || 0));
       setHeaderCategories(data);
     } catch (error) {
       console.error('Failed to fetch header categories', error);
@@ -111,6 +114,66 @@ export default function AdminHeaderCategory() {
     (category.relatedCategory || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (category.slug || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
+  
+  if (sortColumn) {
+    filteredCategories.sort((a: any, b: any) => {
+      let valA = a[sortColumn] || '';
+      let valB = b[sortColumn] || '';
+      
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return;
+    if (searchTerm || sortColumn) {
+       alert("Please clear search and sorting to reorder items.");
+       return;
+    }
+    
+    const newCategories = [...headerCategories];
+    const temp = newCategories[index - 1];
+    newCategories[index - 1] = newCategories[index];
+    newCategories[index] = temp;
+    
+    setHeaderCategories(newCategories);
+    
+    try {
+       await reorderHeaderCategories(newCategories.map(c => c._id));
+    } catch (error) {
+       console.error("Failed to reorder", error);
+       alert("Failed to save new order");
+       fetchCategories();
+    }
+  };
+
+  const handleMoveDown = async (index: number) => {
+    if (index === headerCategories.length - 1) return;
+    if (searchTerm || sortColumn) {
+       alert("Please clear search and sorting to reorder items.");
+       return;
+    }
+    
+    const newCategories = [...headerCategories];
+    const temp = newCategories[index + 1];
+    newCategories[index + 1] = newCategories[index];
+    newCategories[index] = temp;
+    
+    setHeaderCategories(newCategories);
+    
+    try {
+       await reorderHeaderCategories(newCategories.map(c => c._id));
+    } catch (error) {
+       console.error("Failed to reorder", error);
+       alert("Failed to save new order");
+       fetchCategories();
+    }
+  };
 
   const totalPages = Math.ceil(filteredCategories.length / entriesPerPage);
   const startIndex = (currentPage - 1) * entriesPerPage;
@@ -476,7 +539,7 @@ export default function AdminHeaderCategory() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-neutral-50 sticky top-0 z-10">
                 <tr>
-                  {['Name', 'Icon', 'Theme', 'Status', 'Actions'].map((header) => (
+                  {['Name', 'Icon', 'Theme', 'Status', 'Order', 'Actions'].map((header) => (
                     <th
                       key={header}
                       onClick={() => handleSort(header.toLowerCase())}
@@ -489,7 +552,11 @@ export default function AdminHeaderCategory() {
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {displayedCategories.length > 0 ? (
-                  displayedCategories.map((category) => (
+                  displayedCategories.map((category, i) => {
+                    // Global index for reordering
+                    const globalIndex = startIndex + i;
+                    
+                    return (
                     <tr key={category._id} className="hover:bg-neutral-50 transition-colors group">
                       <td className="px-4 py-3 text-sm font-medium text-neutral-800">
                         {category.name}
@@ -534,10 +601,30 @@ export default function AdminHeaderCategory() {
                           {category.status}
                         </span>
                       </td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex flex-col items-center gap-1 w-8">
+                          <button
+                            onClick={() => handleMoveUp(globalIndex)}
+                            disabled={globalIndex === 0 || !!searchTerm || !!sortColumn}
+                            className={`p-1 rounded bg-neutral-100 hover:bg-neutral-200 text-neutral-600 ${(globalIndex === 0 || searchTerm || sortColumn) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title="Move Up"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"></path></svg>
+                          </button>
+                          <button
+                            onClick={() => handleMoveDown(globalIndex)}
+                            disabled={globalIndex === headerCategories.length - 1 || !!searchTerm || !!sortColumn}
+                            className={`p-1 rounded bg-neutral-100 hover:bg-neutral-200 text-neutral-600 ${(globalIndex === headerCategories.length - 1 || searchTerm || sortColumn) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title="Move Down"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                          </button>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-sm flex gap-2">
                         <button
                           onClick={() => handleEdit(category)}
-                          className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors"
+                          className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors mt-2"
                           title="Edit"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -546,7 +633,7 @@ export default function AdminHeaderCategory() {
                         </button>
                         <button
                           onClick={() => handleDelete(category._id)}
-                          className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors"
+                          className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 p-1.5 rounded transition-colors mt-2"
                           title="Delete"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -555,7 +642,8 @@ export default function AdminHeaderCategory() {
                         </button>
                       </td>
                     </tr>
-                  ))
+                  );
+                })
                 ) : (
                   <tr>
                     <td colSpan={5} className="px-6 py-10 text-center text-neutral-500">

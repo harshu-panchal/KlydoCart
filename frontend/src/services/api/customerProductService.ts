@@ -80,8 +80,13 @@ export const getProductById = async (id: string, latitude?: number, longitude?: 
 /**
  * Get category details by ID or slug (Public)
  */
-export const getCategoryById = async (id: string): Promise<any> => {
-    const response = await api.get<any>(`/customer/categories/${id}`);
+export const getCategoryById = async (id: string, latitude?: number, longitude?: number): Promise<any> => {
+    const params: any = {};
+    if (latitude !== undefined && longitude !== undefined) {
+        params.latitude = latitude;
+        params.longitude = longitude;
+    }
+    const response = await api.get<any>(`/customer/categories/${id}`, { params });
     return response.data;
 };
 

@@ -67,7 +67,7 @@ export default function CategoryPage() {
       setCategoryLoading(true);
       setError(null);
       try {
-        const response = await getCategoryById(id!);
+        const response = await getCategoryById(id!, userLocation?.latitude, userLocation?.longitude);
         if (response.success && response.data) {
           const {
             category: cat,
@@ -110,7 +110,7 @@ export default function CategoryPage() {
     if (id) {
       fetchCategoryDetails();
     }
-  }, [id, searchParams]);
+  }, [id, searchParams, userLocation]);
 
   // Fetch Products when category or subcategory changes
   useEffect(() => {

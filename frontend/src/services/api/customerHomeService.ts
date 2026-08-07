@@ -30,7 +30,7 @@ export const getHomeContent = async (
   cacheTTL: number = 5 * 60 * 1000, // 5 minutes
   skipLoader: boolean = false
 ): Promise<HomeContentResponse> => {
-  const cacheKey = `home-content-${headerCategorySlug || 'all'}-${latitude || 0}-${longitude || 0}`;
+  const cacheKey = `home-content-${headerCategorySlug || 'all'}-${latitude !== undefined ? latitude.toFixed(4) : 0}-${longitude !== undefined ? longitude.toFixed(4) : 0}`;
 
   const fetchFn = async () => {
     const params: any = headerCategorySlug ? { headerCategorySlug } : {};

@@ -5,6 +5,7 @@ import Product from "../../../models/Product";
 import HeaderCategory from "../../../models/HeaderCategory";
 import mongoose from "mongoose";
 import { cache } from "../../../utils/cache";
+import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 // Get all categories (public) - with caching
 export const getCategories = async (_req: Request, res: Response) => {
@@ -137,11 +138,21 @@ export const getCategoriesWithSubs = async (_req: Request, res: Response) => {
   }
 };
 
-// Get single category details with subcategories - with caching
 export const getCategoryById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const cacheKey = `customer-category-${id}`;
+    const { latitude, longitude } = req.query;
+    
+    let cacheKey = `customer-category-${id}`;
+    const userLat = latitude ? parseFloat(latitude as string) : null;
+    const userLng = longitude ? parseFloat(longitude as string) : null;
+    
+    let nearbySellerIds: mongoose.Types.ObjectId[] = [];
+    if (userLat !== null && userLng !== null) {
+      // Append coordinates with 4 decimal precision to cache key (approx 11m accuracy)
+      cacheKey += `-${userLat.toFixed(4)}-${userLng.toFixed(4)}`;
+      nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+    }
 
     // Try cache first
     const cached = cache.get(cacheKey);
@@ -210,13 +221,29 @@ export const getCategoryById = async (req: Request, res: Response) => {
       }).lean();
 
       if (headerCategory) {
-        const subcategories = await Category.find({
+        let subcategories = await Category.find({
           headerCategoryId: headerCategory._id,
           status: "Active"
         })
           .select("name image order slug icon")
           .sort({ order: 1 })
           .lean();
+
+        // Location-based subcategory filtering
+        if (nearbySellerIds.length > 0) {
+          const resolvedSubcategories = await Promise.all(
+            subcategories.map(async (sub) => {
+              const count = await Product.countDocuments({
+                subcategory: sub._id,
+                status: "Active",
+                publish: true,
+                seller: { $in: nearbySellerIds },
+              });
+              return count > 0 ? sub : null;
+            })
+          );
+          subcategories = resolvedSubcategories.filter(sub => sub !== null) as typeof subcategories;
+        }
 
         const responseData = {
           category: {
@@ -287,14 +314,31 @@ export const getCategoryById = async (req: Request, res: Response) => {
           }
         }
 
-        const subcategories = await Category.find({
+        let subcategories = await Category.find({
           parentId: { $in: [parentCatId, parentCatId.toString()] },
           status: "Active"
         })
           .select("name image order slug icon")
           .sort({
             order: 1,
-          });
+          })
+          .lean();
+
+        // Location-based subcategory filtering
+        if (nearbySellerIds.length > 0) {
+          const resolvedSubcategories = await Promise.all(
+            subcategories.map(async (sub) => {
+              const count = await Product.countDocuments({
+                subcategory: sub._id,
+                status: "Active",
+                publish: true,
+                seller: { $in: nearbySellerIds },
+              });
+              return count > 0 ? sub : null;
+            })
+          );
+          subcategories = resolvedSubcategories.filter(sub => sub !== null) as typeof subcategories;
+        }
 
         const responseData = {
           category: parentCategory,
@@ -329,14 +373,31 @@ export const getCategoryById = async (req: Request, res: Response) => {
     // Query for BOTH ObjectId and String representation to be safe against legacy data references
     // Use Category model to find subcategories (children) instead of separate SubCategory model
     // Using parentId to find children
-    const subcategories = await Category.find({
+    let subcategories = await Category.find({
       parentId: { $in: [catId, catId.toString()] },
       status: "Active"
     })
       .select("name image order slug icon")
       .sort({
         order: 1,
-      });
+      })
+      .lean();
+
+    // Location-based subcategory filtering
+    if (nearbySellerIds.length > 0) {
+      const resolvedSubcategories = await Promise.all(
+        subcategories.map(async (sub) => {
+          const count = await Product.countDocuments({
+            subcategory: sub._id,
+            status: "Active",
+            publish: true,
+            seller: { $in: nearbySellerIds },
+          });
+          return count > 0 ? sub : null;
+        })
+      );
+      subcategories = resolvedSubcategories.filter(sub => sub !== null) as typeof subcategories;
+    }
 
     console.log(`[getCategoryById] Found ${subcategories.length} subcategories for ${category.name}`);
 

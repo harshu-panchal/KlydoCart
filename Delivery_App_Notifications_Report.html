@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Delivery App Notifications Report - KlydoCart</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        @page {
+            size: A4;
+            margin: 15mm 15mm 15mm 15mm;
+            @bottom-right {
+                content: counter(page) " / " counter(pages);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #1e293b;
+            background-color: #ffffff;
+            line-height: 1.5;
+            font-size: 13px;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Header Banner */
+        .header {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+            color: #ffffff;
+            padding: 28px 32px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            margin: 0 0 6px 0;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #ffffff;
+        }
+
+        .header .subtitle {
+            margin: 0;
+            font-size: 14px;
+            color: #c7d2fe;
+            font-weight: 400;
+        }
+
+        .meta-bar {
+            display: flex;
+            justify-content: space-between;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-bottom: 24px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .meta-bar span strong {
+            color: #334155;
+        }
+
+        h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e1b4b;
+            border-bottom: 2px solid #e0e7ff;
+            padding-bottom: 6px;
+            margin-top: 24px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #312e81;
+            margin-top: 18px;
+            margin-bottom: 8px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+            color: #334155;
+        }
+
+        /* Card Component */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #4f46e5;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 14px;
+            page-break-inside: avoid;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-socket { background: #dbeafe; color: #1e40af; }
+        .badge-fcm { background: #fef3c7; color: #92400e; }
+        .badge-db { background: #dcfce7; color: #166534; }
+        .badge-hybrid { background: #f3e8ff; color: #6b21a8; }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 6px 12px;
+            font-size: 12px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #64748b;
+        }
+
+        .detail-value {
+            color: #1e293b;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 11px;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+            margin-bottom: 20px;
+            font-size: 11.5px;
+            page-break-inside: avoid;
+        }
+
+        th {
+            background-color: #312e81;
+            color: #ffffff;
+            font-weight: 600;
+            text-align: left;
+            padding: 8px 10px;
+            border: 1px solid #312e81;
+        }
+
+        td {
+            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            color: #334155;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f8fafc;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>KlydoCart — Delivery App Notification Architecture Report</h1>
+        <div class="subtitle">Complete Technical Specification of All Delivery Partner Notification Types, Events & Channels</div>
+    </div>
+
+    <div class="meta-bar">
+        <span><strong>Application:</strong> KlydoCart Delivery Partner Module</span>
+        <span><strong>Generated:</strong> August 6, 2026</span>
+        <span><strong>Architecture:</strong> Socket.io + FCM + MongoDB + REST</span>
+    </div>
+
+    <h2>1. Executive Summary & Transport Architecture</h2>
+    <p>The KlydoCart Delivery Partner App employs a <strong>multi-tiered real-time notification engine</strong> designed to guarantee immediate order delivery dispatch, offline push reachability, task queue management, and race-condition-free order acceptance.</p>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+        <div style="flex: 1; background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 14px; border-radius: 6px;">
+            <strong style="color: #1d4ed8; font-size: 12px;">1. Real-Time WebSockets (Socket.io)</strong>
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #1e40af;">Delivers sub-second notifications, popups, driver location streaming, and acceptance/rejection responses while the driver is actively using the app.</p>
+        </div>
+        <div style="flex: 1; background: #fffbe6; border: 1px solid #ffe58f; padding: 10px 14px; border-radius: 6px;">
+            <strong style="color: #d48806; font-size: 12px;">2. Push Notifications (FCM Admin SDK)</strong>
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #874d00;">Reaches offline drivers when the device is locked, browser tab closed, or app running in background via high-priority FCM data payloads.</p>
+        </div>
+        <div style="flex: 1; background: #f6ffed; border: 1px solid #b7eb8f; padding: 10px 14px; border-radius: 6px;">
+            <strong style="color: #389e0d; font-size: 12px;">3. In-App Notification Feed (MongoDB)</strong>
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #135200;">Stores persistent audit records for system broadcasts, account verification alerts, earnings notifications, and administrative updates.</p>
+        </div>
+    </div>
+
+    <h2>2. Complete Breakdown of Delivery Notification Types</h2>
+
+    <!-- Type 1 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">1. New Order Available Alert</h3>
+            <span class="badge badge-hybrid">Socket + FCM Push</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Event / Topic:</div>
+            <div class="detail-value"><code>new-order</code> | Room: <code>delivery-{deliveryBoyId}</code></div>
+            
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">Customer order placed & accepted by seller (or auto-accepted). Evaluated against active online status, non-busy filter, and geospatial proximity radius.</div>
+            
+            <div class="detail-label">Payload Details:</div>
+            <div class="detail-value"><code>orderId</code>, <code>orderNumber</code>, <code>customerName</code>, <code>customerPhone</code>, <code>deliveryAddress</code>, <code>total</code>, <code>subtotal</code>, <code>shipping</code>, <code>createdAt</code></div>
+            
+            <div class="detail-label">FCM Payload:</div>
+            <div class="detail-value"><strong>Title:</strong> 🎁 New Order Available!<br><strong>Body:</strong> New order #{orderNumber} for ₹{total}. Tap to view details and accept.</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/services/orderNotificationService.ts</code> (line 268)</div>
+        </div>
+    </div>
+
+    <!-- Type 2 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">2. New Return Pickup Request</h3>
+            <span class="badge badge-hybrid">Socket + FCM Push</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Event / Topic:</div>
+            <div class="detail-value"><code>NEW_RETURN_PICKUP</code> | Room: <code>delivery-{deliveryBoyId}</code></div>
+            
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">Customer return request approved by seller/admin requiring product pickup. Sent to non-busy nearby delivery partners.</div>
+            
+            <div class="detail-label">Payload Details:</div>
+            <div class="detail-value"><code>returnId</code>, <code>orderId</code>, <code>reason</code>, <code>quantity</code>, <code>storeName</code>, <code>pickupAddress</code>, <code>customerName</code>, <code>customerPhone</code>, <code>customerAddress</code></div>
+            
+            <div class="detail-label">FCM Payload:</div>
+            <div class="detail-value"><strong>Title:</strong> 🔄 New Return Pickup!<br><strong>Body:</strong> New return pickup available at {storeName}. Tap to accept.</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/services/orderNotificationService.ts</code> (line 819)</div>
+        </div>
+    </div>
+
+    <!-- Type 3 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">3. Order Claimed by Another Driver</h3>
+            <span class="badge badge-socket">Socket.io Only</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Event / Topic:</div>
+            <div class="detail-value"><code>order-accepted</code> | Room: <code>delivery-{deliveryBoyId}</code></div>
+            
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">Another delivery partner successfully accepts the broadcasted order first.</div>
+            
+            <div class="detail-label">Frontend Action:</div>
+            <div class="detail-value">Automatically clears the offer popup card from all other drivers' screens without error.</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/services/orderNotificationService.ts</code> (line 561)</div>
+        </div>
+    </div>
+
+    <!-- Type 4 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">4. Return Claimed by Another Driver</h3>
+            <span class="badge badge-socket">Socket.io Only</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Event / Topic:</div>
+            <div class="detail-value"><code>return-accepted</code> | Room: <code>delivery-{deliveryBoyId}</code></div>
+            
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">Another delivery partner accepts the return pickup task.</div>
+            
+            <div class="detail-label">Frontend Action:</div>
+            <div class="detail-value">Dismisses the return request popup from UI state.</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>frontend/src/hooks/useDeliveryOrderNotifications.ts</code> (line 207)</div>
+        </div>
+    </div>
+
+    <!-- Type 5 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">5. Order Rejection Acknowledgment</h3>
+            <span class="badge badge-socket">Socket.io Only</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Event / Topic:</div>
+            <div class="detail-value"><code>order-rejection-acknowledged</code></div>
+            
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">Current delivery partner clicks "Reject" on an order offer card.</div>
+            
+            <div class="detail-label">System Action:</div>
+            <div class="detail-value">Marks rejection in-memory. If all notified drivers reject, updates order status to <code>Rejected</code> and notifies customer.</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/services/orderNotificationService.ts</code> (line 663)</div>
+        </div>
+    </div>
+
+    <!-- Type 6 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">6. Seller Pickup Confirmation Alert</h3>
+            <span class="badge badge-socket">Socket.io Only</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Event / Topic:</div>
+            <div class="detail-value"><code>seller-pickup-confirmed</code></div>
+            
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">Delivery partner confirms pickup at a specific seller location (verified via GPS proximity &le; 500m).</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/modules/delivery/controllers/deliveryOrderController.ts</code> (line 761)</div>
+        </div>
+    </div>
+
+    <!-- Type 7 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">7. All Sellers Picked Up Signal</h3>
+            <span class="badge badge-socket">Socket.io Only</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Event / Topic:</div>
+            <div class="detail-value"><code>all-sellers-picked-up</code> | Room: <code>delivery-{deliveryId}</code></div>
+            
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">All items from multi-seller order are picked up. Order automatically transitions to <code>Out for Delivery</code>.</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/modules/delivery/controllers/deliveryOrderController.ts</code> (line 771)</div>
+        </div>
+    </div>
+
+    <!-- Type 8 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">8. Delivery OTP Sent Confirmation</h3>
+            <span class="badge badge-socket">Socket.io + SMS</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Event / Topic:</div>
+            <div class="detail-value"><code>otp-sent</code> | Room: <code>delivery-{deliveryId}</code></div>
+            
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">Driver requests delivery OTP code upon reaching customer location.</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/modules/delivery/controllers/deliveryOrderController.ts</code> (line 495)</div>
+        </div>
+    </div>
+
+    <!-- Type 9 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">9. Order Delivered Confirmation</h3>
+            <span class="badge badge-socket">Socket.io Only</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Event / Topic:</div>
+            <div class="detail-value"><code>order-delivered</code> | Room: <code>delivery-{deliveryId}</code></div>
+            
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">Delivery OTP verified successfully and order status updated to <code>Delivered</code>.</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/modules/delivery/controllers/deliveryOrderController.ts</code> (line 585)</div>
+        </div>
+    </div>
+
+    <!-- Type 10 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">10. Auto-Release Assignment Reclaim</h3>
+            <span class="badge badge-db">Background Daemon</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">Periodic job scans undelivered orders assigned to a driver for &gt; 45 mins (<code>DELIVERY_AUTO_RELEASE_MINUTES</code>).</div>
+            
+            <div class="detail-label">System Action:</div>
+            <div class="detail-value">Unassigns driver, frees driver busy status, resets order to <code>Accepted</code>, and re-notifies nearby drivers.</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/services/deliveryAutoReleaseService.ts</code> (line 66)</div>
+        </div>
+    </div>
+
+    <!-- Type 11 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">11. Reconnection Catch-Up Rescan</h3>
+            <span class="badge badge-socket">Socket.io On-Connect</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Trigger Condition:</div>
+            <div class="detail-value">Delivery partner opens app or goes online. Automatically scans recent unassigned orders/returns created within 30 mins (<code>SCAN_MAX_AGE_MINUTES</code>).</div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/services/orderNotificationService.ts</code> (line 687)</div>
+        </div>
+    </div>
+
+    <!-- Type 12 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">12. In-App Persistent Feed Notifications</h3>
+            <span class="badge badge-db">REST API + Database</span>
+        </div>
+        <div class="detail-grid">
+            <div class="detail-label">Target Role:</div>
+            <div class="detail-value"><code>recipientType: "Delivery"</code></div>
+            
+            <div class="detail-label">Notification Types:</div>
+            <div class="detail-value"><code>Info</code>, <code>Success</code>, <code>Warning</code>, <code>Error</code>, <code>Order</code>, <code>Payment</code>, <code>System</code></div>
+            
+            <div class="detail-label">Endpoints:</div>
+            <div class="detail-value"><code>GET /api/delivery/notifications</code> | <code>PATCH /api/delivery/notifications/:id/read</code></div>
+
+            <div class="detail-label">Code Source:</div>
+            <div class="detail-value"><code>backend/src/modules/delivery/controllers/deliveryNotificationController.ts</code></div>
+        </div>
+    </div>
+
+    <h2>3. Master Delivery Notification Event Matrix</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Notification Type</th>
+                <th>Target Room / Channel</th>
+                <th>Transport</th>
+                <th>FCM / Push Payload</th>
+                <th>Primary Source File</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>New Order Available</strong></td>
+                <td><code>delivery-{deliveryBoyId}</code></td>
+                <td>Socket.io + FCM</td>
+                <td>🎁 New Order Available!</td>
+                <td><code>orderNotificationService.ts:327</code></td>
+            </tr>
+            <tr>
+                <td><strong>New Return Pickup</strong></td>
+                <td><code>delivery-{deliveryBoyId}</code></td>
+                <td>Socket.io + FCM</td>
+                <td>🔄 New Return Pickup!</td>
+                <td><code>orderNotificationService.ts:916</code></td>
+            </tr>
+            <tr>
+                <td><strong>Order Taken Elsewhere</strong></td>
+                <td><code>delivery-{deliveryBoyId}</code></td>
+                <td>Socket.io</td>
+                <td>N/A (Card dismissed)</td>
+                <td><code>orderNotificationService.ts:561</code></td>
+            </tr>
+            <tr>
+                <td><strong>Return Taken Elsewhere</strong></td>
+                <td><code>delivery-{deliveryBoyId}</code></td>
+                <td>Socket.io</td>
+                <td>N/A (Card dismissed)</td>
+                <td><code>useDeliveryOrderNotifications.ts:207</code></td>
+            </tr>
+            <tr>
+                <td><strong>Rejection Acknowledged</strong></td>
+                <td>Direct Socket</td>
+                <td>Socket.io</td>
+                <td>N/A (State updated)</td>
+                <td><code>orderNotificationService.ts:663</code></td>
+            </tr>
+            <tr>
+                <td><strong>Seller Pickup Confirmed</strong></td>
+                <td><code>order-{orderId}</code></td>
+                <td>Socket.io</td>
+                <td>N/A</td>
+                <td><code>deliveryOrderController.ts:761</code></td>
+            </tr>
+            <tr>
+                <td><strong>All Sellers Picked Up</strong></td>
+                <td><code>delivery-{deliveryId}</code></td>
+                <td>Socket.io</td>
+                <td>N/A (Out for Delivery)</td>
+                <td><code>deliveryOrderController.ts:771</code></td>
+            </tr>
+            <tr>
+                <td><strong>Delivery OTP Sent</strong></td>
+                <td><code>delivery-{deliveryId}</code></td>
+                <td>Socket.io + SMS</td>
+                <td>N/A</td>
+                <td><code>deliveryOrderController.ts:495</code></td>
+            </tr>
+            <tr>
+                <td><strong>Order Delivered</strong></td>
+                <td><code>delivery-{deliveryId}</code></td>
+                <td>Socket.io</td>
+                <td>N/A</td>
+                <td><code>deliveryOrderController.ts:585</code></td>
+            </tr>
+            <tr>
+                <td><strong>Auto-Release Reclaim</strong></td>
+                <td>Server / Order Notes</td>
+                <td>Background Job</td>
+                <td>N/A</td>
+                <td><code>deliveryAutoReleaseService.ts:66</code></td>
+            </tr>
+            <tr>
+                <td><strong>Catch-Up Rescan</strong></td>
+                <td><code>delivery-{deliveryBoyId}</code></td>
+                <td>Socket.io On-Connect</td>
+                <td>Re-emits <code>new-order</code></td>
+                <td><code>orderNotificationService.ts:687</code></td>
+            </tr>
+            <tr>
+                <td><strong>In-App Feed Record</strong></td>
+                <td>Database Document</td>
+                <td>REST API</td>
+                <td>N/A</td>
+                <td><code>deliveryNotificationController.ts:10</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        KlydoCart Technical Specification Report &bull; Generated Automatically for Delivery Partner System Integration
+    </div>
+
+</body>
+</html>

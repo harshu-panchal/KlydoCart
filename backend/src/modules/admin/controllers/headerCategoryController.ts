@@ -170,3 +170,31 @@ export const deleteHeaderCategory = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
+
+// @desc    Reorder header categories
+// @route   PUT /api/v1/header-categories/reorder
+// @access  Private/Admin
+export const reorderHeaderCategories = async (req: Request, res: Response) => {
+  try {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) {
+      return res.status(400).json({ message: "orderedIds must be an array" });
+    }
+
+    const bulkOps = orderedIds.map((id, index) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { order: index },
+      },
+    }));
+
+    if (bulkOps.length > 0) {
+      await HeaderCategory.bulkWrite(bulkOps);
+    }
+
+    return res.json({ message: "Categories reordered successfully" });
+  } catch (error: any) {
+    console.error("Reorder Header Categories Error:", error);
+    return res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};

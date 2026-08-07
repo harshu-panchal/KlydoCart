@@ -219,70 +219,94 @@ export const getHomeContent = async (req: Request, res: Response) => {
       nearbySellerIds = [];
     }
 
-    // 1. Featured / Bestsellers - Get bestseller cards from admin configuration
-    const bestsellerCards = await BestsellerCard.find({
-      isActive: true,
-    })
-      .populate("category", "name slug image")
-      .sort({ order: 1 })
-      .limit(6)
-      .lean();
+    // 1. Featured / Bestsellers - Get bestseller cards filtered by Customer Location & Product Availability
+    let bestsellers: any[] = [];
 
-    // For each bestseller card, get 4 products from the associated category
-    const bestsellers = await Promise.all(
-      bestsellerCards.map(async (card: any) => {
-        const categoryId = card.category?._id || card.category;
+    if (nearbySellerIds.length > 0) {
+      const bestsellerCards = await BestsellerCard.find({
+        isActive: true,
+      })
+        .populate("category", "name slug image status")
+        .sort({ order: 1 })
+        .limit(6)
+        .lean();
 
-        // Build product query for images (ignore location to show category preview)
-        const productQuery: any = {
-          category: categoryId,
-          status: "Active",
-          publish: true,
-        };
+      // Filter out cards whose category is missing or inactive
+      const activeBestsellerCards = bestsellerCards.filter(
+        (card: any) => card.category && (card.category.status === undefined || card.category.status === "Active")
+      );
 
-        // Fetch 4 active products from the category for preview images
-        // We fetch these irrespective of location radius to show category preview
-        const categoryProducts = await Product.find(productQuery)
-          .select("productName mainImage galleryImages")
-          .sort({ createdAt: -1 })
-          .limit(4)
-          .lean();
+      // For each bestseller card, fetch location-valid products from nearby sellers
+      const resolvedBestsellers = await Promise.all(
+        activeBestsellerCards.map(async (card: any) => {
+          const categoryId = card.category?._id || card.category;
 
-        // Extract exactly 4 product images (prefer mainImage, fallback to galleryImages[0])
-        const productImages: string[] = [];
-        categoryProducts.forEach((product: any) => {
-          if (productImages.length < 4 && product.mainImage) {
-            productImages.push(product.mainImage);
+          // Product query MUST include nearbySellerIds for current customer location
+          const productQuery: any = {
+            category: categoryId,
+            status: "Active",
+            publish: true,
+            seller: { $in: nearbySellerIds },
+            stock: { $gt: 0 },
+            $or: [
+              { isShopByStoreOnly: { $ne: true } },
+              { isShopByStoreOnly: { $exists: false } },
+            ],
+          };
+
+          // Fetch up to 4 active products available in this location for preview images
+          const categoryProducts = await Product.find(productQuery)
+            .select("productName mainImage galleryImages stock")
+            .sort({ createdAt: -1 })
+            .limit(4)
+            .lean();
+
+          // IF NO valid products exist for this location -> HIDE CARD COMPLETELY
+          if (!categoryProducts || categoryProducts.length === 0) {
+            return null;
           }
-        });
 
-        // If we have less than 4 products, try to use gallery images
-        if (productImages.length < 4) {
+          // Count total location-valid products for this category
+          const totalCount = await Product.countDocuments(productQuery);
+
+          // Extract product images from location-valid products only
+          const productImages: string[] = [];
           categoryProducts.forEach((product: any) => {
-            if (
-              productImages.length < 4 &&
-              product.galleryImages &&
-              product.galleryImages.length > 0
-            ) {
-              productImages.push(product.galleryImages[0]);
+            if (productImages.length < 4 && product.mainImage) {
+              productImages.push(product.mainImage);
             }
           });
-        }
 
-        // Ensure we have exactly 4 images (pad with first image if needed)
-        while (productImages.length < 4 && productImages[0]) {
-          productImages.push(productImages[0]);
-        }
+          if (productImages.length < 4) {
+            categoryProducts.forEach((product: any) => {
+              if (
+                productImages.length < 4 &&
+                product.galleryImages &&
+                product.galleryImages.length > 0
+              ) {
+                productImages.push(product.galleryImages[0]);
+              }
+            });
+          }
 
-        return {
-          id: card._id.toString(),
-          categoryId: categoryId.toString(),
-          name: card.name,
-          productImages: productImages.slice(0, 4),
-          productCount: categoryProducts.length,
-        };
-      }),
-    );
+          // Ensure 4 preview slots if at least one image exists
+          while (productImages.length < 4 && productImages[0]) {
+            productImages.push(productImages[0]);
+          }
+
+          return {
+            id: card._id.toString(),
+            categoryId: categoryId.toString(),
+            name: card.name,
+            productImages: productImages.slice(0, 4),
+            productCount: totalCount,
+          };
+        }),
+      );
+
+      // Filter out null cards (cards with 0 location-valid products)
+      bestsellers = resolvedBestsellers.filter((card) => card !== null);
+    }
 
     // 2. Lowest Prices Products - Get admin-selected products
     // We fetch these irrespective of location radius to show preview on home page

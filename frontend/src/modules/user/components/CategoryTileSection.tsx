@@ -33,6 +33,10 @@ export default function CategoryTileSection({
 }: CategoryTileSectionProps) {
   const navigate = useNavigate();
 
+  if (!tiles || tiles.length === 0) {
+    return null;
+  }
+
   const handleTileClick = (tile: CategoryTile) => {
     if (tile.subcategoryId || tile.type === "subcategory") {
       // Navigate to subcategory page or category with subcategory filter

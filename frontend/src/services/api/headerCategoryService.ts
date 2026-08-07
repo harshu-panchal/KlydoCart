@@ -40,3 +40,8 @@ export const deleteHeaderCategory = async (id: string): Promise<{ message: strin
     const response = await api.delete<{ message: string }>(`/header-categories/${id}`);
     return response.data;
 };
+
+export const reorderHeaderCategories = async (orderedIds: string[]): Promise<{ message: string }> => {
+    const response = await api.put<{ message: string }>('/header-categories/reorder', { orderedIds });
+    return response.data;
+};
