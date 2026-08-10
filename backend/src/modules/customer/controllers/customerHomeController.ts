@@ -616,6 +616,10 @@ export const getHomeContent = async (req: Request, res: Response) => {
           "featuredProducts",
           "productName mainImage mainImageUrl galleryImageUrls galleryImages price mrp compareAtPrice discount rating reviewsCount seller",
         )
+        .populate(
+          "secondaryFeaturedProducts",
+          "productName mainImage mainImageUrl galleryImageUrls galleryImages price mrp compareAtPrice discount rating reviewsCount seller",
+        )
         .sort({ order: 1 })
         .lean();
 
@@ -669,28 +673,38 @@ export const getHomeContent = async (req: Request, res: Response) => {
             (a: any, b: any) => (a.slotIndex || 0) - (b.slotIndex || 0)
           );
 
-          // Fetch full HeaderCategory objects for the saved slot IDs
+          // Fetch full HeaderCategory & Category objects for the saved slot IDs
           const slotIds = sortedSlots.map((s: any) => s.headerCategoryId);
           const headerCatDocs = await HeaderCategory.find({ _id: { $in: slotIds } }).lean();
-          const hcMap = new Map(headerCatDocs.map((hc: any) => [hc._id.toString(), hc]));
+          const categoryDocs = await Category.find({ _id: { $in: slotIds } }).lean();
+
+          const docMap = new Map<string, any>();
+          headerCatDocs.forEach((hc: any) => docMap.set(hc._id.toString(), { ...hc, isHeaderCat: true }));
+          categoryDocs.forEach((c: any) => docMap.set(c._id.toString(), { ...c, isHeaderCat: false }));
 
           for (const slot of sortedSlots) {
-            const hc = hcMap.get(slot.headerCategoryId?.toString());
-            if (hc) {
-              selectedHeaderCats.push(hc);
+            const doc = docMap.get(slot.headerCategoryId?.toString());
+            if (doc) {
+              selectedHeaderCats.push({
+                ...doc,
+                displayCount: slot.displayCount || 4,
+                selectedProductIds: slot.selectedProductIds || [],
+              });
             } else if (slot.headerCategoryName) {
-              // Fallback if document was deleted
               selectedHeaderCats.push({
                 _id: slot.headerCategoryId,
                 name: slot.headerCategoryName,
                 slug: slot.headerCategorySlug || "all",
+                isHeaderCat: false,
+                displayCount: slot.displayCount || 4,
+                selectedProductIds: slot.selectedProductIds || [],
               });
             }
           }
         }
 
         // Fallback to dynamic matching if no saved slots exist or fewer than 4
-        if (selectedHeaderCats.length === 0) {
+        if (selectedHeaderCats.length < 4) {
           const targetCategoryQueries = [
             ["fast food", "fast-food"],
             ["restaurant", "restaurant-food"],
@@ -715,7 +729,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
               )
             );
             if (found && !selectedHeaderCats.some((sc) => sc._id.toString() === found._id.toString())) {
-              selectedHeaderCats.push(found);
+              selectedHeaderCats.push({ ...found, isHeaderCat: true, displayCount: 4 });
             }
           }
 
@@ -723,57 +737,92 @@ export const getHomeContent = async (req: Request, res: Response) => {
           for (const hc of allHeaderCats) {
             if (selectedHeaderCats.length >= 4) break;
             if (!selectedHeaderCats.some((sc) => sc._id.toString() === hc._id.toString())) {
-              selectedHeaderCats.push(hc);
+              selectedHeaderCats.push({ ...hc, isHeaderCat: true, displayCount: 4 });
             }
           }
         }
 
-        // Build cards for selected header categories
+        // Build cards for selected header/main categories
         const validCategoryCards = await Promise.all(
-          selectedHeaderCats.slice(0, 4).map(async (hCat: any, idx: number) => {
-            // Find linked categories
-            const linkedCats = await Category.find({
-              $or: [
-                { headerCategoryId: hCat._id },
-                { slug: hCat.slug },
-                { name: { $regex: new RegExp(hCat.name, "i") } },
-              ],
-            })
-              .select("_id image")
-              .lean();
+          selectedHeaderCats.slice(0, 4).map(async (item: any, idx: number) => {
+            const reqCount = item.displayCount || 4;
+            let categoryProducts: any[] = [];
 
-            const linkedCatIds = linkedCats.map((c: any) => c._id);
+            if (item.selectedProductIds && item.selectedProductIds.length > 0) {
+              // Fetch specifically selected products first
+              const specificProducts = await Product.find({
+                _id: { $in: item.selectedProductIds },
+                status: "Active",
+                publish: true,
+              })
+                .select("mainImage productName price mrp")
+                .lean();
 
-            // Fetch active products for preview
-            const categoryProducts = await Product.find({
-              $or: [
-                { headerCategoryId: hCat._id },
-                { category: { $in: [hCat._id, ...linkedCatIds] } },
-              ],
-              status: "Active",
-              publish: true,
-              mainImage: { $exists: true, $ne: "" },
-            })
-              .select("mainImage productName")
-              .sort({ createdAt: -1 })
-              .limit(4)
-              .lean();
+              categoryProducts = specificProducts;
+            }
+
+            if (categoryProducts.length < reqCount) {
+              let additionalProducts: any[] = [];
+              const excludeIds = categoryProducts.map((p: any) => p._id);
+
+              if (item.isHeaderCat !== false) {
+                // Header Category Logic
+                const linkedCats = await Category.find({
+                  $or: [
+                    { headerCategoryId: item._id },
+                    { slug: item.slug },
+                    { name: { $regex: new RegExp(item.name, "i") } },
+                  ],
+                })
+                  .select("_id image")
+                  .lean();
+
+                const linkedCatIds = linkedCats.map((c: any) => c._id);
+
+                additionalProducts = await Product.find({
+                  _id: { $nin: excludeIds },
+                  $or: [
+                    { headerCategoryId: item._id },
+                    { category: { $in: [item._id, ...linkedCatIds] } },
+                  ],
+                  status: "Active",
+                  publish: true,
+                  mainImage: { $exists: true, $ne: "" },
+                })
+                  .select("mainImage productName price mrp")
+                  .sort({ createdAt: -1 })
+                  .limit(reqCount - categoryProducts.length)
+                  .lean();
+              } else {
+                // Main Category Logic
+                additionalProducts = await Product.find({
+                  _id: { $nin: excludeIds },
+                  category: item._id,
+                  status: "Active",
+                  publish: true,
+                  mainImage: { $exists: true, $ne: "" },
+                })
+                  .select("mainImage productName price mrp")
+                  .sort({ createdAt: -1 })
+                  .limit(reqCount - categoryProducts.length)
+                  .lean();
+              }
+
+              categoryProducts = [...categoryProducts, ...additionalProducts];
+            }
 
             let images = categoryProducts
               .map((p: any) => p.mainImage)
               .filter((img: string) => Boolean(img && img.trim() !== ""));
 
-            // If fewer than 4 product images, fetch category/subcategory images
-            if (images.length < 4) {
+            // If fewer than reqCount product images, fetch category/subcategory images
+            if (images.length < reqCount) {
               const subcatDocs = await Category.find({
-                $or: [
-                  { headerCategoryId: hCat._id },
-                  { parentId: { $in: [hCat._id, ...linkedCatIds] } },
-                ],
+                parentId: item._id,
                 image: { $exists: true, $ne: "" },
               })
                 .select("image")
-                .limit(4 - images.length)
+                .limit(reqCount - images.length)
                 .lean();
 
               const subcatImgs = subcatDocs
@@ -783,29 +832,37 @@ export const getHomeContent = async (req: Request, res: Response) => {
               images = [...images, ...subcatImgs];
             }
 
-            // If still fewer than 4, pad available images
+            // If still fewer than reqCount, pad available images
             if (images.length > 0) {
-              while (images.length < 4) {
+              while (images.length < reqCount) {
                 images.push(images[images.length % images.length]);
               }
             }
 
+            // Fallback: If NO product/subcategory images at all, use the category's own image
+            // This ensures the frontend always has something to display instead of empty boxes
+            if (images.length === 0 && item.image && item.image.trim() !== "") {
+              images = [item.image];
+            }
+
             return {
-              _id: hCat._id.toString(),
-              id: hCat._id.toString(),
+              _id: item._id.toString(),
+              id: item._id.toString(),
               categoryId: {
-                _id: hCat._id.toString(),
-                name: hCat.name,
-                slug: hCat.slug,
-                image: hCat.image || "",
+                _id: item._id.toString(),
+                name: item.name,
+                slug: item.slug,
+                image: item.image || "",
               },
-              title: hCat.name,
+              title: item.name,
               badge: "Up to 55% OFF",
               discountPercentage: 55,
               order: idx,
-              slug: hCat.slug,
+              slug: item.slug,
               productCount: categoryProducts.length,
-              subcategoryImages: images.slice(0, 4),
+              displayCount: reqCount,
+              subcategoryImages: images.slice(0, reqCount),
+              products: categoryProducts.slice(0, reqCount),
             };
           })
         );

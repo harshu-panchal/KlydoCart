@@ -19,6 +19,8 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
     categoryCards,
     featuredProducts,
     crazyDealsTitle,
+    secondaryBoxTitle,
+    secondaryFeaturedProducts,
     housefullCategorySlots,
     isActive = true,
     order = 0,
@@ -35,7 +37,8 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
   // Validate header category exists (allow "all" as a special case)
   if (headerCategorySlug.toLowerCase() !== "all") {
     const headerCategory = await HeaderCategory.findOne({ slug: headerCategorySlug });
-    if (!headerCategory) {
+    const categoryDoc = !headerCategory ? await Category.findOne({ slug: headerCategorySlug }) : null;
+    if (!headerCategory && !categoryDoc) {
       return res.status(404).json({
         success: false,
         message: `Header category with slug "${headerCategorySlug}" not found`,
@@ -87,15 +90,29 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
     }
   }
 
+  // Validate secondary featured products
+  if (secondaryFeaturedProducts && Array.isArray(secondaryFeaturedProducts)) {
+    for (const productId of secondaryFeaturedProducts) {
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `Secondary product with ID "${productId}" not found`,
+        });
+      }
+    }
+  }
+
   // Validate housefullCategorySlots if provided
   if (housefullCategorySlots && Array.isArray(housefullCategorySlots)) {
     for (const slot of housefullCategorySlots) {
       if (slot.headerCategoryId) {
         const hc = await HeaderCategory.findById(slot.headerCategoryId);
-        if (!hc) {
+        const cat = !hc ? await Category.findById(slot.headerCategoryId) : null;
+        if (!hc && !cat && !slot.headerCategoryName) {
           return res.status(404).json({
             success: false,
-            message: `Header category with ID "${slot.headerCategoryId}" not found`,
+            message: `Category with ID "${slot.headerCategoryId}" not found`,
           });
         }
       }
@@ -111,6 +128,8 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
     categoryCards: categoryCards || [],
     featuredProducts: featuredProducts || [],
     crazyDealsTitle: crazyDealsTitle || "CRAZY DEALS",
+    secondaryBoxTitle: secondaryBoxTitle || "RESTAURANT & FAST FOOD",
+    secondaryFeaturedProducts: secondaryFeaturedProducts || [],
     housefullCategorySlots: housefullCategorySlots || [],
     isActive,
     order,
@@ -118,10 +137,11 @@ export const createPromoStrip = asyncHandler(async (req: Request, res: Response)
 
   const populated = await PromoStrip.findById(promoStrip._id)
     .populate("categoryCards.categoryId", "name slug image")
-    .populate("featuredProducts", "productName mainImage price mrp");
+    .populate("featuredProducts", "productName mainImage price mrp")
+    .populate("secondaryFeaturedProducts", "productName mainImage price mrp");
 
-  // Invalidate cache for this header category slug
-  cache.delete(`promoStrip-${headerCategorySlug.toLowerCase()}`);
+  // Invalidate all promoStrip cache entries
+  cache.invalidatePattern(/^promoStrip-.*/);
 
   return res.status(201).json({
     success: true,
@@ -157,6 +177,7 @@ export const getAllPromoStrips = asyncHandler(async (req: Request, res: Response
   const promoStrips = await PromoStrip.find(query)
     .populate("categoryCards.categoryId", "name slug image")
     .populate("featuredProducts", "productName mainImage price mrp")
+    .populate("secondaryFeaturedProducts", "productName mainImage price mrp")
     .sort(sort);
 
   return res.status(200).json({
@@ -174,7 +195,8 @@ export const getPromoStripById = asyncHandler(async (req: Request, res: Response
 
   const promoStrip = await PromoStrip.findById(id)
     .populate("categoryCards.categoryId", "name slug image")
-    .populate("featuredProducts", "productName mainImage price mrp");
+    .populate("featuredProducts", "productName mainImage price mrp")
+    .populate("secondaryFeaturedProducts", "productName mainImage price mrp");
 
   if (!promoStrip) {
     return res.status(404).json({
@@ -204,6 +226,8 @@ export const updatePromoStrip = asyncHandler(async (req: Request, res: Response)
     categoryCards,
     featuredProducts,
     crazyDealsTitle,
+    secondaryBoxTitle,
+    secondaryFeaturedProducts,
     housefullCategorySlots,
     isActive,
     order,
@@ -217,13 +241,12 @@ export const updatePromoStrip = asyncHandler(async (req: Request, res: Response)
     });
   }
 
-  const originalSlug = promoStrip.headerCategorySlug;
-
   // Validate header category if provided (allow "all" as a special case)
   if (headerCategorySlug) {
     if (headerCategorySlug.toLowerCase() !== "all") {
       const headerCategory = await HeaderCategory.findOne({ slug: headerCategorySlug });
-      if (!headerCategory) {
+      const categoryDoc = !headerCategory ? await Category.findOne({ slug: headerCategorySlug }) : null;
+      if (!headerCategory && !categoryDoc) {
         return res.status(404).json({
           success: false,
           message: `Header category with slug "${headerCategorySlug}" not found`,
@@ -281,25 +304,42 @@ export const updatePromoStrip = asyncHandler(async (req: Request, res: Response)
     promoStrip.featuredProducts = featuredProducts;
   }
 
+  // Validate secondary featured products if provided
+  if (secondaryFeaturedProducts && Array.isArray(secondaryFeaturedProducts)) {
+    for (const productId of secondaryFeaturedProducts) {
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `Secondary product with ID "${productId}" not found`,
+        });
+      }
+    }
+    promoStrip.secondaryFeaturedProducts = secondaryFeaturedProducts;
+  }
+
   // Validate and set housefullCategorySlots if provided
   if (housefullCategorySlots && Array.isArray(housefullCategorySlots)) {
     for (const slot of housefullCategorySlots) {
       if (slot.headerCategoryId) {
         const hc = await HeaderCategory.findById(slot.headerCategoryId);
-        if (!hc) {
+        const cat = !hc ? await Category.findById(slot.headerCategoryId) : null;
+        if (!hc && !cat && !slot.headerCategoryName) {
           return res.status(404).json({
             success: false,
-            message: `Header category with ID "${slot.headerCategoryId}" not found`,
+            message: `Category with ID "${slot.headerCategoryId}" not found`,
           });
         }
       }
     }
     promoStrip.housefullCategorySlots = housefullCategorySlots;
+    promoStrip.markModified("housefullCategorySlots");
   }
 
   if (heading !== undefined) promoStrip.heading = heading;
   if (saleText !== undefined) promoStrip.saleText = saleText;
   if (crazyDealsTitle !== undefined) promoStrip.crazyDealsTitle = crazyDealsTitle;
+  if (secondaryBoxTitle !== undefined) promoStrip.secondaryBoxTitle = secondaryBoxTitle;
   if (isActive !== undefined) promoStrip.isActive = isActive;
   if (order !== undefined) promoStrip.order = order;
 
@@ -307,13 +347,11 @@ export const updatePromoStrip = asyncHandler(async (req: Request, res: Response)
 
   const populated = await PromoStrip.findById(promoStrip._id)
     .populate("categoryCards.categoryId", "name slug image")
-    .populate("featuredProducts", "productName mainImage price mrp");
+    .populate("featuredProducts", "productName mainImage price mrp")
+    .populate("secondaryFeaturedProducts", "productName mainImage price mrp");
 
-  // Invalidate cache for this header category slug
-  cache.delete(`promoStrip-${promoStrip.headerCategorySlug.toLowerCase()}`);
-  if (originalSlug && originalSlug.toLowerCase() !== promoStrip.headerCategorySlug.toLowerCase()) {
-    cache.delete(`promoStrip-${originalSlug.toLowerCase()}`);
-  }
+  // Invalidate all promoStrip cache entries
+  cache.invalidatePattern(/^promoStrip-.*/);
 
   return res.status(200).json({
     success: true,
@@ -336,8 +374,8 @@ export const deletePromoStrip = asyncHandler(async (req: Request, res: Response)
     });
   }
 
-  // Invalidate cache for this header category slug
-  cache.delete(`promoStrip-${promoStrip.headerCategorySlug.toLowerCase()}`);
+  // Invalidate all promoStrip cache entries
+  cache.invalidatePattern(/^promoStrip-.*/);
 
   return res.status(200).json({
     success: true,

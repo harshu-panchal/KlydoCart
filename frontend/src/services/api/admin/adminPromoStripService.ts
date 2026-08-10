@@ -15,6 +15,8 @@ export interface HousefullCategorySlot {
   headerCategoryId: string;
   headerCategoryName: string;
   headerCategorySlug: string;
+  displayCount?: number;
+  selectedProductIds?: string[];
 }
 
 export interface PromoStrip {
@@ -27,6 +29,8 @@ export interface PromoStrip {
   categoryCards: CategoryCard[];
   featuredProducts: (string | { _id: string; productName?: string; mainImage?: string; price?: number; mrp?: number })[];
   crazyDealsTitle?: string;
+  secondaryBoxTitle?: string;
+  secondaryFeaturedProducts?: (string | { _id: string; productName?: string; mainImage?: string; price?: number; mrp?: number })[];
   housefullCategorySlots?: HousefullCategorySlot[];
   isActive: boolean;
   order: number;
@@ -43,6 +47,8 @@ export interface PromoStripFormData {
   categoryCards: CategoryCard[];
   featuredProducts: string[];
   crazyDealsTitle?: string;
+  secondaryBoxTitle?: string;
+  secondaryFeaturedProducts?: string[];
   housefullCategorySlots?: HousefullCategorySlot[];
   isActive: boolean;
   order: number;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   getPromoStrips,
   createPromoStrip,
@@ -11,7 +11,7 @@ import {
 } from "../../../services/api/admin/adminPromoStripService";
 import { getCategories, type Category } from "../../../services/api/categoryService";
 import { getHeaderCategoriesAdmin, type HeaderCategory } from "../../../services/api/headerCategoryService";
-import { getProducts as getAdminProducts, type Product } from "../../../services/api/admin/adminProductService";
+import { getProducts as getAdminProducts, type Product, getCategories as getAdminCategories } from "../../../services/api/admin/adminProductService";
 
 interface ExtendedCategory extends Category {
   productCount?: number;
@@ -27,6 +27,9 @@ export default function AdminPromoStrip() {
   const [heading, setHeading] = useState("HOUSEFULL");
   const [saleText, setSaleText] = useState("SALE");
   const [crazyDealsTitle, setCrazyDealsTitle] = useState("CRAZY DEALS");
+  const [secondaryBoxTitle, setSecondaryBoxTitle] = useState("RESTAURANT & FAST FOOD");
+  const [secondaryFeaturedProducts, setSecondaryFeaturedProducts] = useState<string[]>([]);
+  const [selectedSecondaryProductMap, setSelectedSecondaryProductMap] = useState<Record<string, Product>>({});
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [categoryCards, setCategoryCards] = useState<CategoryCard[]>([]);
@@ -41,7 +44,12 @@ export default function AdminPromoStrip() {
   const [categories, setCategories] = useState<ExtendedCategory[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [productSearch, setProductSearch] = useState("");
+  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
+  const [secondaryProductSearch, setSecondaryProductSearch] = useState("");
+  const [isSecondaryProductDropdownOpen, setIsSecondaryProductDropdownOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
+  const productSearchRef = useRef<HTMLDivElement>(null);
+  const secondaryProductSearchRef = useRef<HTMLDivElement>(null);
 
   // Housefull Sale Category Mapping slots (4 boxes)
   const [housefullSlots, setHousefullSlots] = useState<{
@@ -49,6 +57,8 @@ export default function AdminPromoStrip() {
       headerCategoryId: string;
       headerCategoryName: string;
       headerCategorySlug: string;
+      displayCount?: number;
+      selectedProductIds?: string[];
     };
   }>({});
 
@@ -58,7 +68,19 @@ export default function AdminPromoStrip() {
   >({});
 
   // Category details map (id -> details)
-  const [categoryDetailsMap, setCategoryDetailsMap] = useState<Record<string, { productCount: number; images: string[] }>>({});
+  const [categoryDetailsMap, setCategoryDetailsMap] = useState<Record<string, { productCount: number; images: string[] }>>({}); 
+
+  // Child categories per header category: hcId -> Category[]
+  const [childCategoriesMap, setChildCategoriesMap] = useState<Record<string, any[]>>({});
+
+  // Child category details: categoryId -> { productCount, images }
+  const [childCategoryDetailsMap, setChildCategoryDetailsMap] = useState<Record<string, { productCount: number; images: string[] }>>({}); 
+
+  // Per-slot loading state
+  const [slotLoadingMap, setSlotLoadingMap] = useState<Record<number, boolean>>({});
+
+  // Track which header category IDs have been fetched (to avoid redundant calls)
+  const fetchedHeaderCatIds = useRef<Set<string>>(new Set());
 
   // UI states
   const [loading, setLoading] = useState(false);
@@ -79,6 +101,20 @@ export default function AdminPromoStrip() {
     fetchHeaderCategories();
     fetchCategoriesWithDetails();
     setDefaultDates();
+  }, []);
+
+  // Click outside to close product search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (productSearchRef.current && !productSearchRef.current.contains(event.target as Node)) {
+        setIsProductDropdownOpen(false);
+      }
+      if (secondaryProductSearchRef.current && !secondaryProductSearchRef.current.contains(event.target as Node)) {
+        setIsSecondaryProductDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const setDefaultDates = () => {
@@ -167,21 +203,87 @@ export default function AdminPromoStrip() {
     }
   };
 
-  // Search products for Crazy Deals
+  /**
+   * Fetch child categories belonging to a header category from the DB
+   * and their product counts/images. Cached by hcId to avoid redundant calls.
+   */
+  const fetchChildCategoriesForHeader = useCallback(async (hcId: string) => {
+    if (fetchedHeaderCatIds.current.has(hcId)) return;
+    fetchedHeaderCatIds.current.add(hcId);
+    try {
+      const res = await getAdminCategories({ headerCategoryId: hcId, status: "Active" });
+      const childCats = (res.success && Array.isArray(res.data)) ? res.data : [];
+
+      setChildCategoriesMap(prev => ({ ...prev, [hcId]: childCats }));
+
+      // Fetch product count + thumbnails for each child category
+      const detailsMap: Record<string, { productCount: number; images: string[] }> = {};
+      await Promise.all(
+        childCats.map(async (cat: any) => {
+          try {
+            const prodRes = await getAdminProducts({ category: cat._id, limit: 4 });
+            if (prodRes.success && Array.isArray(prodRes.data)) {
+              const imgs = prodRes.data
+                .map((p: any) => p.mainImage || p.image)
+                .filter((img: string) => Boolean(img && img.trim() !== ""));
+              detailsMap[cat._id] = {
+                productCount: prodRes.data.length,
+                images: imgs.slice(0, 4),
+              };
+            } else {
+              detailsMap[cat._id] = { productCount: 0, images: [] };
+            }
+          } catch {
+            detailsMap[cat._id] = { productCount: 0, images: [] };
+          }
+        })
+      );
+      setChildCategoryDetailsMap(prev => ({ ...prev, ...detailsMap }));
+    } catch (err: any) {
+      console.error("Failed to fetch child categories for header:", err);
+    }
+  }, []);
+
+  /**
+   * Fetch product details for a single category (for per-slot on-demand loading)
+   */
+  const fetchCategoryDetails = useCallback(async (catId: string, slotIdx: number) => {
+    if (childCategoryDetailsMap[catId]) return; // already cached
+    setSlotLoadingMap(prev => ({ ...prev, [slotIdx]: true }));
+    try {
+      const prodRes = await getAdminProducts({ category: catId, limit: 4 });
+      if (prodRes.success && Array.isArray(prodRes.data)) {
+        const imgs = prodRes.data
+          .map((p: any) => p.mainImage || p.image)
+          .filter((img: string) => Boolean(img && img.trim() !== ""));
+        setChildCategoryDetailsMap(prev => ({
+          ...prev,
+          [catId]: { productCount: prodRes.data.length, images: imgs.slice(0, 4) },
+        }));
+      }
+    } catch {
+      setChildCategoryDetailsMap(prev => ({ ...prev, [catId]: { productCount: 0, images: [] } }));
+    } finally {
+      setSlotLoadingMap(prev => ({ ...prev, [slotIdx]: false }));
+    }
+  }, [childCategoryDetailsMap]);
+
+  // Search products for Crazy Deals & Secondary Box
   useEffect(() => {
-    if (productSearch.length >= 2) {
+    const activeSearch = secondaryProductSearch || productSearch;
+    if (activeSearch.length >= 2) {
       const timeoutId = setTimeout(() => {
-        fetchProducts(productSearch);
+        fetchProducts(activeSearch);
       }, 300);
       return () => clearTimeout(timeoutId);
-    } else if (productSearch.length === 0) {
+    } else if (!productSearch && !secondaryProductSearch) {
       fetchProducts("");
     }
-  }, [productSearch]);
+  }, [productSearch, secondaryProductSearch]);
 
   const fetchProducts = async (search: string) => {
     try {
-      const response = await getAdminProducts({ search, limit: 15 });
+      const response = await getAdminProducts({ search, limit: 25 });
       if (response.success && Array.isArray(response.data)) {
         setProducts(response.data);
       } else {
@@ -193,13 +295,115 @@ export default function AdminPromoStrip() {
     }
   };
 
-  // Filtered Categories for dropdown
-  const filteredCategoryList = useMemo(() => {
-    if (!categorySearch.trim()) return categories;
-    return categories.filter((cat) =>
-      cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+  // Filtered Products for Crazy Deals & Secondary Box dropdowns
+  const filteredCrazyDealsProducts = useMemo(() => {
+    if (!productSearch.trim()) return products;
+    const query = productSearch.toLowerCase();
+    return products.filter((p) =>
+      (p.productName || "").toLowerCase().includes(query)
     );
-  }, [categories, categorySearch]);
+  }, [products, productSearch]);
+
+  const filteredSecondaryProducts = useMemo(() => {
+    if (!secondaryProductSearch.trim()) return products;
+    const query = secondaryProductSearch.toLowerCase();
+    return products.filter((p) =>
+      (p.productName || "").toLowerCase().includes(query)
+    );
+  }, [products, secondaryProductSearch]);
+
+  // Context-Aware Category Mapping Options for Box 1-4
+  const isAllContext = headerCategorySlug.toLowerCase() === "all";
+
+  const currentHeaderCatObj = useMemo(() => {
+    if (isAllContext) return null;
+    return headerCategories.find((hc) => hc.slug.toLowerCase() === headerCategorySlug.toLowerCase()) || null;
+  }, [headerCategories, headerCategorySlug, isAllContext]);
+
+  // Trigger fetch of child categories whenever the selected header category changes
+  useEffect(() => {
+    if (!currentHeaderCatObj) return;
+    fetchChildCategoriesForHeader(String(currentHeaderCatObj._id));
+  }, [currentHeaderCatObj, fetchChildCategoriesForHeader]);
+
+  // When header category changes and child categories are loaded, clear any stale slot selections
+  useEffect(() => {
+    if (!currentHeaderCatObj || isAllContext) return;
+    const hcId = String(currentHeaderCatObj._id);
+    const loadedChildren = childCategoriesMap[hcId];
+    if (!loadedChildren || loadedChildren.length === 0) return;
+    const validIds = new Set(loadedChildren.map((c: any) => String(c._id)));
+    setHousefullSlots(prev => {
+      const updated = { ...prev };
+      let changed = false;
+      [0, 1, 2, 3].forEach(idx => {
+        const slot = updated[idx];
+        if (slot && slot.headerCategoryId && !validIds.has(slot.headerCategoryId)) {
+          delete updated[idx];
+          changed = true;
+        }
+      });
+      return changed ? updated : prev;
+    });
+  }, [childCategoriesMap, currentHeaderCatObj, isAllContext]);
+
+  const boxCategoryOptions = useMemo(() => {
+    if (isAllContext || !currentHeaderCatObj) {
+      // HeaderCategories for "all" tab — keep existing behavior
+      return headerCategories
+        .filter((hc) => hc.slug?.toLowerCase() !== "all" && hc.status === "Published")
+        .map((hc) => ({
+          _id: hc._id,
+          name: hc.name,
+          slug: hc.slug,
+          isHeaderCategory: true,
+        }));
+    }
+
+    // For a specific Header Category context: show child Categories (from Category collection)
+    // that are linked to this Header Category via headerCategoryId field
+    const hcId = String(currentHeaderCatObj._id);
+    const loadedChildren = childCategoriesMap[hcId];
+
+    if (loadedChildren && loadedChildren.length > 0) {
+      // Return child categories fetched directly from the backend
+      return loadedChildren.map((cat: any) => ({
+        _id: cat._id,
+        name: cat.name,
+        slug: cat.slug || String(cat._id),
+        isHeaderCategory: false,
+      }));
+    }
+
+    // Fallback: filter from locally loaded categories while async fetch is in progress
+    const headerName = (currentHeaderCatObj.name || "").toLowerCase();
+    const headerSlug = (currentHeaderCatObj.slug || "").toLowerCase();
+    const matchedCats = categories.filter((cat) => {
+      const catHeaderId = typeof cat.headerCategoryId === "object"
+        ? (cat.headerCategoryId as any)?._id
+        : cat.headerCategoryId;
+      if (catHeaderId && String(catHeaderId) === hcId) return true;
+      const catName = (cat.name || "").toLowerCase();
+      const catSlug = ((cat as any).slug || "").toLowerCase();
+      return catName.includes(headerName) || headerName.includes(catName) || catSlug.includes(headerSlug);
+    });
+    const finalCatList = matchedCats.length >= 1 ? matchedCats : categories;
+    return finalCatList.map((cat) => ({
+      _id: cat._id,
+      name: cat.name,
+      slug: (cat as any).slug || String(cat._id),
+      isHeaderCategory: false,
+    }));
+  }, [headerCategories, categories, currentHeaderCatObj, childCategoriesMap, isAllContext]);
+
+  const getBoxDetails = (id: string, isHeaderCat: boolean) => {
+    if (isHeaderCat) {
+      return headerCatDetailsMap[id] || { productCount: 0, images: [] };
+    } else {
+      // Check child category details first (fetched per header category), then fallback to general map
+      return childCategoryDetailsMap[id] || categoryDetailsMap[id] || { productCount: 0, images: [] };
+    }
+  };
 
   // Featured Product selection
   const addFeaturedProduct = (product: Product) => {
@@ -208,10 +412,25 @@ export default function AdminPromoStrip() {
       setSelectedProductMap((prev) => ({ ...prev, [product._id]: product }));
     }
     setProductSearch("");
+    setIsProductDropdownOpen(false);
   };
 
   const removeFeaturedProduct = (productId: string) => {
     setFeaturedProducts(featuredProducts.filter((id) => id !== productId));
+  };
+
+  // Secondary Featured Product selection (Bottom-Left Banner Box)
+  const addSecondaryFeaturedProduct = (product: Product) => {
+    if (!secondaryFeaturedProducts.includes(product._id)) {
+      setSecondaryFeaturedProducts([...secondaryFeaturedProducts, product._id]);
+      setSelectedSecondaryProductMap((prev) => ({ ...prev, [product._id]: product }));
+    }
+    setSecondaryProductSearch("");
+    setIsSecondaryProductDropdownOpen(false);
+  };
+
+  const removeSecondaryFeaturedProduct = (productId: string) => {
+    setSecondaryFeaturedProducts(secondaryFeaturedProducts.filter((id) => id !== productId));
   };
 
   // Category Cards selection
@@ -287,14 +506,17 @@ export default function AdminPromoStrip() {
 
   const resetForm = () => {
     setHeaderCategorySlug("all");
-    setHeading("HOUSEFULL SALE");
+    setHeading("HOUSEFULL");
     setSaleText("SALE");
     setCrazyDealsTitle("CRAZY DEALS");
+    setSecondaryBoxTitle("RESTAURANT & FAST FOOD");
     setDefaultDates();
     setCategoryCards([]);
     setHousefullSlots({});
     setFeaturedProducts([]);
     setSelectedProductMap({});
+    setSecondaryFeaturedProducts([]);
+    setSelectedSecondaryProductMap({});
     setIsActive(true);
     const nextOrd = Math.max(...promoStrips.map((ps) => ps.order || 0), 0) + 1;
     setOrder(nextOrd);
@@ -303,28 +525,78 @@ export default function AdminPromoStrip() {
     setSuccess("");
   };
 
+  const handleCreateOrEditForCategory = (slug: string, name?: string) => {
+    const existing = promoStrips.find(
+      (ps) => ps.headerCategorySlug.toLowerCase() === slug.toLowerCase()
+    );
+    if (existing) {
+      handleEdit(existing);
+    } else {
+      resetForm();
+      setHeaderCategorySlug(slug);
+      const cleanName = name ? name.replace(/\(.*\)/, "").trim().toUpperCase() : slug.toUpperCase();
+      const suggestedHeading = slug === "all" ? "HOUSEFULL" : `${cleanName} SALE`;
+      setHeading(suggestedHeading);
+      setActiveTab("form");
+    }
+  };
+
   const handleEdit = (promoStrip: PromoStrip) => {
     setEditingId(promoStrip._id);
     setHeaderCategorySlug(promoStrip.headerCategorySlug);
     setHeading(promoStrip.heading);
     setSaleText(promoStrip.saleText);
     setCrazyDealsTitle(promoStrip.crazyDealsTitle || "CRAZY DEALS");
+    setSecondaryBoxTitle(promoStrip.secondaryBoxTitle || "RESTAURANT & FAST FOOD");
     setStartDate(promoStrip.startDate.split("T")[0]);
     setEndDate(promoStrip.endDate.split("T")[0]);
     setIsActive(promoStrip.isActive);
     setOrder(promoStrip.order);
 
     // Map Housefull Category Slots (Box 1-4)
-    const slotMap: Record<number, { headerCategoryId: string; headerCategoryName: string; headerCategorySlug: string }> = {};
-    if (promoStrip.housefullCategorySlots && promoStrip.housefullCategorySlots.length > 0) {
-      promoStrip.housefullCategorySlots.forEach((slot) => {
-        slotMap[slot.slotIndex] = {
-          headerCategoryId: slot.headerCategoryId,
-          headerCategoryName: slot.headerCategoryName,
-          headerCategorySlug: slot.headerCategorySlug,
+    // For "all" context: fall back to keyword-matched header categories
+    // For specific header category context: only use explicitly saved slot data
+    const isEditingAllContext = promoStrip.headerCategorySlug.toLowerCase() === "all";
+    const targetQueries = [
+      ["fast food", "fast-food"],
+      ["restaurant", "restaurant-food"],
+      ["vagitable", "vegetable", "fruits-veg", "fruits"],
+      ["cake", "bakery", "cake-bakery"],
+    ];
+    const slotMap: Record<number, { headerCategoryId: string; headerCategoryName: string; headerCategorySlug: string; displayCount?: number; selectedProductIds?: string[] }> = {};
+    const existingSlotMap = new Map((promoStrip.housefullCategorySlots || []).map((s) => [s.slotIndex, s]));
+
+    [0, 1, 2, 3].forEach((slotIdx) => {
+      const saved = existingSlotMap.get(slotIdx);
+      if (saved && saved.headerCategoryId) {
+        slotMap[slotIdx] = {
+          headerCategoryId: saved.headerCategoryId,
+          headerCategoryName: saved.headerCategoryName,
+          headerCategorySlug: saved.headerCategorySlug,
+          displayCount: saved.displayCount || 4,
+          selectedProductIds: saved.selectedProductIds || [],
         };
-      });
-    }
+      } else if (isEditingAllContext) {
+        // For "all" context only: fall back to keyword-matched header categories
+        const queries = targetQueries[slotIdx] || [];
+        const defaultHc = headerCategories.find((hc) => {
+          const name = (hc.name || "").toLowerCase();
+          const slug = (hc.slug || "").toLowerCase();
+          return queries.some((q) => name.includes(q) || slug.includes(q));
+        }) || headerCategories[slotIdx];
+
+        if (defaultHc) {
+          slotMap[slotIdx] = {
+            headerCategoryId: defaultHc._id,
+            headerCategoryName: defaultHc.name,
+            headerCategorySlug: defaultHc.slug,
+            displayCount: 4,
+            selectedProductIds: [],
+          };
+        }
+      }
+      // For specific header category context with no saved data: leave slot empty so admin picks a child category
+    });
     setHousefullSlots(slotMap);
 
     // Map Category Cards
@@ -342,7 +614,7 @@ export default function AdminPromoStrip() {
       })
     );
 
-    // Map Featured Products
+    // Map Featured Products (Crazy Deals)
     const prodIds: string[] = [];
     const prodMap: Record<string, Product> = {};
     promoStrip.featuredProducts.forEach((p) => {
@@ -355,6 +627,20 @@ export default function AdminPromoStrip() {
     });
     setFeaturedProducts(prodIds);
     setSelectedProductMap(prodMap);
+
+    // Map Secondary Featured Products (Bottom Left Box)
+    const secProdIds: string[] = [];
+    const secProdMap: Record<string, Product> = {};
+    (promoStrip.secondaryFeaturedProducts || []).forEach((p) => {
+      if (typeof p === "string") {
+        secProdIds.push(p);
+      } else if (p && p._id) {
+        secProdIds.push(p._id);
+        secProdMap[p._id] = p as any;
+      }
+    });
+    setSecondaryFeaturedProducts(secProdIds);
+    setSelectedSecondaryProductMap(secProdMap);
 
     setActiveTab("form");
     setError("");
@@ -378,6 +664,8 @@ export default function AdminPromoStrip() {
         })),
         featuredProducts: promoStrip.featuredProducts.map((p) => (typeof p === "string" ? p : p._id)),
         crazyDealsTitle: promoStrip.crazyDealsTitle,
+        secondaryBoxTitle: promoStrip.secondaryBoxTitle,
+        secondaryFeaturedProducts: (promoStrip.secondaryFeaturedProducts || []).map((p) => (typeof p === "string" ? p : p._id)),
         housefullCategorySlots: promoStrip.housefullCategorySlots,
         isActive: !promoStrip.isActive,
         order: promoStrip.order,
@@ -442,15 +730,52 @@ export default function AdminPromoStrip() {
       }
     }
 
-    // Format housefullCategorySlots array
+    // Format housefullCategorySlots array for all 4 slots
+    // For "all" context: fall back to keyword-matched header categories for empty slots
+    // For specific header category context: only save explicitly selected slots
+    const isAllCtx = headerCategorySlug.toLowerCase() === "all";
+    const targetQueries = [
+      ["fast food", "fast-food"],
+      ["restaurant", "restaurant-food"],
+      ["vagitable", "vegetable", "fruits-veg", "fruits"],
+      ["cake", "bakery", "cake-bakery"],
+    ];
+
     const housefullCategorySlots: HousefullCategorySlot[] = [0, 1, 2, 3]
-      .filter((slotIdx) => housefullSlots[slotIdx]?.headerCategoryId)
-      .map((slotIdx) => ({
-        slotIndex: slotIdx,
-        headerCategoryId: housefullSlots[slotIdx].headerCategoryId,
-        headerCategoryName: housefullSlots[slotIdx].headerCategoryName,
-        headerCategorySlug: housefullSlots[slotIdx].headerCategorySlug,
-      }));
+      .map((slotIdx) => {
+        const slotData = housefullSlots[slotIdx];
+        if (slotData && slotData.headerCategoryId) {
+          return {
+            slotIndex: slotIdx,
+            headerCategoryId: slotData.headerCategoryId,
+            headerCategoryName: slotData.headerCategoryName,
+            headerCategorySlug: slotData.headerCategorySlug,
+            displayCount: slotData.displayCount || 4,
+            selectedProductIds: slotData.selectedProductIds || [],
+          } as HousefullCategorySlot;
+        }
+        // For "all" context only: assign fallback header category
+        if (isAllCtx) {
+          const queries = targetQueries[slotIdx] || [];
+          const defaultHc = headerCategories.find((hc) => {
+            const name = (hc.name || "").toLowerCase();
+            const slug = (hc.slug || "").toLowerCase();
+            return queries.some((q) => name.includes(q) || slug.includes(q));
+          }) || headerCategories[slotIdx];
+          if (defaultHc) {
+            return {
+              slotIndex: slotIdx,
+              headerCategoryId: defaultHc._id,
+              headerCategoryName: defaultHc.name,
+              headerCategorySlug: defaultHc.slug,
+              displayCount: 4,
+              selectedProductIds: [],
+            } as HousefullCategorySlot;
+          }
+        }
+        return null;
+      })
+      .filter(Boolean) as HousefullCategorySlot[];
 
     const formData: PromoStripFormData = {
       headerCategorySlug,
@@ -467,6 +792,8 @@ export default function AdminPromoStrip() {
       })),
       featuredProducts,
       crazyDealsTitle,
+      secondaryBoxTitle,
+      secondaryFeaturedProducts,
       housefullCategorySlots,
       isActive,
       order,
@@ -517,6 +844,14 @@ export default function AdminPromoStrip() {
     }
     return null;
   }, [featuredProducts, selectedProductMap]);
+
+  const previewSecondaryProduct = useMemo(() => {
+    if (secondaryFeaturedProducts.length > 0) {
+      const pId = secondaryFeaturedProducts[0];
+      return selectedSecondaryProductMap[pId] || null;
+    }
+    return null;
+  }, [secondaryFeaturedProducts, selectedSecondaryProductMap]);
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50 text-neutral-800">
@@ -579,7 +914,120 @@ export default function AdminPromoStrip() {
       <div className="flex-1 p-6">
         {activeTab === "list" ? (
           /* ================= LIST VIEW ================= */
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+          <div className="space-y-6">
+            {/* Header Category Sales Quick Manager */}
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-5">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 pb-3 border-b border-neutral-100">
+                <div>
+                  <h2 className="text-sm font-bold text-neutral-800 flex items-center gap-2">
+                    <span className="text-teal-600">🏷️</span> Manage Sales Per Header Category
+                  </h2>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    Select any Header Category below to create or edit its custom Sale Banner (e.g. HOUSEFULL SALE, PINK SALE, RESTAURANT SALE)
+                  </p>
+                </div>
+                <span className="text-xs font-semibold bg-teal-50 text-teal-700 px-3 py-1 rounded-full border border-teal-200">
+                  {headerCategories.length + 1} Total Header Categories
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                {/* All Category (Default) */}
+                {(() => {
+                  const existing = promoStrips.find((ps) => ps.headerCategorySlug === "all");
+                  return (
+                    <div
+                      className={`p-3.5 rounded-xl border transition flex flex-col justify-between space-y-3 ${
+                        existing?.isActive ? "bg-emerald-50/60 border-emerald-200 shadow-2xs" : "bg-neutral-50 border-neutral-200"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-extrabold text-neutral-900 flex items-center gap-1.5">
+                            <span>🏠</span> All (Default Home)
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              existing?.isActive
+                                ? "bg-green-100 text-green-800"
+                                : existing
+                                ? "bg-gray-100 text-gray-700"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {existing?.isActive ? "● Active" : existing ? "○ Inactive" : "+ Not Created"}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-teal-700">
+                          {existing ? `${existing.heading} ${existing.saleText}` : "HOUSEFULL SALE (Default)"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCreateOrEditForCategory("all", "All (Default Home Page)")}
+                        className={`w-full py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                          existing
+                            ? "bg-teal-600 hover:bg-teal-700 text-white shadow-2xs"
+                            : "bg-neutral-800 hover:bg-black text-white"
+                        }`}
+                      >
+                        {existing ? "✏️ Edit Sale" : "+ Create Sale"}
+                      </button>
+                    </div>
+                  );
+                })()}
+
+                {/* Dynamic Header Categories */}
+                {headerCategories.map((hc) => {
+                  const existing = promoStrips.find(
+                    (ps) => ps.headerCategorySlug.toLowerCase() === hc.slug.toLowerCase()
+                  );
+                  return (
+                    <div
+                      key={hc._id}
+                      className={`p-3.5 rounded-xl border transition flex flex-col justify-between space-y-3 ${
+                        existing?.isActive ? "bg-emerald-50/60 border-emerald-200 shadow-2xs" : "bg-neutral-50 border-neutral-200"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-extrabold text-neutral-900 flex items-center gap-1.5 truncate">
+                            <span>🛍️</span> {hc.name}
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                              existing?.isActive
+                                ? "bg-green-100 text-green-800"
+                                : existing
+                                ? "bg-gray-100 text-gray-700"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {existing?.isActive ? "● Active" : existing ? "○ Inactive" : "+ Not Created"}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-teal-700 truncate">
+                          {existing ? `${existing.heading} ${existing.saleText}` : `${hc.name.toUpperCase()} SALE`}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCreateOrEditForCategory(hc.slug, hc.name)}
+                        className={`w-full py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                          existing
+                            ? "bg-teal-600 hover:bg-teal-700 text-white shadow-2xs"
+                            : "bg-teal-50 border border-teal-200 text-teal-800 hover:bg-teal-100"
+                        }`}
+                      >
+                        {existing ? `✏️ Edit ${hc.name} Sale` : `+ Create ${hc.name} Sale`}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
             {/* Table Control Header */}
             <div className="p-4 border-b border-neutral-200 bg-neutral-50/50 flex flex-col sm:flex-row justify-between items-center gap-3">
               <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -783,6 +1231,7 @@ export default function AdminPromoStrip() {
               </div>
             </div>
           </div>
+        </div>
         ) : (
           /* ================= FORM & LIVE MOBILE PREVIEW VIEW ================= */
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
@@ -806,8 +1255,18 @@ export default function AdminPromoStrip() {
                     </label>
                     <select
                       value={headerCategorySlug}
-                      onChange={(e) => setHeaderCategorySlug(e.target.value)}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-teal-500 outline-none"
+                      onChange={(e) => {
+                        const newSlug = e.target.value;
+                        setHeaderCategorySlug(newSlug);
+                        // Clear box selections when header category changes (stale data from previous context)
+                        setHousefullSlots({});
+                        if (!editingId) {
+                          const selectedHc = headerCategories.find((hc) => hc.slug === newSlug);
+                          const cleanName = selectedHc ? selectedHc.name.toUpperCase() : newSlug.toUpperCase();
+                          setHeading(newSlug === "all" ? "HOUSEFULL" : `${cleanName} SALE`);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-teal-500 outline-none font-medium"
                       required
                     >
                       <option value="all">All (Default Home Page)</option>
@@ -894,15 +1353,17 @@ export default function AdminPromoStrip() {
                   </div>
                 </div>
 
-                {/* Housefull Sale Category Mapping (4 Fixed Right-side Boxes) */}
+                {/* Context-Aware Category Mapping (4 Fixed Right-side Boxes) */}
                 <div className="border border-teal-200 rounded-xl p-4 bg-gradient-to-br from-teal-50/40 to-emerald-50/20 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold text-teal-900 flex items-center gap-1.5">
-                        <span>📦</span> Housefull Sale Category Mapping (4 Right-side Boxes)
+                        <span>📦</span> {isAllContext ? "Housefull Sale Category Mapping (4 Right-side Boxes)" : `Category Mapping for ${currentHeaderCatObj?.name || headerCategorySlug} (4 Right-side Boxes)`}
                       </h3>
                       <p className="text-[11px] text-neutral-500 mt-0.5">
-                        Select which Header Category feeds each of the 4 boxes on the Customer Home Page
+                        {isAllContext
+                          ? "Select which Header Category feeds each of the 4 boxes on the Customer Home Page (All Tab)"
+                          : `Select which Main Categories under ${currentHeaderCatObj?.name || headerCategorySlug} feed each of the 4 boxes (Main Categories only, no Subcategories)`}
                       </p>
                     </div>
                     <span className="text-[10px] font-semibold bg-teal-100 text-teal-800 px-2.5 py-1 rounded-full border border-teal-200">
@@ -913,26 +1374,30 @@ export default function AdminPromoStrip() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     {[0, 1, 2, 3].map((slotIdx) => {
                       const currentSlot = housefullSlots[slotIdx];
-                      const selectedHcId = currentSlot?.headerCategoryId || "";
+                      const selectedId = currentSlot?.headerCategoryId || "";
+                      const isSlotLoading = slotLoadingMap[slotIdx] || false;
 
-                      // Auto-select fallback default if slot not explicitly set
-                      const targetCategoryQueries = [
-                        ["fast food", "fast-food"],
-                        ["restaurant", "restaurant-food"],
-                        ["vagitable", "vegetable", "fruits-veg", "fruits"],
-                        ["cake", "bakery", "cake-bakery"],
-                      ];
-                      const queries = targetCategoryQueries[slotIdx] || [];
-                      const defaultHc = headerCategories.find((hc) => {
-                        const name = (hc.name || "").toLowerCase();
-                        const slug = (hc.slug || "").toLowerCase();
-                        return queries.some((q) => name.includes(q) || slug.includes(q));
-                      }) || headerCategories[slotIdx];
-
-                      const activeHcId = selectedHcId || defaultHc?._id || "";
-                      const activeDetails = activeHcId
-                        ? headerCatDetailsMap[activeHcId] || { productCount: 0, images: [] }
+                      // For "all" context: use header categories (existing behavior)
+                      // For specific header category context: use child categories fetched from DB
+                      const activeId = selectedId;
+                      const activeOption = boxCategoryOptions.find((opt) => opt._id === activeId);
+                      const activeDetails = activeId
+                        ? getBoxDetails(activeId, isAllContext)
                         : null;
+
+                      // Determine max display count based on available products (capped at 4)
+                      const availableProductCount = activeDetails?.productCount ?? 0;
+                      const maxDisplayCount = Math.min(Math.max(availableProductCount, 1), 4);
+                      const allProductOptions = [
+                        { value: 1, label: "1 Product (Full Hero Card Cover - Fill Box)" },
+                        { value: 2, label: "2 Products (Side-by-Side Split)" },
+                        { value: 3, label: "3 Products" },
+                        { value: 4, label: "4 Products (2x2 Grid)" },
+                      ];
+                      // Only show options up to the max available (always show at least 1 if category is selected)
+                      const displayOptions = activeId
+                        ? allProductOptions.filter(opt => opt.value <= maxDisplayCount)
+                        : allProductOptions;
 
                       return (
                         <div
@@ -942,74 +1407,118 @@ export default function AdminPromoStrip() {
                           <div className="flex items-center justify-between border-b border-neutral-100 pb-1.5">
                             <span className="text-[11px] font-extrabold text-teal-700 uppercase tracking-wider flex items-center gap-1">
                               <span>Box {slotIdx + 1}</span>
-                              {selectedHcId && (
-                                <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.2 rounded">
+                              {selectedId && (
+                                <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
                                   Saved in DB
                                 </span>
                               )}
                             </span>
-                            {activeDetails && (
+                            {isSlotLoading ? (
+                              <span className="text-[10px] text-teal-600 flex items-center gap-1">
+                                <span className="w-2.5 h-2.5 border border-teal-500 border-t-transparent rounded-full animate-spin inline-block"></span>
+                                Loading...
+                              </span>
+                            ) : activeId ? (
                               <span
                                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  activeDetails.productCount > 0
+                                  (activeDetails?.productCount ?? 0) > 0
                                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                     : "bg-amber-50 text-amber-700 border border-amber-200"
                                 }`}
                               >
-                                {activeDetails.productCount} Products Found
+                                {activeDetails?.productCount ?? 0} Products Found
                               </span>
-                            )}
+                            ) : null}
                           </div>
 
                           <div>
                             <label className="block text-[10px] font-semibold text-neutral-600 mb-1">
-                              Header Category:
+                              {isAllContext ? "Header Category:" : "Category (Main Only):"}
                             </label>
-                            <select
-                              value={activeHcId}
-                              onChange={(e) => {
-                                const selectedId = e.target.value;
-                                const selectedObj = headerCategories.find((hc) => hc._id === selectedId);
-                                setHousefullSlots((prev) => ({
-                                  ...prev,
-                                  [slotIdx]: {
-                                    headerCategoryId: selectedId,
-                                    headerCategoryName: selectedObj?.name || "",
-                                    headerCategorySlug: selectedObj?.slug || "",
-                                  },
-                                }));
-                              }}
-                              className="w-full px-2.5 py-1.5 border border-neutral-300 rounded-md text-xs font-semibold text-neutral-800 bg-white focus:ring-1 focus:ring-teal-500 outline-none"
-                            >
-                              <option value="">-- Select Header Category --</option>
-                              {headerCategories.map((hc) => (
-                                <option key={hc._id} value={hc._id}>
-                                  {hc.name} ({hc.slug})
-                                </option>
-                              ))}
-                            </select>
+                            {!isAllContext && !currentHeaderCatObj ? (
+                              <div className="w-full px-2.5 py-1.5 border border-neutral-200 rounded-md text-xs text-neutral-400 bg-neutral-50">
+                                Select a Header Category first
+                              </div>
+                            ) : boxCategoryOptions.length === 0 && !isAllContext ? (
+                              <div className="w-full px-2.5 py-1.5 border border-amber-200 rounded-md text-xs text-amber-700 bg-amber-50">
+                                ⚠️ No categories found under this Header Category
+                              </div>
+                            ) : (
+                              <select
+                                value={activeId}
+                                onChange={(e) => {
+                                  const selId = e.target.value;
+                                  const selObj = boxCategoryOptions.find((opt) => opt._id === selId);
+                                  setHousefullSlots((prev) => ({
+                                    ...prev,
+                                    [slotIdx]: {
+                                      headerCategoryId: selId,
+                                      headerCategoryName: selObj?.name || "",
+                                      headerCategorySlug: selObj?.slug || "",
+                                      displayCount: prev[slotIdx]?.displayCount || 4,
+                                      selectedProductIds: prev[slotIdx]?.selectedProductIds || [],
+                                    },
+                                  }));
+                                  // Eagerly fetch details for this category if not cached
+                                  if (selId && !isAllContext) {
+                                    fetchCategoryDetails(selId, slotIdx);
+                                  }
+                                }}
+                                className="w-full px-2.5 py-1.5 border border-neutral-300 rounded-md text-xs font-semibold text-neutral-800 bg-white focus:ring-1 focus:ring-teal-500 outline-none"
+                              >
+                                <option value="">{isAllContext ? "-- Select Header Category --" : "-- Select Category --"}</option>
+                                {boxCategoryOptions.map((opt) => {
+                                  const details = getBoxDetails(opt._id, isAllContext);
+                                  const count = details?.productCount ?? 0;
+                                  return (
+                                    <option key={opt._id} value={opt._id}>
+                                      {opt.name} — ({count} Products)
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            )}
                           </div>
 
-                          {/* 4 Preview Thumbnails */}
+                          {/* Preview Thumbnail (Always Category Image) */}
                           <div>
-                            <span className="text-[9px] font-semibold text-neutral-400 block mb-1">Preview Thumbnails:</span>
-                            <div className="grid grid-cols-4 gap-1">
-                              {[0, 1, 2, 3].map((imgIdx) => {
-                                const img = activeDetails?.images[imgIdx];
-                                return (
-                                  <div
-                                    key={imgIdx}
-                                    className="aspect-square bg-neutral-50 rounded border border-neutral-200 flex items-center justify-center overflow-hidden"
-                                  >
-                                    {img ? (
-                                      <img src={img} alt="" className="w-full h-full object-contain p-0.5" />
-                                    ) : (
-                                      <span className="text-[9px] text-neutral-300">📦</span>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                            <div className="flex items-center justify-between mb-1 mt-3">
+                              <span className="text-[9px] font-semibold text-neutral-500">
+                                Live Box Preview (Category Image):
+                              </span>
+                              <span className="text-[9px] font-bold text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-100">
+                                1 Hero Cover
+                              </span>
                             </div>
+
+                            {/* Render thumbnail layout - always category image */}
+                            {isSlotLoading ? (
+                              <div className="w-full h-16 bg-neutral-50 rounded border border-teal-100 flex items-center justify-center">
+                                <span className="text-[10px] text-neutral-400">Loading preview...</span>
+                              </div>
+                            ) : !activeId ? (
+                              <div className="w-full h-16 bg-neutral-50 rounded border border-dashed border-neutral-200 flex items-center justify-center">
+                                <span className="text-[10px] text-neutral-400">Select a category to preview</span>
+                              </div>
+                            ) : (() => {
+                              // Always show the category's own image as preview
+                              const hcId = currentHeaderCatObj ? String(currentHeaderCatObj._id) : '';
+                              const childCats = childCategoriesMap[hcId] || [];
+                              const matchedCat = childCats.find((c: any) => String(c._id) === activeId);
+                              const catImage = matchedCat?.image || categories.find((c: any) => String(c._id) === activeId)?.image;
+                              return catImage ? (
+                                <div className="w-full h-20 bg-white rounded border border-teal-200 flex items-center justify-center overflow-hidden p-1 relative">
+                                  <img src={catImage} alt="Category image" className="w-full h-full object-cover rounded" />
+                                  <div className="absolute bottom-1 right-1 text-[8px] bg-white/90 text-teal-800 px-1 rounded-sm font-bold shadow-sm">
+                                    Category Image
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="w-full h-16 bg-amber-50 rounded border border-amber-200 flex items-center justify-center">
+                                  <span className="text-[10px] text-amber-600">No category image found</span>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       );
@@ -1046,34 +1555,44 @@ export default function AdminPromoStrip() {
                   />
 
                   {/* Search Products */}
-                  <div className="relative">
+                  <div className="relative" ref={productSearchRef}>
                     <input
                       type="text"
                       value={productSearch}
-                      onChange={(e) => setProductSearch(e.target.value)}
+                      onFocus={() => setIsProductDropdownOpen(true)}
+                      onChange={(e) => {
+                        setProductSearch(e.target.value);
+                        setIsProductDropdownOpen(true);
+                      }}
                       placeholder="Search active products to add to Crazy Deals..."
                       className="w-full px-3 py-1.5 border border-neutral-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-teal-500 outline-none"
                     />
 
-                    {products.length > 0 && (
+                    {isProductDropdownOpen && (
                       <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-48 overflow-y-auto z-30 divide-y divide-neutral-100">
-                        {products.map((p) => (
-                          <div
-                            key={p._id}
-                            onClick={() => addFeaturedProduct(p)}
-                            className="p-2 hover:bg-teal-50 cursor-pointer flex items-center justify-between text-xs"
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <img
-                                src={p.mainImage || "/assets/placeholder.png"}
-                                alt={p.productName}
-                                className="w-7 h-7 object-contain rounded border border-neutral-200"
-                              />
-                              <span className="font-medium truncate">{p.productName}</span>
+                        {filteredCrazyDealsProducts.length > 0 ? (
+                          filteredCrazyDealsProducts.map((p) => (
+                            <div
+                              key={p._id}
+                              onClick={() => addFeaturedProduct(p)}
+                              className="p-2 hover:bg-teal-50 cursor-pointer flex items-center justify-between text-xs"
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <img
+                                  src={p.mainImage || "/assets/placeholder.png"}
+                                  alt={p.productName}
+                                  className="w-7 h-7 object-contain rounded border border-neutral-200"
+                                />
+                                <span className="font-medium truncate">{p.productName}</span>
+                              </div>
+                              <span className="text-teal-600 font-bold shrink-0 ml-2">₹{p.price}</span>
                             </div>
-                            <span className="text-teal-600 font-bold shrink-0 ml-2">₹{p.price}</span>
+                          ))
+                        ) : (
+                          <div className="p-3 text-center text-xs text-neutral-500">
+                            {productSearch ? `No active products found matching "${productSearch}"` : "No active products available"}
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
                   </div>
@@ -1104,159 +1623,94 @@ export default function AdminPromoStrip() {
                   </div>
                 </div>
 
-                {/* Category Cards Selection */}
+                {/* Secondary Left Box (Restaurant & Fast Food Box) */}
                 <div className="border border-neutral-200 rounded-lg p-3 bg-neutral-50/50 space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="block text-xs font-bold text-neutral-800">
-                          Category Cards (Right Side 2x2 Grid)
-                        </label>
-                        <p className="text-[11px] text-neutral-500">
-                          Select categories with active products. Cards automatically skip categories with 0 products.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={syncFromHeaderCategories}
-                        className="px-2.5 py-1.5 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 rounded-lg text-[11px] font-semibold transition flex items-center gap-1 shrink-0"
-                        title="Auto-fill cards from published Header Categories"
-                      >
-                        🔄 Sync from Header Categories
-                      </button>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <label className="block text-xs font-bold text-neutral-800">
+                        Secondary Left Banner Box (e.g., RESTAURANT & FAST FOOD)
+                      </label>
+                      <p className="text-[11px] text-neutral-500">
+                        Customize the title & products for the bottom-left banner box on the home page
+                      </p>
                     </div>
-
-                    {/* Info: Currently showing dynamically on frontend */}
-                    {categoryCards.length === 0 && (
-                      <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
-                        <span className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">
-                          ⚡ Currently showing on frontend (auto from Header Categories):
-                        </span>
-                        {headerCategories
-                          .filter((hc) => hc.slug?.toLowerCase() !== "all" && hc.status === "Published")
-                          .slice(0, 4)
-                          .map((hc, idx) => {
-                            const chipColors = [
-                              "bg-orange-100 text-orange-800 border-orange-200",
-                              "bg-blue-100 text-blue-800 border-blue-200",
-                              "bg-green-100 text-green-800 border-green-200",
-                              "bg-purple-100 text-purple-800 border-purple-200",
-                            ];
-                            return (
-                              <span
-                                key={hc._id}
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-semibold ${chipColors[idx]}`}
-                              >
-                                {hc.name}
-                              </span>
-                            );
-                          })}
-                        <span className="text-[10px] text-amber-600 italic">
-                          — Click "🔄 Sync" to save these as editable cards
-                        </span>
-                      </div>
-                    )}
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                        secondaryFeaturedProducts.length > 0 ? "bg-green-100 text-green-700" : "bg-neutral-100 text-neutral-600"
+                      }`}
+                    >
+                      {secondaryFeaturedProducts.length} Selected
+                    </span>
                   </div>
 
-                  {/* Add Category Dropdown */}
-                  <div className="relative">
+                  <input
+                    type="text"
+                    value={secondaryBoxTitle}
+                    onChange={(e) => setSecondaryBoxTitle(e.target.value)}
+                    placeholder="Secondary Box Title (e.g., RESTAURANT & FAST FOOD)"
+                    className="w-full px-3 py-1.5 border border-neutral-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-teal-500 outline-none"
+                  />
+
+                  {/* Search Products for Secondary Box */}
+                  <div className="relative" ref={secondaryProductSearchRef}>
                     <input
                       type="text"
-                      value={categorySearch}
-                      onChange={(e) => setCategorySearch(e.target.value)}
-                      placeholder="Search active category to add card..."
+                      value={secondaryProductSearch}
+                      onFocus={() => setIsSecondaryProductDropdownOpen(true)}
+                      onChange={(e) => {
+                        setSecondaryProductSearch(e.target.value);
+                        setIsSecondaryProductDropdownOpen(true);
+                      }}
+                      placeholder="Search active products for secondary banner box..."
                       className="w-full px-3 py-1.5 border border-neutral-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-teal-500 outline-none"
                     />
 
-                    {categorySearch.trim() && (
+                    {isSecondaryProductDropdownOpen && (
                       <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-neutral-300 rounded-lg shadow-lg max-h-48 overflow-y-auto z-30 divide-y divide-neutral-100">
-                        {filteredCategoryList.map((cat) => {
-                          const details = categoryDetailsMap[cat._id] || { productCount: 0, images: [] };
-                          return (
+                        {filteredSecondaryProducts.length > 0 ? (
+                          filteredSecondaryProducts.map((p) => (
                             <div
-                              key={cat._id}
-                              onClick={() => {
-                                addCategoryCard(cat);
-                                setCategorySearch("");
-                              }}
-                              className={`p-2 cursor-pointer flex items-center justify-between text-xs transition ${
-                                details.productCount === 0
-                                  ? "bg-neutral-50 opacity-60 cursor-not-allowed"
-                                  : "hover:bg-teal-50"
-                              }`}
+                              key={p._id}
+                              onClick={() => addSecondaryFeaturedProduct(p)}
+                              className="p-2 hover:bg-teal-50 cursor-pointer flex items-center justify-between text-xs"
                             >
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-neutral-800">{cat.name}</span>
+                              <div className="flex items-center gap-2 truncate">
+                                <img
+                                  src={p.mainImage || "/assets/placeholder.png"}
+                                  alt={p.productName}
+                                  className="w-7 h-7 object-contain rounded border border-neutral-200"
+                                />
+                                <span className="font-medium truncate">{p.productName}</span>
                               </div>
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  details.productCount > 0
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
-                                }`}
-                              >
-                                {details.productCount} Products
-                              </span>
+                              <span className="text-teal-600 font-bold shrink-0 ml-2">₹{p.price}</span>
                             </div>
-                          );
-                        })}
+                          ))
+                        ) : (
+                          <div className="p-3 text-center text-xs text-neutral-500">
+                            {secondaryProductSearch ? `No active products found matching "${secondaryProductSearch}"` : "No active products available"}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* Selected Category Cards List */}
-                  <div className="space-y-2">
-                    {categoryCards.map((card, idx) => {
-                      const details = categoryDetailsMap[card.categoryId as string] || { productCount: 0, images: [] };
+                  {/* Selected Secondary Products List */}
+                  <div className="flex flex-wrap gap-2 pt-1 max-h-36 overflow-y-auto">
+                    {secondaryFeaturedProducts.map((pId) => {
+                      const p = selectedSecondaryProductMap[pId];
                       return (
                         <div
-                          key={idx}
-                          className="bg-white border border-neutral-200 rounded-lg p-2.5 flex items-center justify-between gap-3 shadow-2xs"
+                          key={pId}
+                          className="flex items-center gap-1.5 bg-white border border-neutral-200 text-neutral-800 px-2 py-1 rounded-md text-xs shadow-xs"
                         >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <input
-                                type="text"
-                                value={card.title}
-                                onChange={(e) => updateCategoryCard(idx, "title", e.target.value)}
-                                className="font-bold text-xs text-neutral-800 border border-neutral-200 rounded px-1.5 py-0.5 focus:border-teal-500 outline-none w-36"
-                              />
-                              <span className="text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                                {details.productCount} Available Products
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={card.badge}
-                                onChange={(e) => updateCategoryCard(idx, "badge", e.target.value)}
-                                placeholder="Badge"
-                                className="text-[10px] border border-neutral-200 rounded px-1.5 py-0.5 text-neutral-600 w-28"
-                              />
-                              {/* 4 Preview thumbnails */}
-                              <div className="flex gap-1 ml-auto">
-                                {details.images.length > 0 ? (
-                                  details.images.slice(0, 4).map((img, i) => (
-                                    <img
-                                      key={i}
-                                      src={img}
-                                      alt=""
-                                      className="w-5 h-5 object-contain rounded border border-neutral-200 bg-neutral-50"
-                                    />
-                                  ))
-                                ) : (
-                                  <span className="text-[9px] text-neutral-400 italic">No thumbnails</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
+                          {p?.mainImage && (
+                            <img src={p.mainImage} alt="" className="w-5 h-5 object-contain rounded" />
+                          )}
+                          <span className="font-medium max-w-[120px] truncate">{p?.productName || pId}</span>
                           <button
                             type="button"
-                            onClick={() => removeCategoryCard(idx)}
-                            className="text-red-500 hover:text-red-700 font-bold text-sm px-1"
-                            title="Remove card"
+                            onClick={() => removeSecondaryFeaturedProduct(pId)}
+                            className="text-red-500 hover:text-red-700 font-bold ml-1"
                           >
                             ×
                           </button>
@@ -1265,6 +1719,8 @@ export default function AdminPromoStrip() {
                     })}
                   </div>
                 </div>
+
+
 
                 {/* Active Toggle & Buttons */}
                 <div className="flex items-center justify-between pt-2">
@@ -1333,31 +1789,62 @@ export default function AdminPromoStrip() {
 
                 {/* Main Content Layout Preview */}
                 <div className="flex gap-1.5 my-2">
-                  {/* Left Crazy Deals Box */}
-                  <div className="w-[100px] shrink-0 bg-gradient-to-b from-emerald-600 to-emerald-800 rounded-xl p-1.5 flex flex-col items-center justify-between text-center min-h-[140px] shadow-sm">
-                    <div className="font-black text-[10px] leading-tight text-white">
-                      {crazyDealsTitle || "CRAZY DEALS"}
+                  {/* Left Column (Crazy Deals + Secondary Box Stacked) */}
+                  <div className="w-[100px] shrink-0 flex flex-col gap-1.5">
+                    {/* Top Crazy Deals Box */}
+                    <div className="bg-gradient-to-b from-emerald-600 to-emerald-800 rounded-xl p-1 flex flex-col items-center justify-between text-center min-h-[105px] shadow-sm">
+                      <div className="font-black text-[9px] leading-tight text-white">
+                        {crazyDealsTitle || "CRAZY DEALS"}
+                      </div>
+
+                      <div className="my-0.5">
+                        <span className="bg-neutral-700 text-white text-[6px] px-1 rounded line-through block">
+                          ₹{(previewFeaturedProduct as any)?.mrp || (previewFeaturedProduct as any)?.compareAtPrice || 999}
+                        </span>
+                        <span className="bg-green-500 text-white text-[7px] font-bold px-1 rounded block">
+                          ₹{previewFeaturedProduct?.price || 499}
+                        </span>
+                      </div>
+
+                      <div className="text-[7px] font-bold truncate w-full text-white">
+                        {previewFeaturedProduct?.productName || "Vegetable & Fruits"}
+                      </div>
+
+                      <div className="w-8 h-8 bg-white/10 rounded flex items-center justify-center overflow-hidden">
+                        {previewFeaturedProduct?.mainImage ? (
+                          <img src={previewFeaturedProduct.mainImage} alt="" className="w-full h-full object-contain" />
+                        ) : (
+                          <span className="text-xs">🍎</span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="my-1">
-                      <span className="bg-neutral-700 text-white text-[7px] px-1 rounded line-through block">
-                        ₹{(previewFeaturedProduct as any)?.mrp || (previewFeaturedProduct as any)?.compareAtPrice || 999}
-                      </span>
-                      <span className="bg-green-500 text-white text-[8px] font-bold px-1 rounded block">
-                        ₹{previewFeaturedProduct?.price || 499}
-                      </span>
-                    </div>
+                    {/* Bottom Secondary Banner Box */}
+                    <div className="bg-gradient-to-b from-emerald-600 to-emerald-800 rounded-xl p-1 flex flex-col items-center justify-between text-center min-h-[105px] shadow-sm">
+                      <div className="font-black text-[8px] leading-tight text-white uppercase">
+                        {secondaryBoxTitle || "RESTAURANT & FAST FOOD"}
+                      </div>
 
-                    <div className="text-[8px] font-bold truncate w-full text-white">
-                      {previewFeaturedProduct?.productName || "Vegetable & Fruits"}
-                    </div>
+                      <div className="my-0.5">
+                        <span className="bg-neutral-700 text-white text-[6px] px-1 rounded line-through block">
+                          ₹{(previewSecondaryProduct as any)?.mrp || (previewSecondaryProduct as any)?.compareAtPrice || 199}
+                        </span>
+                        <span className="bg-green-500 text-white text-[7px] font-bold px-1 rounded block">
+                          ₹{previewSecondaryProduct?.price || 129}
+                        </span>
+                      </div>
 
-                    <div className="w-10 h-10 bg-white/10 rounded flex items-center justify-center overflow-hidden">
-                      {previewFeaturedProduct?.mainImage ? (
-                        <img src={previewFeaturedProduct.mainImage} alt="" className="w-full h-full object-contain" />
-                      ) : (
-                        <span className="text-xs">🍎</span>
-                      )}
+                      <div className="text-[7px] font-bold truncate w-full text-white">
+                        {previewSecondaryProduct?.productName || "Pasta Bowl"}
+                      </div>
+
+                      <div className="w-8 h-8 bg-white/10 rounded flex items-center justify-center overflow-hidden">
+                        {previewSecondaryProduct?.mainImage ? (
+                          <img src={previewSecondaryProduct.mainImage} alt="" className="w-full h-full object-contain" />
+                        ) : (
+                          <span className="text-xs">🍝</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1365,7 +1852,8 @@ export default function AdminPromoStrip() {
                   <div className="flex-1 grid grid-cols-2 gap-1">
                     {[0, 1, 2, 3].map((slotIdx) => {
                       const slotData = housefullSlots[slotIdx];
-                      // Find default header category if not explicitly set
+                      // For "all" context: show default header category as fallback
+                      // For specific header category context: use selected child category data
                       const targetCategoryQueries = [
                         ["fast food", "fast-food"],
                         ["restaurant", "restaurant-food"],
@@ -1373,15 +1861,18 @@ export default function AdminPromoStrip() {
                         ["cake", "bakery", "cake-bakery"],
                       ];
                       const queries = targetCategoryQueries[slotIdx] || [];
-                      const defaultHc = headerCategories.find((hc) => {
-                        const name = (hc.name || "").toLowerCase();
-                        const slug = (hc.slug || "").toLowerCase();
-                        return queries.some((q) => name.includes(q) || slug.includes(q));
-                      }) || headerCategories[slotIdx];
+                      const defaultHc = isAllContext
+                        ? (headerCategories.find((hc) => {
+                            const name = (hc.name || "").toLowerCase();
+                            const slug = (hc.slug || "").toLowerCase();
+                            return queries.some((q) => name.includes(q) || slug.includes(q));
+                          }) || headerCategories[slotIdx])
+                        : null;
 
                       const title = slotData?.headerCategoryName || defaultHc?.name || `Box ${slotIdx + 1}`;
-                      const hcId = slotData?.headerCategoryId || defaultHc?._id || "";
-                      const details = hcId ? headerCatDetailsMap[hcId] || { images: [] } : { images: [] };
+                      const entityId = slotData?.headerCategoryId || (isAllContext ? defaultHc?._id : "") || "";
+                      // Use getBoxDetails so child category images are used for non-all context
+                      const details = entityId ? getBoxDetails(entityId, isAllContext) : { images: [] };
 
                       return (
                         <div
@@ -1396,21 +1887,44 @@ export default function AdminPromoStrip() {
                             {title}
                           </div>
 
-                          {/* 2x2 Sub-boxes */}
-                          <div className="grid grid-cols-2 gap-0.5 px-0.5 pb-0.5">
-                            {[0, 1, 2, 3].map((idx) => {
-                              const img = details.images[idx];
-                              return (
-                                <div key={idx} className="bg-white rounded aspect-square flex items-center justify-center overflow-hidden border border-black/5">
-                                  {img ? (
-                                    <img src={img} alt="" className="w-full h-full object-contain p-0.5" />
-                                  ) : (
-                                    <span className="text-[9px]">📦</span>
-                                  )}
+                          {/* 2x2 Sub-boxes or Category Image Fallback */}
+                          {details.images.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-0.5 px-0.5 pb-0.5">
+                              {[0, 1, 2, 3].map((idx) => {
+                                const img = details.images[idx];
+                                return (
+                                  <div key={idx} className="bg-white rounded aspect-square flex items-center justify-center overflow-hidden border border-black/5">
+                                    {img ? (
+                                      <img src={img} alt="" className="w-full h-full object-contain p-0.5" />
+                                    ) : (
+                                      <span className="text-[9px]">📦</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (() => {
+                            // Fallback: show category's own image when 0 products
+                            const hcId = currentHeaderCatObj ? String(currentHeaderCatObj._id) : '';
+                            const childCats = childCategoriesMap[hcId] || [];
+                            const matchedCat = childCats.find((c: any) => String(c._id) === entityId);
+                            const catImage = matchedCat?.image || categories.find((c: any) => String(c._id) === entityId)?.image;
+                            return catImage ? (
+                              <div className="px-0.5 pb-0.5">
+                                <div className="bg-white rounded overflow-hidden border border-black/5">
+                                  <img src={catImage} alt={title} className="w-full h-full object-cover" style={{ aspectRatio: '1' }} />
                                 </div>
-                              );
-                            })}
-                          </div>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-0.5 px-0.5 pb-0.5">
+                                {[0, 1, 2, 3].map((idx) => (
+                                  <div key={idx} className="bg-white rounded aspect-square flex items-center justify-center overflow-hidden border border-black/5">
+                                    <span className="text-[9px]">📦</span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}

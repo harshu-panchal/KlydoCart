@@ -109,12 +109,28 @@ export const getSubcategories = asyncHandler(
       sortOrder = "asc",
     } = req.query;
 
-    // Verify parent category exists
-    const parentCategory = await Category.findById(id);
+    // Verify parent category exists (check both Category and HeaderCategory)
+    let parentCategory: any = await Category.findById(id);
+    let isHeaderCat = false;
     if (!parentCategory) {
-      return res.status(404).json({
-        success: false,
-        message: "Parent category not found",
+      const headerCat = await HeaderCategory.findById(id);
+      if (headerCat) {
+        parentCategory = headerCat.toObject();
+        isHeaderCat = true;
+      }
+    }
+
+    if (!parentCategory) {
+      return res.status(200).json({
+        success: true,
+        message: "No subcategories found",
+        data: [],
+        pagination: {
+          page: parseInt(page as string),
+          limit: parseInt(limit as string),
+          total: 0,
+          pages: 0,
+        },
       });
     }
 
@@ -134,11 +150,10 @@ export const getSubcategories = asyncHandler(
       ? { $regex: search as string, $options: "i" }
       : undefined;
 
-    // 1. Get subcategories from new Category model (where parentId = category id)
-    const categorySubcategoriesQuery: any = {
-      parentId: id,
-      status: "Active", // Only active subcategories
-    };
+    // 1. Get subcategories from Category model (parentId or headerCategoryId)
+    const categorySubcategoriesQuery: any = isHeaderCat
+      ? { headerCategoryId: id, status: "Active" }
+      : { parentId: id, status: "Active" };
     if (searchQuery) {
       categorySubcategoriesQuery.name = searchQuery;
     }

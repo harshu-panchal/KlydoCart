@@ -15,13 +15,16 @@ export interface IPromoStrip extends Document {
   }>;
   featuredProducts: mongoose.Types.ObjectId[]; // Array of Product IDs for "CRAZY DEALS"
   crazyDealsTitle?: string; // Custom title for the CRAZY DEALS section (e.g., "CRAZY DEALS", "SPECIAL OFFERS")
+  secondaryBoxTitle?: string; // Custom title for the secondary bottom-left box (e.g., "RESTAURANT & FAST FOOD")
+  secondaryFeaturedProducts?: mongoose.Types.ObjectId[]; // Array of Product IDs for secondary bottom-left box
   // Explicit Header Category mapping for the 4 Housefull Sale right-side boxes
   // Slot 0 = Box 1, Slot 1 = Box 2, Slot 2 = Box 3, Slot 3 = Box 4
   housefullCategorySlots?: Array<{
     slotIndex: number; // 0-3, determines box position
     headerCategoryId: mongoose.Types.ObjectId; // Reference to HeaderCategory
     headerCategoryName: string; // Denormalized name for fast reads
-    headerCategorySlug: string; // Denormalized slug for navigation
+    displayCount?: number; // 1, 2, 3, or 4 (default: 4)
+    selectedProductIds?: mongoose.Types.ObjectId[]; // Specific products selected by Admin
   }>;
   isActive: boolean; // Enable/disable the PromoStrip
   order: number; // For sorting if multiple PromoStrips per category
@@ -122,6 +125,18 @@ const PromoStripSchema = new Schema<IPromoStrip>(
           required: true,
           trim: true,
         },
+        displayCount: {
+          type: Number,
+          default: 4,
+          min: 1,
+          max: 4,
+        },
+        selectedProductIds: [
+          {
+            type: Schema.Types.ObjectId,
+            ref: "Product",
+          },
+        ],
       },
     ],
     crazyDealsTitle: {
@@ -130,6 +145,18 @@ const PromoStripSchema = new Schema<IPromoStrip>(
       maxlength: [30, "Crazy Deals title cannot exceed 30 characters"],
       default: "CRAZY DEALS",
     },
+    secondaryBoxTitle: {
+      type: String,
+      trim: true,
+      maxlength: [40, "Secondary box title cannot exceed 40 characters"],
+      default: "RESTAURANT & FAST FOOD",
+    },
+    secondaryFeaturedProducts: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
     isActive: {
       type: Boolean,
       default: true,

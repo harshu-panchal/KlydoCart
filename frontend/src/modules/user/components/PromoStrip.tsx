@@ -54,6 +54,8 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
   const [saleTextValue, setSaleTextValue] = useState(theme.saleText);
   const [dateRange, setDateRange] = useState("");
   const [crazyDealsTitle, setCrazyDealsTitle] = useState("CRAZY DEALS");
+  const [secondaryBoxTitle, setSecondaryBoxTitle] = useState("RESTAURANT & FAST FOOD");
+  const [secondaryProducts, setSecondaryProducts] = useState<any[]>([]);
   const [subcategoryImagesMap, setSubcategoryImagesMap] = useState<Record<string, string[]>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const snowflakesRef = useRef<HTMLDivElement>(null);
@@ -182,13 +184,56 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
           // 1. Check for PromoStrip data from backend (highest priority)
           if (response.data.promoStrip && response.data.promoStrip.isActive) {
             const promoStrip = response.data.promoStrip;
-            newHeadingText = promoStrip.heading || newHeadingText;
+            // For All tab: use admin heading; for other category tabs: use theme-based heading
+            const isAllTab = activeTab === "all";
+            newHeadingText = isAllTab
+              ? (promoStrip.heading || newHeadingText)
+              : theme.bannerText;
             newSaleTextValue = promoStrip.saleText || newSaleTextValue;
             // Set CRAZY DEALS title from PromoStrip
+            // Set CRAZY DEALS & Secondary Box titles from PromoStrip
             if (promoStrip.crazyDealsTitle) {
               setCrazyDealsTitle(promoStrip.crazyDealsTitle);
             } else {
               setCrazyDealsTitle("CRAZY DEALS");
+            }
+            if (promoStrip.secondaryBoxTitle) {
+              setSecondaryBoxTitle(promoStrip.secondaryBoxTitle);
+            } else {
+              setSecondaryBoxTitle("RESTAURANT & FAST FOOD");
+            }
+
+            // Map secondary featured products (bottom-left banner box)
+            if (promoStrip.secondaryFeaturedProducts && promoStrip.secondaryFeaturedProducts.length > 0) {
+              const secProds = promoStrip.secondaryFeaturedProducts.map((p: any) => {
+                const product = typeof p === 'object' ? p : null;
+                const price = Number(product?.price) || 0;
+                const mrp = Number(product?.mrp) || Number(product?.compareAtPrice) || 0;
+                const originalPrice = mrp > 0 ? mrp : (price > 0 ? Math.round(price * 1.2) : 199);
+                const discountedPrice = price > 0 ? price : 129;
+
+                const imageUrl =
+                  product?.mainImage ||
+                  product?.mainImageUrl ||
+                  product?.image ||
+                  product?.imageUrl ||
+                  (product?.galleryImageUrls && product.galleryImageUrls.length > 0 ? product.galleryImageUrls[0] : null) ||
+                  null;
+
+                const productName = product?.productName || product?.name || "Product";
+
+                return {
+                  id: product?._id || p,
+                  _id: product?._id || p,
+                  name: productName,
+                  price: discountedPrice,
+                  originalPrice: originalPrice,
+                  image: imageUrl || "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80",
+                };
+              });
+              setSecondaryProducts(secProds);
+            } else {
+              setSecondaryProducts([]);
             }
 
             // Format date range
@@ -204,12 +249,22 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                 .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
                 .map((card: any) => {
                   const category = typeof card.categoryId === 'object' ? card.categoryId : null;
+                  
+                  // Safely determine the slug (prioritize explicit card.slug from backend)
+                  let safeSlug = card.slug;
+                  if (!safeSlug && category && category.slug) {
+                    safeSlug = category.slug;
+                  }
+                  if (!safeSlug && typeof card.categoryId === 'string') {
+                    safeSlug = card.categoryId;
+                  }
+
                   return {
-                    id: card._id || card.categoryId?._id || card.categoryId,
+                    id: card._id || category?._id || (typeof card.categoryId === 'string' ? card.categoryId : ""),
                     badge: card.badge || `Up to ${card.discountPercentage || 0}% OFF`,
                     title: card.title || category?.name || "",
-                    categoryId: category?._id || card.categoryId, // Use _id for fetching subcategories
-                    slug: category?.slug || card.categoryId, // Use slug for navigation
+                    categoryId: category?._id || (typeof card.categoryId === 'string' ? card.categoryId : ""),
+                    slug: safeSlug || "",
                     imageUrl: category?.image,
                     bgColor: "bg-yellow-50",
                     // Use backend-provided subcategory images directly (avoids extra API call)
@@ -941,75 +996,90 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
             </div>
             </div>
 
-            {/* Fast Food Box */}
-            <div className="promo-card mb-2 md:mb-4">
-              <div
-                onClick={() => {
-                  setActiveCategory("hotpink");
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="block cursor-pointer"
-              >
-                <div
-                  className="rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg h-[145px] min-h-[145px] md:h-[190px] md:min-h-[190px]"
-                  style={{
-                    background: `radial-gradient(circle at center, rgba(255, 255, 255, 0.15), transparent 60%), linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`,
-                  }}>
-                  {/* FAST FOOD Title */}
-                  <div className="text-center mb-1.5 md:mb-2" style={{ marginTop: "4px" }}>
+            {/* Secondary Left Box (Dynamic Title & Products or Fast Food Fallback) */}
+            {(() => {
+              const displaySecItems = secondaryProducts.length > 0 ? secondaryProducts : fastFoodItems;
+              const activeSecItem = displaySecItems[currentFastFoodIndex % displaySecItems.length];
+              const titleWords = (secondaryBoxTitle || "RESTAURANT & FAST FOOD").split(" ");
+
+              return (
+                <div className="promo-card mb-2 md:mb-4">
+                  <div
+                    onClick={() => {
+                      setActiveCategory("hotpink");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="block cursor-pointer"
+                  >
                     <div
-                      className="text-white font-black leading-tight flex flex-col items-center justify-center"
+                      className="rounded-lg md:rounded-2xl p-1 md:p-3 flex flex-col items-center justify-between relative overflow-hidden md:shadow-lg h-[145px] min-h-[145px] md:h-[190px] md:min-h-[190px]"
                       style={{
-                        fontFamily: "sans-serif",
-                        textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8), 1px 1px 2px rgba(0, 0, 0, 0.9)",
-                        letterSpacing: "0.5px",
+                        background: `radial-gradient(circle at center, rgba(255, 255, 255, 0.15), transparent 60%), linear-gradient(to bottom, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`,
                       }}>
-                      <div className="text-[9px] md:text-sm whitespace-nowrap">RESTAURANT &</div>
-                      <div className="text-[12px] md:text-lg whitespace-nowrap">FAST FOOD</div>
-                    </div>
-                  </div>
+                      {/* Title */}
+                      <div className="text-center mb-1.5 md:mb-2" style={{ marginTop: "4px" }}>
+                        <div
+                          className="text-white font-black leading-tight flex flex-col items-center justify-center"
+                          style={{
+                            fontFamily: "sans-serif",
+                            textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8), 1px 1px 2px rgba(0, 0, 0, 0.9)",
+                            letterSpacing: "0.5px",
+                          }}>
+                          {titleWords.length > 1 ? (
+                            <>
+                              <div className="text-[9px] md:text-sm whitespace-nowrap">{titleWords.slice(0, Math.ceil(titleWords.length / 2)).join(" ")}</div>
+                              <div className="text-[12px] md:text-lg whitespace-nowrap">{titleWords.slice(Math.ceil(titleWords.length / 2)).join(" ")}</div>
+                            </>
+                          ) : (
+                            <div className="text-[12px] md:text-lg whitespace-nowrap">{secondaryBoxTitle}</div>
+                          )}
+                        </div>
+                      </div>
 
-                  {/* Price Banner */}
-                  <div ref={fastFoodPriceRef} className="flex flex-col items-center mb-0.5 md:mb-2 relative z-30">
-                    <div className="bg-neutral-600 rounded px-1.5 md:px-2 inline-block relative z-10" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
-                      <span className="text-white text-[8px] md:text-[10px] font-medium line-through leading-none md:font-semibold">₹{fastFoodItems[currentFastFoodIndex].originalPrice}</span>
-                    </div>
-                    <div className="bg-green-500 rounded px-2 md:px-3 inline-block relative -mt-0.5 md:-mt-1 md:shadow-md z-30" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
-                      <span className="text-white text-[9px] md:text-sm md:py-0.5 font-bold leading-none block">₹{fastFoodItems[currentFastFoodIndex].price}</span>
-                    </div>
-                  </div>
+                      {/* Price Banner */}
+                      <div ref={fastFoodPriceRef} className="flex flex-col items-center mb-0.5 md:mb-2 relative z-30">
+                        <div className="bg-neutral-600 rounded px-1.5 md:px-2 inline-block relative z-10" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
+                          <span className="text-white text-[8px] md:text-[10px] font-medium line-through leading-none md:font-semibold">₹{activeSecItem.originalPrice}</span>
+                        </div>
+                        <div className="bg-green-500 rounded px-2 md:px-3 inline-block relative -mt-0.5 md:-mt-1 md:shadow-md z-30" style={{ height: "fit-content", lineHeight: "1", paddingTop: "2px", paddingBottom: "2px" }}>
+                          <span className="text-white text-[9px] md:text-sm md:py-0.5 font-bold leading-none block">₹{activeSecItem.price}</span>
+                        </div>
+                      </div>
 
-                  <div ref={fastFoodNameRef} className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 w-[95%] line-clamp-1 relative z-10" title={fastFoodItems[currentFastFoodIndex].name}>
-                    {fastFoodItems[currentFastFoodIndex].name}
-                  </div>
+                      <div ref={fastFoodNameRef} className="text-neutral-900 font-black text-[9px] md:text-xs text-center mb-0.5 md:mb-1 w-[95%] line-clamp-1 relative z-10" title={activeSecItem.name}>
+                        {activeSecItem.name}
+                      </div>
 
-                  {/* Image */}
-                  <div ref={fastFoodImageRef} className="flex-1 flex items-end justify-center w-full min-h-[30px] md:min-h-[50px] mt-1">
-                    <div className="w-12 h-12 md:w-20 md:h-20 rounded md:rounded-lg flex items-center justify-center overflow-hidden bg-white shadow-sm">
-                      <img 
-                        src={fastFoodItems[currentFastFoodIndex].image}
-                        alt={fastFoodItems[currentFastFoodIndex].name}
-                        className="w-full h-full object-cover"
-                      />
+                      {/* Image */}
+                      <div ref={fastFoodImageRef} className="flex-1 flex items-end justify-center w-full min-h-[30px] md:min-h-[50px] mt-1">
+                        <div className="w-12 h-12 md:w-20 md:h-20 rounded md:rounded-lg flex items-center justify-center overflow-hidden bg-white shadow-sm">
+                          <img 
+                            src={activeSecItem.image}
+                            alt={activeSecItem.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
 
           {/* Category Cards Grid - Right */}
+          {categoryCards && categoryCards.length > 0 && (
           <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
-            {categoryCards.map((card) => {
+            {categoryCards.map((card, cardIdx) => {
               const subcategoryImages = subcategoryImagesMap[card.id] || card.subcategoryImages || [];
               const hasSubcategoryImages = subcategoryImages.length > 0;
               const categoryIcons = getCategoryIcons(card.categoryId || "");
 
               return (
-                <div key={card.id} className="promo-card">
+                <div key={card.id ? `${card.id}-${cardIdx}` : `card-${cardIdx}`} className="promo-card">
                   <Link
                     to={card.slug || card.categoryId ? `/category/${card.slug || card.categoryId}` : "#"}
-                    className="group rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] flex flex-col overflow-hidden"
+                    className="group rounded-xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] flex flex-col overflow-hidden h-[145px] md:h-[190px]"
                     style={{
                       background: "rgba(255, 247, 237, 0.95)",
                       boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
@@ -1031,49 +1101,103 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                       {card.title}
                     </div>
 
-                    {/* 2×2 Image Grid - always 4 slots, empty if no image */}
-                    <div className="grid grid-cols-2 gap-1 px-1.5 pb-1.5">
-                      {Array.from({ length: 4 }).map((_, idx) => {
-                        const imageUrl = hasSubcategoryImages ? subcategoryImages[idx] : undefined;
-                        const icon = categoryIcons[idx];
+                    {/* Image rendering logic: Adaptive grid for "All" tab, single image for specific categories */}
+                    {(() => {
+                      const isAllTab = activeTab === "all";
+                      
+                      // For specific category tabs: show the single category image
+                      if (!isAllTab) {
+                        // Use category's own image, or fallback to first subcategory image
+                        const categoryImage = card.categoryId?.image || card.imageUrl || (card.subcategoryImages && card.subcategoryImages.length > 0 ? card.subcategoryImages[0] : null);
+                        
                         return (
-                          <div
-                            key={idx}
-                            className="bg-white rounded-lg overflow-hidden aspect-square flex items-center justify-center"
-                            style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
-                          >
-                            {imageUrl ? (
-                              <img
-                                src={imageUrl}
-                                alt={`Subcategory ${idx + 1}`}
-                                className="w-full h-full object-contain p-1"
-                                loading="lazy"
-                                decoding="async"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = "none";
-                                  const parent = target.parentElement;
-                                  if (parent) {
-                                    parent.innerHTML = icon || "📦";
-                                    parent.style.fontSize = "20px";
-                                    parent.style.display = "flex";
-                                    parent.style.alignItems = "center";
-                                    parent.style.justifyContent = "center";
-                                  }
-                                }}
-                              />
-                            ) : !hasSubcategoryImages && icon ? (
-                              <span className="text-[22px]">{icon}</span>
-                            ) : null}
+                          <div className="w-full px-1.5 pb-1.5 flex-1 flex items-center justify-center min-h-0">
+                            <div className="w-full h-full bg-white rounded-xl overflow-hidden shadow-xs flex items-center justify-center p-1 relative">
+                              {categoryImage ? (
+                                <img
+                                  src={categoryImage}
+                                  alt={card.title}
+                                  className="w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
+                                  loading="lazy"
+                                  decoding="async"
+                                  onError={(e) => {
+                                    // Hide broken image, show clean fallback
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent && !parent.querySelector('.cat-fallback')) {
+                                      const fallback = document.createElement('div');
+                                      fallback.className = 'cat-fallback w-full h-full flex items-center justify-center';
+                                      fallback.style.background = 'linear-gradient(135deg, #fef3c7, #fde68a)';
+                                      fallback.style.borderRadius = '8px';
+                                      const text = document.createElement('span');
+                                      text.style.fontSize = '28px';
+                                      text.style.fontWeight = '800';
+                                      text.style.color = '#92400e';
+                                      text.style.opacity = '0.5';
+                                      text.textContent = (card.title || '?')[0].toUpperCase();
+                                      fallback.appendChild(text);
+                                      parent.appendChild(fallback);
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                /* Edge case: No category image — show clean minimal state */
+                                <div
+                                  className="w-full h-full rounded-lg flex items-center justify-center"
+                                  style={{ background: 'linear-gradient(135deg, #fef3c7, #fde68a)' }}
+                                >
+                                  <span className="text-3xl font-extrabold" style={{ color: '#92400e', opacity: 0.4 }}>
+                                    {(card.title || '?')[0].toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
-                      })}
-                    </div>
+                      }
+                      
+                      // For "All" tab (Housefull Sale): show the adaptive product images grid (1, 2, or 4 images)
+                      const images = card.subcategoryImages || [];
+                      const displayCount = images.length;
+                      
+                      return (
+                        <div className="w-full px-1.5 pb-1.5 flex-1 flex items-center justify-center min-h-0">
+                          <div className="w-full h-full bg-white rounded-xl overflow-hidden shadow-xs p-1 relative hover:shadow-sm transition-shadow">
+                            {displayCount === 0 ? (
+                                <div
+                                  className="w-full h-full rounded-lg flex items-center justify-center"
+                                  style={{ background: 'linear-gradient(135deg, #fef3c7, #fde68a)' }}
+                                >
+                                  <span className="text-3xl font-extrabold" style={{ color: '#92400e', opacity: 0.4 }}>
+                                    {(card.title || '?')[0].toUpperCase()}
+                                  </span>
+                                </div>
+                            ) : displayCount === 1 ? (
+                              <img src={images[0]} alt={card.title} className="w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async" />
+                            ) : displayCount === 2 ? (
+                              <div className="grid grid-cols-2 gap-[2px] w-full h-full">
+                                <div className="overflow-hidden rounded-l-lg"><img src={images[0]} alt={card.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async" /></div>
+                                <div className="overflow-hidden rounded-r-lg"><img src={images[1]} alt={card.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async" /></div>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 grid-rows-2 gap-[2px] w-full h-full">
+                                <div className="overflow-hidden rounded-tl-lg"><img src={images[0]} alt={card.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async" /></div>
+                                <div className="overflow-hidden rounded-tr-lg"><img src={images[1]} alt={card.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async" /></div>
+                                <div className="overflow-hidden rounded-bl-lg"><img src={images[2]} alt={card.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async" /></div>
+                                <div className="overflow-hidden rounded-br-lg"><img src={images[3] || images[0]} alt={card.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" decoding="async" /></div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </Link>
                 </div>
               );
             })}
           </div>
+          )}
         </div>
       </div>
     </div>
