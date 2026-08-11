@@ -127,11 +127,8 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
             }
           }
 
-          // 3. Duplicate images if needed so all 4 sub-boxes look complete
+          // 3. Save images to map
           if (images.length > 0) {
-            while (images.length < 4) {
-              images.push(images[images.length % images.length]);
-            }
             imagesMap[card.id] = images;
           }
         } catch (error) {

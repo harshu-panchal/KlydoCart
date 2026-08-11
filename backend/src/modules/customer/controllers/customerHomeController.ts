@@ -832,12 +832,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
               images = [...images, ...subcatImgs];
             }
 
-            // If still fewer than reqCount, pad available images
-            if (images.length > 0) {
-              while (images.length < reqCount) {
-                images.push(images[images.length % images.length]);
-              }
-            }
+            // Padding logic removed to allow adaptive grid to render actual image counts
 
             // Fallback: If NO product/subcategory images at all, use the category's own image
             // This ensures the frontend always has something to display instead of empty boxes
