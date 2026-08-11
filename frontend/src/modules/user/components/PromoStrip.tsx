@@ -1108,7 +1108,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                       // For specific category tabs: show the single category image
                       if (!isAllTab) {
                         // Use category's own image, or fallback to first subcategory image
-                        const categoryImage = card.categoryId?.image || card.imageUrl || (card.subcategoryImages && card.subcategoryImages.length > 0 ? card.subcategoryImages[0] : null);
+                        const categoryImage = (card.categoryId as any)?.image || card.imageUrl || (card.subcategoryImages && card.subcategoryImages.length > 0 ? card.subcategoryImages[0] : null);
                         
                         return (
                           <div className="w-full px-1.5 pb-1.5 flex-1 flex items-center justify-center min-h-0">
