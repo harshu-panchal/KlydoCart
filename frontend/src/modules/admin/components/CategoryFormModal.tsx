@@ -101,16 +101,50 @@ export default function CategoryFormModal({
     }
   };
 
+  // Helper to extract string ID from parentId / parent
+  const getCatParentId = (cat: Category): string | null => {
+    if (cat.parentId) {
+      return typeof cat.parentId === "string"
+        ? cat.parentId
+        : (cat.parentId as any)?._id || null;
+    }
+    if (cat.parent) {
+      return typeof cat.parent === "string"
+        ? cat.parent
+        : (cat.parent as any)?._id || null;
+    }
+    return null;
+  };
+
+  // Helper to extract string ID from headerCategoryId / headerCategory
+  const getCatHeaderId = (cat: Category): string | null => {
+    if (cat.headerCategoryId) {
+      return typeof cat.headerCategoryId === "string"
+        ? cat.headerCategoryId
+        : (cat.headerCategoryId as any)?._id || null;
+    }
+    if (cat.headerCategory) {
+      return typeof cat.headerCategory === "string"
+        ? cat.headerCategory
+        : (cat.headerCategory as any)?._id || null;
+    }
+    return null;
+  };
+
   // Calculate next order for siblings
-  const getNextOrder = (parentId: string | null) => {
+  const getNextOrder = (
+    parentId: string | null,
+    headerCatId: string | null = null
+  ) => {
     const siblings = parentId
-      ? flatCategories.filter((cat) => {
-        const catParentId = typeof cat.parentId === 'string'
-          ? cat.parentId
-          : (cat.parentId as any)?._id || cat.parentId;
-        return catParentId === parentId;
-      })
-      : allCategories.filter((cat) => !cat.parentId);
+      ? flatCategories.filter((cat) => getCatParentId(cat) === parentId)
+      : flatCategories.filter((cat) => {
+          if (getCatParentId(cat) !== null) return false;
+          if (headerCatId) {
+            return getCatHeaderId(cat) === headerCatId;
+          }
+          return true;
+        });
 
     if (siblings.length === 0) return 1;
     const maxOrder = Math.max(...siblings.map((cat) => cat.order || 0));
@@ -163,7 +197,7 @@ export default function CategoryFormModal({
         setFormData({
           name: "",
           image: "",
-          order: getNextOrder(parentCategory._id),
+          order: getNextOrder(parentCategory._id, inheritedHeaderCategoryId),
           parentId: parentCategory._id,
           headerCategoryId: inheritedHeaderCategoryId,
           status: "Active",
@@ -177,7 +211,7 @@ export default function CategoryFormModal({
         setFormData({
           name: "",
           image: "",
-          order: getNextOrder(null),
+          order: getNextOrder(null, null),
           parentId: null,
           headerCategoryId: null,
           status: "Active",
@@ -215,7 +249,12 @@ export default function CategoryFormModal({
 
       // If parentId changes, auto-suggest next order
       if (name === "parentId") {
-        newData.order = getNextOrder(value || null);
+        newData.order = getNextOrder(value || null, newData.headerCategoryId);
+      }
+
+      // If headerCategoryId changes for root category, auto-suggest next order
+      if (name === "headerCategoryId" && !newData.parentId && mode !== "edit") {
+        newData.order = getNextOrder(null, value || null);
       }
 
       return newData;
@@ -305,15 +344,25 @@ export default function CategoryFormModal({
       newErrors.order = "Display order must be a positive number";
     }
 
-    // Check for duplicate order among siblings
+    // Check for duplicate order among siblings in the same section
     const siblings = formData.parentId
       ? flatCategories.filter((cat) => {
-        const catParentId = typeof cat.parentId === 'string'
-          ? cat.parentId
-          : (cat.parentId as any)?._id || cat.parentId;
-        return catParentId === formData.parentId && cat._id !== category?._id;
-      })
-      : allCategories.filter((cat) => !cat.parentId && cat._id !== category?._id);
+          return (
+            getCatParentId(cat) === formData.parentId &&
+            String(cat._id) !== String(category?._id)
+          );
+        })
+      : flatCategories.filter((cat) => {
+          // Must be a root category (no parent)
+          if (getCatParentId(cat) !== null) return false;
+          // Must exclude current editing category
+          if (category?._id && String(cat._id) === String(category._id)) return false;
+          // Must match current header category if specified
+          if (formData.headerCategoryId) {
+            return getCatHeaderId(cat) === formData.headerCategoryId;
+          }
+          return true;
+        });
 
     const isOrderTaken = siblings.some((cat) => cat.order === Number(formData.order));
     if (isOrderTaken) {
