@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Product from "../../../models/Product";
 import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
+import HeaderCategory from "../../../models/HeaderCategory";
 import mongoose from "mongoose";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
 
@@ -39,19 +40,31 @@ export const getProducts = async (req: Request, res: Response) => {
     };
 
     if (headerCategoryId) {
+      let targetHeaderId: any = headerCategoryId;
+      if (!mongoose.Types.ObjectId.isValid(headerCategoryId as string)) {
+        const hc = await HeaderCategory.findOne({
+          $or: [
+            { slug: { $regex: new RegExp(`^${headerCategoryId}$`, "i") } },
+            { name: { $regex: new RegExp(`^${(headerCategoryId as string).replace(/[-_]/g, " ")}$`, "i") } }
+          ],
+          status: "Published"
+        }).select('_id').lean();
+        if (hc) targetHeaderId = hc._id;
+      }
+
       // Find all categories that belong to this header category
-      const categoriesInHeader = await Category.find({ headerCategoryId }).select('_id').lean();
+      const categoriesInHeader = await Category.find({ headerCategoryId: targetHeaderId }).select('_id').lean();
       const categoryIds = categoriesInHeader.map(c => c._id);
       
       if (categoryIds.length > 0) {
         query.$and.push({
           $or: [
-            { headerCategoryId },
+            { headerCategoryId: targetHeaderId },
             { category: { $in: categoryIds } }
           ]
         });
       } else {
-        query.headerCategoryId = headerCategoryId;
+        query.headerCategoryId = targetHeaderId;
       }
     }
 
@@ -141,18 +154,40 @@ export const getProducts = async (req: Request, res: Response) => {
     };
 
     if (category) {
-      const categoryId = await resolveId(
-        Category,
-        category as string,
-        "Category"
-      );
-      if (categoryId) {
-        // Check if this category is actually a subcategory (has a parentId)
-        const catDoc = await Category.findById(categoryId).select("parentId").lean();
-        if (catDoc && catDoc.parentId) {
-          query.subcategory = categoryId;
-        } else {
-          query.category = categoryId;
+      // First check if 'category' parameter matches a Published HeaderCategory
+      const headerCat = await HeaderCategory.findOne({
+        $or: [
+          ...(mongoose.Types.ObjectId.isValid(category as string) ? [{ _id: category }] : []),
+          { slug: { $regex: new RegExp(`^${category}$`, "i") } },
+          { name: { $regex: new RegExp(`^${(category as string).replace(/[-_]/g, " ")}$`, "i") } }
+        ],
+        status: "Published"
+      }).select('_id').lean();
+
+      if (headerCat) {
+        const categoriesInHeader = await Category.find({ headerCategoryId: headerCat._id }).select('_id').lean();
+        const categoryIds = categoriesInHeader.map(c => c._id);
+        
+        query.$and.push({
+          $or: [
+            { headerCategoryId: headerCat._id },
+            { category: { $in: categoryIds } }
+          ]
+        });
+      } else {
+        const categoryId = await resolveId(
+          Category,
+          category as string,
+          "Category"
+        );
+        if (categoryId) {
+          // Check if this category is actually a subcategory (has a parentId)
+          const catDoc = await Category.findById(categoryId).select("parentId").lean();
+          if (catDoc && catDoc.parentId) {
+            query.subcategory = categoryId;
+          } else {
+            query.category = categoryId;
+          }
         }
       }
     }

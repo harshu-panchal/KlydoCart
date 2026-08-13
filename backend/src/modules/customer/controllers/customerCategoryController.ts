@@ -164,7 +164,64 @@ export const getCategoryById = async (req: Request, res: Response) => {
     }
 
     console.log(`[getCategoryById] Looking for category with id/slug: ${id}`);
-    let category;
+
+    // 1. Try to find Published HeaderCategory first (by ID, slug, or name)
+    const headerCategory = await HeaderCategory.findOne({
+      $or: [
+        ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: id }] : []),
+        { slug: { $regex: new RegExp(`^${id}$`, "i") } },
+        { name: { $regex: new RegExp(`^${id.replace(/[-_]/g, " ")}$`, "i") } }
+      ],
+      status: "Published"
+    }).lean();
+
+    if (headerCategory) {
+      let subcategories = await Category.find({
+        headerCategoryId: headerCategory._id,
+        status: "Active"
+      })
+        .select("name image order slug icon")
+        .sort({ order: 1 })
+        .lean();
+
+      // Location-based subcategory filtering
+      if (nearbySellerIds.length > 0) {
+        const resolvedSubcategories = await Promise.all(
+          subcategories.map(async (sub) => {
+            const count = await Product.countDocuments({
+              $or: [
+                { category: sub._id },
+                { subcategory: sub._id }
+              ],
+              status: "Active",
+              publish: true,
+              seller: { $in: nearbySellerIds },
+            });
+            return count > 0 ? sub : null;
+          })
+        );
+        subcategories = resolvedSubcategories.filter(sub => sub !== null) as typeof subcategories;
+      }
+
+      const responseData = {
+        category: {
+          ...headerCategory,
+          isHeaderCategory: true
+        },
+        subcategories,
+        currentSubcategory: null,
+      };
+
+      cache.set(cacheKey, responseData, 10 * 60 * 1000);
+
+      return res.status(200).json({
+        success: true,
+        data: responseData,
+      });
+    }
+
+    // 2. If not a HeaderCategory, search Category collection
+    let category: any = null;
 
     // Try to find by ObjectId first (only active categories for public endpoint)
     if (mongoose.Types.ObjectId.isValid(id)) {
@@ -211,58 +268,7 @@ export const getCategoryById = async (req: Request, res: Response) => {
     }
 
     if (!category) {
-      // Check if it's a HeaderCategory
-      const headerCategory = await HeaderCategory.findOne({
-        $or: [
-          ...(mongoose.Types.ObjectId.isValid(id) ? [{ _id: id }] : []),
-          { slug: { $regex: new RegExp(`^${id}$`, "i") } }
-        ],
-        status: "Published"
-      }).lean();
-
-      if (headerCategory) {
-        let subcategories = await Category.find({
-          headerCategoryId: headerCategory._id,
-          status: "Active"
-        })
-          .select("name image order slug icon")
-          .sort({ order: 1 })
-          .lean();
-
-        // Location-based subcategory filtering
-        if (nearbySellerIds.length > 0) {
-          const resolvedSubcategories = await Promise.all(
-            subcategories.map(async (sub) => {
-              const count = await Product.countDocuments({
-                subcategory: sub._id,
-                status: "Active",
-                publish: true,
-                seller: { $in: nearbySellerIds },
-              });
-              return count > 0 ? sub : null;
-            })
-          );
-          subcategories = resolvedSubcategories.filter(sub => sub !== null) as typeof subcategories;
-        }
-
-        const responseData = {
-          category: {
-            ...headerCategory,
-            isHeaderCategory: true
-          },
-          subcategories,
-          currentSubcategory: null,
-        };
-
-        cache.set(cacheKey, responseData, 10 * 60 * 1000);
-
-        return res.status(200).json({
-          success: true,
-          data: responseData,
-        });
-      }
-
-      // Check if it's a subcategory
+      // Check if it's a subcategory in legacy SubCategory model
       if (mongoose.Types.ObjectId.isValid(id)) {
         const subcategory = await SubCategory.findById(id).lean();
         if (subcategory) {
@@ -329,7 +335,10 @@ export const getCategoryById = async (req: Request, res: Response) => {
           const resolvedSubcategories = await Promise.all(
             subcategories.map(async (sub) => {
               const count = await Product.countDocuments({
-                subcategory: sub._id,
+                $or: [
+                  { category: sub._id },
+                  { subcategory: sub._id }
+                ],
                 status: "Active",
                 publish: true,
                 seller: { $in: nearbySellerIds },
@@ -388,7 +397,10 @@ export const getCategoryById = async (req: Request, res: Response) => {
       const resolvedSubcategories = await Promise.all(
         subcategories.map(async (sub) => {
           const count = await Product.countDocuments({
-            subcategory: sub._id,
+            $or: [
+              { category: sub._id },
+              { subcategory: sub._id }
+            ],
             status: "Active",
             publish: true,
             seller: { $in: nearbySellerIds },

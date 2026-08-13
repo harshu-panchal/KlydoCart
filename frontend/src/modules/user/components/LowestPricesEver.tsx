@@ -327,33 +327,33 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Use admin-selected products if provided, otherwise fallback to fetching
-    if (adminProducts && adminProducts.length > 0) {
-      const mappedProducts = adminProducts.map((p: any) => {
-        // Get product name and remove any description-like suffixes
-        let productName = p.productName || p.name || '';
-        // Remove common description patterns like " - Fresh & Quality Assured"
-        productName = productName.replace(/\s*-\s*(Fresh|Quality|Assured|Premium|Best|Top|Hygienic|Carefully|Selected).*$/i, '').trim();
+    // If adminProducts prop is explicitly passed (as array)
+    if (Array.isArray(adminProducts)) {
+      if (adminProducts.length > 0) {
+        const mappedProducts = adminProducts.map((p: any) => {
+          let productName = p.productName || p.name || '';
+          productName = productName.replace(/\s*-\s*(Fresh|Quality|Assured|Premium|Best|Top|Hygienic|Carefully|Selected).*$/i, '').trim();
 
-        // Get pack without description
-        let packValue = p.variations?.[0]?.title || p.pack || 'Standard';
-        // Remove description from pack if it contains it
-        if (packValue && packValue.includes(' - ')) {
-          packValue = packValue.split(' - ')[0].trim();
-        }
+          let packValue = p.variations?.[0]?.title || p.pack || 'Standard';
+          if (packValue && packValue.includes(' - ')) {
+            packValue = packValue.split(' - ')[0].trim();
+          }
 
-        return {
-          ...p,
-          id: p._id || p.id || p.id,
-          name: productName,
-          imageUrl: p.mainImage || p.imageUrl || p.mainImage,
-          mrp: p.mrp || p.price,
-          pack: packValue
-        };
-      });
-      setProducts(mappedProducts);
+          return {
+            ...p,
+            id: p._id || p.id || p.id,
+            name: productName,
+            imageUrl: p.mainImage || p.imageUrl || p.mainImage,
+            mrp: p.mrp || p.price,
+            pack: packValue
+          };
+        });
+        setProducts(mappedProducts);
+      } else {
+        setProducts([]);
+      }
     } else {
-      // Fallback: fetch products if admin hasn't configured any
+      // Fallback: fetch products only if adminProducts prop is undefined
       const fetchDiscountedProducts = async () => {
         try {
           const response = await getProducts({ limit: 50 });
@@ -387,14 +387,10 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
   }, [adminProducts]);
 
   // Get products for this section
-  // If using admin-selected products, use them directly (already filtered and ordered)
-  // Otherwise, filter by activeTab and discount
   const getFilteredProducts = () => {
-    // If admin has selected products, use them directly (already ordered)
-    if (adminProducts && adminProducts.length > 0) {
-      return products
-        .filter((p) => (p as any).isAvailable !== false)
-        .slice(0, 20); // Show up to 20 admin-selected products
+    // If admin products prop was passed (array)
+    if (Array.isArray(adminProducts)) {
+      return products.slice(0, 20); // Show up to 20 admin-selected products
     }
 
     // Fallback: filter by activeTab and discount
@@ -432,6 +428,10 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
   const handleUpdateQuantity = useCallback((productId: string, quantity: number) => {
     updateQuantity(productId, quantity);
   }, [updateQuantity]);
+
+  if (!discountedProducts || discountedProducts.length === 0) {
+    return null;
+  }
 
   return (
     <div
