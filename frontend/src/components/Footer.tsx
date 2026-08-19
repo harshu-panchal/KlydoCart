@@ -1,8 +1,30 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useThemeContext } from '../context/ThemeContext';
+import { getPublicSettings, type PublicSettings } from '../services/api/publicService';
 
 export default function Footer() {
   const { currentTheme } = useThemeContext();
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
+
+  useEffect(() => {
+    getPublicSettings()
+      .then((res) => {
+        if (res.success && res.data) {
+          setSettings(res.data);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load settings in Footer:", err);
+      });
+  }, []);
+
+  const phone = settings?.contactPhone || settings?.supportPhone || "+91 90312 75861";
+  const email = settings?.contactEmail || settings?.supportEmail || "support@klydocart.com";
+  const address = settings?.companyAddress 
+    ? `${settings.companyAddress}${settings.companyCity ? `, ${settings.companyCity}` : ''}${settings.companyPincode ? ` ${settings.companyPincode}` : ''}`
+    : "Vidya Nagar, Harmu, Ranchi 834002";
+  const appName = settings?.appName || "Klydo Cart";
 
   return (
     <footer 
@@ -19,16 +41,16 @@ export default function Footer() {
               <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm overflow-hidden border border-white/20">
                 <img 
                   src="/KlydoCardLatest.png" 
-                  alt="KlydoCart" 
+                  alt={appName} 
                   className="w-10 h-10 object-contain"
                 />
               </div>
               <span className="text-2xl font-black tracking-tighter text-white uppercase">
-                KLYDO CART
+                {appName}
               </span>
             </Link>
             <p className="text-white/70 text-sm leading-relaxed max-w-xs">
-              Experience the future of grocery shopping with Klydo Cart. Freshness delivered to your doorstep in minutes.
+              Experience the future of grocery shopping with {appName}. Freshness delivered to your doorstep in minutes.
             </p>
             <div className="flex gap-4">
               {[
@@ -94,16 +116,22 @@ export default function Footer() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3 text-sm text-white/70 font-medium">
                 <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/60">📍</span>
-                <span>Vidya Nagar, Harmu, Ranchi 834002</span>
+                <span>{address}</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-white/70 font-medium cursor-pointer hover:text-white transition-colors">
+              <a 
+                href={`tel:${phone.replace(/\s/g, '')}`}
+                className="flex items-center gap-3 text-sm text-white/70 font-medium hover:text-white transition-colors"
+              >
                 <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/60">📞</span>
-                <span>+91 90312 75861</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-white/70 font-medium cursor-pointer hover:text-white transition-colors">
+                <span>{phone}</span>
+              </a>
+              <a 
+                href={`mailto:${email}`}
+                className="flex items-center gap-3 text-sm text-white/70 font-medium hover:text-white transition-colors"
+              >
                 <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/60">✉️</span>
-                <span>klydocart@gmail.com</span>
-              </div>
+                <span>{email}</span>
+              </a>
             </div>
           </div>
         </div>
@@ -111,7 +139,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-white/50 text-xs font-medium">
-            © 2026 Klydo Cart. All rights reserved.
+            © {new Date().getFullYear()} {appName}. All rights reserved.
           </p>
           <div className="flex items-center gap-6 opacity-40">
           </div>

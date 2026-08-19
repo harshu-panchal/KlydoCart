@@ -51,8 +51,8 @@ export default function DeliveryHelp() {
     } else if (option.icon === 'email') {
       window.location.href = `mailto:${option.value}`;
     } else if (option.icon === 'chat') {
-      // Open WhatsApp or generic chat link
-      window.open(`https://wa.me/917846940429?text=Hello%20Support,%20I%20am%20a%20delivery%20partner%20and%20need%20help.`, '_blank');
+      const cleanPhone = option.value ? option.value.replace(/[^0-9]/g, '') : '917846940429';
+      window.open(`https://wa.me/${cleanPhone}?text=Hello%20Support,%20I%20am%20a%20delivery%20partner%20and%20need%20help.`, '_blank');
     }
   };
 

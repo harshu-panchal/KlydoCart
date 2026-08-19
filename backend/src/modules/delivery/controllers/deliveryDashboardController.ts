@@ -4,6 +4,7 @@ import Delivery from "../../../models/Delivery";
 import Order from "../../../models/Order";
 import mongoose from "mongoose";
 import FAQ from "../../../models/FAQ";
+import AppSettings from "../../../models/AppSettings";
 
 /**
  * Get Dashboard Stats
@@ -149,16 +150,20 @@ export const getHelpSupport = asyncHandler(async (_req: Request, res: Response) 
         status: "Active"
     }).sort({ order: 1, createdAt: -1 });
 
+    const settings = await AppSettings.getSettings();
+    const phone = settings.supportPhone || settings.contactPhone || '+91 7846940429';
+    const email = settings.supportEmail || settings.contactEmail || 'support@klydocart.com';
+
     const contactOptions = [
-        { label: 'Call Support', value: '+91 7846940429', icon: 'phone' },
-        { label: 'Email Support', value: 'support@klydocart.com', icon: 'email' },
+        { label: 'Call Support', value: phone, icon: 'phone' },
+        { label: 'Email Support', value: email, icon: 'email' },
     ];
 
     const defaultFaqs = [
         { question: "How to check my daily earnings?", answer: "Go to the Wallet section from the bottom navigation to view your daily and total earnings." },
         { question: "What to do if the customer is not reachable?", answer: "Try calling the customer via the order details page. If they are still unreachable, contact support immediately." },
         { question: "How do I update my profile information?", answer: "You can update your profile details in the Profile section under the Menu tab." },
-        { question: "How to report a delivery issue?", answer: "Use the 'Direct Support Call' button or email us at support@klydocart.com with the order ID." }
+        { question: "How to report a delivery issue?", answer: `Use the 'Direct Support Call' button or email us at ${email} with the order ID.` }
     ];
 
     res.status(200).json({

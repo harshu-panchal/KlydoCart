@@ -1,7 +1,29 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { getPublicSettings, type PublicSettings } from "../../services/api/publicService";
 
 export default function AboutUs() {
   const navigate = useNavigate();
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
+
+  useEffect(() => {
+    getPublicSettings()
+      .then((res) => {
+        if (res.success && res.data) {
+          setSettings(res.data);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load public settings in AboutUs:", err);
+      });
+  }, []);
+
+  const appName = settings?.appName || "KlydoCart";
+  const supportEmail = settings?.supportEmail || settings?.contactEmail || "support@klydocart.com";
+  const supportPhone = settings?.supportPhone || settings?.contactPhone || "+91 1800-123-4567";
+  const locationStr = settings?.companyAddress 
+    ? `${settings.companyAddress}${settings.companyCity ? `, ${settings.companyCity}` : ''}`
+    : (settings?.companyCountry || "India");
 
   return (
     <div className="pb-24 md:pb-8 bg-white min-h-screen">
@@ -55,7 +77,7 @@ export default function AboutUs() {
               />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-neutral-900 mb-2">KlydoCart</h2>
+          <h2 className="text-3xl font-bold text-neutral-900 mb-2">{appName}</h2>
           <p className="text-sm text-neutral-600">
             Your Trusted Delivery Partner
           </p>
@@ -303,14 +325,17 @@ export default function AboutUs() {
             Get In Touch
           </h3>
           <div className="space-y-3">
-            <div className="flex items-center gap-3 text-sm">
+            <a 
+              href={`mailto:${supportEmail}`}
+              className="flex items-center gap-3 text-sm hover:text-teal-700 transition-colors group"
+            >
               <svg
                 width="20"
                 height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className="text-teal-600 flex-shrink-0">
+                className="text-teal-600 flex-shrink-0 group-hover:scale-110 transition-transform">
                 <path
                   d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
                   stroke="currentColor"
@@ -326,16 +351,19 @@ export default function AboutUs() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span className="text-neutral-700">support@klydocart.com</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm">
+              <span className="text-neutral-700 group-hover:text-teal-800 font-medium">{supportEmail}</span>
+            </a>
+            <a 
+              href={`tel:${supportPhone.replace(/\s/g, '')}`}
+              className="flex items-center gap-3 text-sm hover:text-teal-700 transition-colors group"
+            >
               <svg
                 width="20"
                 height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className="text-teal-600 flex-shrink-0">
+                className="text-teal-600 flex-shrink-0 group-hover:scale-110 transition-transform">
                 <path
                   d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
                   stroke="currentColor"
@@ -344,8 +372,8 @@ export default function AboutUs() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span className="text-neutral-700">+91 1800-123-4567</span>
-            </div>
+              <span className="text-neutral-700 group-hover:text-teal-800 font-medium">{supportPhone}</span>
+            </a>
             <div className="flex items-center gap-3 text-sm">
               <svg
                 width="20"
@@ -371,7 +399,7 @@ export default function AboutUs() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span className="text-neutral-700">India</span>
+              <span className="text-neutral-700 font-medium">{locationStr}</span>
             </div>
           </div>
         </div>
@@ -380,7 +408,7 @@ export default function AboutUs() {
         <div className="mt-8 text-center">
           <p className="text-xs text-neutral-500">Version 1.0.0</p>
           <p className="text-xs text-neutral-500 mt-1">
-            © 2024 KlydoCart. All rights reserved.
+            © {new Date().getFullYear()} {appName}. All rights reserved.
           </p>
         </div>
       </div>

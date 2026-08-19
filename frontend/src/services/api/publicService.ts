@@ -16,6 +16,11 @@ export interface PublicSettings {
     contactEmail: string;
     contactPhone: string;
     companyWebsite: string;
+    companyAddress?: string;
+    companyCity?: string;
+    companyState?: string;
+    companyPincode?: string;
+    companyCountry?: string;
 }
 
 /**

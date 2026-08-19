@@ -35,6 +35,9 @@ export default function AdminFAQ() {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [companyCity, setCompanyCity] = useState("");
+  const [companyCountry, setCompanyCountry] = useState("");
   const [updatingSettings, setUpdatingSettings] = useState(false);
 
   // Fetch FAQs on component mount
@@ -72,6 +75,9 @@ export default function AdminFAQ() {
           setContactEmail(settingsResponse.data.contactEmail || "");
           setContactPhone(settingsResponse.data.contactPhone || "");
           setCompanyWebsite(settingsResponse.data.companyWebsite || "");
+          setCompanyAddress(settingsResponse.data.companyAddress || "");
+          setCompanyCity(settingsResponse.data.companyCity || "");
+          setCompanyCountry(settingsResponse.data.companyCountry || "");
         }
       } catch (err: any) {
         console.error("Error fetching FAQs and settings:", err);
@@ -129,6 +135,9 @@ export default function AdminFAQ() {
         contactEmail: contactEmail.trim(),
         contactPhone: contactPhone.trim(),
         companyWebsite: companyWebsite.trim(),
+        companyAddress: companyAddress.trim(),
+        companyCity: companyCity.trim(),
+        companyCountry: companyCountry.trim(),
       });
 
       if (response.success) {
@@ -441,11 +450,46 @@ export default function AdminFAQ() {
                   className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
                 />
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Company Address / Street (About Us & Footer)
+                  </label>
+                  <input
+                    type="text"
+                    value={companyAddress}
+                    onChange={(e) => setCompanyAddress(e.target.value)}
+                    placeholder="e.g. Vidya Nagar, Harmu"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    City & Country (About Us & Footer)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={companyCity}
+                      onChange={(e) => setCompanyCity(e.target.value)}
+                      placeholder="e.g. Ranchi"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                    />
+                    <input
+                      type="text"
+                      value={companyCountry}
+                      onChange={(e) => setCompanyCountry(e.target.value)}
+                      placeholder="e.g. India"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
               <div className="border-t border-neutral-200 my-2"></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Support Email (FAQ Page)
+                    Support Email (FAQ, About Us & Help)
                   </label>
                   <input
                     type="email"
@@ -457,7 +501,7 @@ export default function AdminFAQ() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Support Phone (FAQ Page)
+                    Support Phone (FAQ, About Us & Help)
                   </label>
                   <input
                     type="tel"

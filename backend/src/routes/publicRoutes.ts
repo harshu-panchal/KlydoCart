@@ -39,7 +39,12 @@ router.get("/settings", asyncHandler(async (_req, res) => {
             supportPhone: settings.supportPhone || settings.contactPhone,
             contactEmail: settings.contactEmail,
             contactPhone: settings.contactPhone,
-            companyWebsite: settings.companyWebsite || "https://klydocart.com"
+            companyWebsite: settings.companyWebsite || "https://klydocart.com",
+            companyAddress: settings.companyAddress || "Vidya Nagar, Harmu",
+            companyCity: settings.companyCity || "Ranchi",
+            companyState: settings.companyState || "Jharkhand",
+            companyPincode: settings.companyPincode || "834002",
+            companyCountry: settings.companyCountry || "India"
         }
     });
 }));

@@ -37,6 +37,7 @@ import { addToWishlist } from "../../services/api/customerWishlistService";
 import { updateProfile } from "../../services/api/customerService";
 import { calculateProductPrice } from "../../utils/priceUtils";
 import { verifyPayment } from "../../services/api/paymentService";
+import { getPublicSettings, type PublicSettings } from "../../services/api/publicService";
 
 // const STORAGE_KEY = 'saved_address'; // Removed
 
@@ -92,6 +93,16 @@ export default function Checkout() {
   const [showRazorpayCheckout, setShowRazorpayCheckout] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "Online" | "UPI" | "Card" | "Wallet">("Online");
+
+  const [appSettings, setAppSettings] = useState<PublicSettings | null>(null);
+
+  useEffect(() => {
+    getPublicSettings()
+      .then((res) => {
+        if (res.success && res.data) setAppSettings(res.data);
+      })
+      .catch(() => {});
+  }, []);
 
   // Profile completion modal state
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -1718,8 +1729,14 @@ export default function Checkout() {
                 </h3>
                 <p>
                   For any cancellation requests or queries, please contact our
-                  customer support team at support@klydocart.com or call
-                  +91-XXXXX-XXXXX
+                  customer support team at{" "}
+                  <a href={`mailto:${appSettings?.supportEmail || "support@klydocart.com"}`} className="text-teal-600 font-medium underline">
+                    {appSettings?.supportEmail || "support@klydocart.com"}
+                  </a>{" "}
+                  or call{" "}
+                  <a href={`tel:${(appSettings?.supportPhone || appSettings?.contactPhone || "+91 9876543210").replace(/\s/g, "")}`} className="text-teal-600 font-medium underline">
+                    {appSettings?.supportPhone || appSettings?.contactPhone || "+91 9876543210"}
+                  </a>
                 </p>
               </div>
             </div>
