@@ -113,10 +113,10 @@ export default function SellerHeader({
             onClick={handleLogoClick}
             className="hover:opacity-80 transition-opacity">
             <img
-              src="/SellerLogo222.png"
+              src="/SellerKlydocart.jpeg"
               alt="KLYDO CART"
-              className="h-14 sm:h-16 w-auto object-contain cursor-pointer"
-              style={{ maxWidth: "240px" }}
+              className="h-16 sm:h-20 w-auto object-contain cursor-pointer"
+              style={{ maxWidth: "280px" }}
             />
           </button>
 

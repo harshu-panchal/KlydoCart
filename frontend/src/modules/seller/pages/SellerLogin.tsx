@@ -116,9 +116,9 @@ export default function SellerLogin() {
             <div className="relative z-10 w-full flex flex-col items-center">
               <div className="mb-3">
                 <img
-                  src="/SellerLogo222.png"
+                  src="/SellerKlydocart.jpeg"
                   alt="KlydoCart Seller Logo"
-                  className="h-16 w-auto object-contain"
+                  className="h-20 w-auto object-contain"
                 />
               </div>
               <h1 className="text-xl font-black text-slate-800 tracking-tight">
