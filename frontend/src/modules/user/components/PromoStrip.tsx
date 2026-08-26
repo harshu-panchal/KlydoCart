@@ -85,64 +85,72 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
 
   // Fetch subcategory images for category cards - DEFERRED for faster initial load
   const fetchSubcategoryImages = useCallback(async (cards: PromoCard[]) => {
+    // If cards already have subcategoryImages provided by backend, skip extra API calls
+    const cardsNeedingImages = cards.filter(
+      (c) => !c.subcategoryImages || c.subcategoryImages.length === 0
+    );
+    if (cardsNeedingImages.length === 0) return;
+
     // Defer subcategory image fetching to not block initial render
     // Load them after a short delay to prioritize main content
     setTimeout(async () => {
-    const imagesMap: Record<string, string[]> = {};
+      const imagesMap: Record<string, string[]> = {};
 
       // Fetch images in batches to avoid overwhelming the network
       const batchSize = 2;
-      for (let i = 0; i < cards.length; i += batchSize) {
-        const batch = cards.slice(i, i + batchSize);
-    await Promise.all(
+      for (let i = 0; i < cardsNeedingImages.length; i += batchSize) {
+        const batch = cardsNeedingImages.slice(i, i + batchSize);
+        await Promise.all(
           batch.map(async (card) => {
-        const categoryId = card.categoryId;
-        if (!categoryId) return;
+            const categoryId = card.categoryId;
+            if (!categoryId) return;
 
-        try {
-          let images: string[] = [];
-          // 1. Try fetching products for this header category / category
-          const prodRes = await getCustomerProducts({
-            headerCategoryId: categoryId,
-            limit: 4
-          }).catch(() => null);
+            try {
+              let images: string[] = [];
+              // 1. Try fetching products for this header category / category
+              const prodRes = await getCustomerProducts({
+                headerCategoryId: categoryId,
+                limit: 4
+              }).catch(() => null);
 
-          if (prodRes && prodRes.success && prodRes.data && prodRes.data.length > 0) {
-            images = prodRes.data
-              .map((p: any) => p.mainImage)
-              .filter((img: any): img is string => Boolean(img && typeof img === 'string' && img.trim() !== ""))
-              .slice(0, 4);
-          }
+              if (prodRes && prodRes.success && prodRes.data && prodRes.data.length > 0) {
+                images = prodRes.data
+                  .map((p: any) => p.mainImage)
+                  .filter((img: any): img is string => Boolean(img && typeof img === 'string' && img.trim() !== ""))
+                  .slice(0, 4);
+              }
 
-          // 2. If fewer than 4 product images, fallback to subcategories
-          if (images.length < 4) {
-            const response = await getSubcategories(categoryId, { limit: 4 }).catch(() => null);
-            if (response && response.success && response.data) {
-              const subcatImages = response.data
-                .filter((subcat) => subcat.subcategoryImage)
-                .map((subcat) => subcat.subcategoryImage!)
-                .slice(0, 4 - images.length);
+              // 2. If fewer than 4 product images, fallback to subcategories
+              if (images.length < 4) {
+                const response = await getSubcategories(categoryId, { limit: 4 }).catch(() => null);
+                if (response && response.success && response.data) {
+                  const subcatImages = response.data
+                    .filter((subcat) => subcat.subcategoryImage)
+                    .map((subcat) => subcat.subcategoryImage!)
+                    .slice(0, 4 - images.length);
 
-              images = [...images, ...subcatImages];
+                  images = [...images, ...subcatImages];
+                }
+              }
+
+              // 3. Save images to map
+              if (images.length > 0) {
+                imagesMap[card.id] = images;
+              }
+            } catch (error) {
+              console.error(`Error fetching images for category ${categoryId}:`, error);
             }
-          }
-
-          // 3. Save images to map
-          if (images.length > 0) {
-            imagesMap[card.id] = images;
-          }
-        } catch (error) {
-          console.error(`Error fetching images for category ${categoryId}:`, error);
-        }
-      })
-    );
+          })
+        );
         // Small delay between batches to prevent network congestion
-        if (i + batchSize < cards.length) {
+        if (i + batchSize < cardsNeedingImages.length) {
           await new Promise(resolve => setTimeout(resolve, 50));
         }
       }
 
-    setSubcategoryImagesMap(imagesMap);
+      if (Object.keys(imagesMap).length > 0) {
+        setSubcategoryImagesMap(prev => ({ ...prev, ...imagesMap }));
+      }
     }, 300); // 300ms delay - allows main content to render first
   }, []);
 
@@ -164,8 +172,8 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
           activeTab,
           location?.latitude,
           location?.longitude,
-          false,
-          0
+          true,
+          5 * 60 * 1000
         );
 
         // Reset current product index when fetching new data

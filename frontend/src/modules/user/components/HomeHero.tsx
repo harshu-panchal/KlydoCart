@@ -14,19 +14,21 @@ gsap.registerPlugin(ScrollTrigger);
 
 interface HomeHeroProps {
   activeTab?: string;
-  onTabChange?: (tabId: string) => void;
+  onTabChange?: (tabId: string, themeSlug?: string) => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
 }
 
 interface Tab {
   id: string;
+  themeSlug?: string;
   label: string;
   icon: React.ReactNode;
 }
 
 const ALL_TAB: Tab = {
   id: "all",
+  themeSlug: "all",
   label: "All",
   icon: (
     <svg
@@ -66,30 +68,11 @@ export default function HomeHero({
       try {
         const cats = await getHeaderCategoriesPublic();
         if (cats && cats.length > 0) {
-          const desiredOrder = ["fruits", "fast food", "restaurant & food", "vagitable", "cake", "wedding"];
-          
-          const sortedCats = [...cats].sort((a, b) => {
-            const nameA = (a.name || '').toLowerCase().trim();
-            const nameB = (b.name || '').toLowerCase().trim();
-            const indexA = desiredOrder.indexOf(nameA);
-            const indexB = desiredOrder.indexOf(nameB);
-            
-            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
-            return 0;
-          });
-
-          const uniqueSlugs = new Set<string>();
-          const mapped = sortedCats
-            .filter(c => c.slug !== "all")
-            .filter(c => {
-              if (uniqueSlugs.has(c.slug)) return false;
-              uniqueSlugs.add(c.slug);
-              return true;
-            })
+          const mapped = cats
+            .filter(c => c.slug !== "all" && (c.name || '').toLowerCase().trim() !== "all")
             .map((c) => ({
-              id: c.slug,
+              id: c._id || c.slug,
+              themeSlug: c.slug,
               label: c.name,
               icon: c.image ? (
                 <img 
@@ -364,12 +347,14 @@ export default function HomeHero({
     };
   }, [activeTab, tabs]);
 
-  const handleTabClick = (tabId: string) => {
-    onTabChange?.(tabId);
+  const handleTabClick = (tab: Tab) => {
+    onTabChange?.(tab.id, tab.themeSlug);
     // Don't scroll - keep page at current position
   };
 
-  const theme = getTheme(activeTab || "all");
+  const activeTabObj = tabs.find((t) => t.id === activeTab);
+  const activeThemeSlug = activeTabObj?.themeSlug || activeTab || "all";
+  const theme = getTheme(activeThemeSlug);
   const heroGradient = `linear-gradient(to bottom right, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`;
 
   // Helper to convert RGB to RGBA
@@ -617,7 +602,7 @@ export default function HomeHero({
                         tabRefs.current.delete(tab.id);
                       }
                     }}
-                    onClick={() => handleTabClick(tab.id)}
+                    onClick={() => handleTabClick(tab)}
                     className={`flex-shrink-0 flex flex-col md:flex-row items-center justify-center min-w-[64px] md:min-w-fit md:px-5 py-1.5 md:py-2 relative z-10 rounded-xl transition-all duration-300`}
                     style={{
                       backgroundColor: isActive ? rgbToRgba(theme.primary[0], 0.15) : 'transparent',

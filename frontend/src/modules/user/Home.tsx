@@ -57,6 +57,11 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
+  const activeCategoryObj = useMemo(() => {
+    return headerCategories.find(c => c._id === activeTab || c.slug === activeTab);
+  }, [headerCategories, activeTab]);
+  const currentSlug = activeCategoryObj?.slug || (activeTab === 'all' ? 'all' : activeTab);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -65,7 +70,7 @@ export default function Home() {
         setProducts([]); // Clear current products to show loading state for new tab
         setError(null);
         const response = await getHomeContent(
-          activeTab,
+          currentSlug,
           location?.latitude,
           location?.longitude,
         );
@@ -88,53 +93,7 @@ export default function Home() {
     };
 
     fetchData();
-
-    // Preload PromoStrip data for all header categories in the background
-    // This ensures instant loading when users switch tabs
-    const preloadHeaderCategories = async () => {
-      try {
-        // Wait a bit after initial load to not interfere with main content
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        const headerCategories = await getHeaderCategoriesPublic(true);
-        // Preload data for each header category (including 'all')
-        const slugsToPreload = [
-          "all",
-          ...headerCategories.map((cat) => cat.slug),
-        ];
-
-        // Preload in batches to avoid overwhelming the network
-        const batchSize = 2;
-        for (let i = 0; i < slugsToPreload.length; i += batchSize) {
-          const batch = slugsToPreload.slice(i, i + batchSize);
-          await Promise.all(
-            batch.map((slug) =>
-              getHomeContent(
-                slug,
-                location?.latitude,
-                location?.longitude,
-                true,
-                5 * 60 * 1000,
-                true,
-              ).catch((err) => {
-                // Silently fail - this is just preloading
-                console.debug(`Failed to preload data for ${slug}:`, err);
-              }),
-            ),
-          );
-          // Small delay between batches
-          if (i + batchSize < slugsToPreload.length) {
-            await new Promise((resolve) => setTimeout(resolve, 200));
-          }
-        }
-      } catch (error) {
-        // Silently fail - preloading is optional
-        console.debug("Failed to preload header categories:", error);
-      }
-    };
-
-    preloadHeaderCategories();
-  }, [location?.latitude, location?.longitude, activeTab]);
+  }, [location?.latitude, location?.longitude, currentSlug]);
 
   useEffect(() => {
     getHeaderCategoriesPublic(true).then(setHeaderCategories).catch(console.error);
@@ -146,7 +105,7 @@ export default function Home() {
     const fetchTabProducts = async () => {
       setLoadingTabProducts(true);
       try {
-        const cat = headerCategories.find(c => c.slug === activeTab);
+        const cat = headerCategories.find(c => c._id === activeTab || c.slug === activeTab);
         if (cat) {
           const res = await getProducts({ 
             headerCategoryId: cat._id, 
@@ -310,7 +269,7 @@ export default function Home() {
       ) : (
         <>
           {/* Promo Strip */}
-          <PromoStrip activeTab={activeTab} />
+          <PromoStrip activeTab={currentSlug} />
 
       {/* Dynamic Banners Carousel */}
       {activeTab === "all" &&
@@ -321,7 +280,7 @@ export default function Home() {
 
       {/* LOWEST PRICES EVER Section */}
       <LowestPricesEver
-        activeTab={activeTab}
+        activeTab={currentSlug}
         products={homeData.lowestPrices}
       />
 
