@@ -4,10 +4,9 @@
   "description": "klydocart Backend API Server",
   "main": "dist/server.js",
   "scripts": {
-    "build": "node api.js && tsc",
-    "postinstall": "npm run build",
-    "start": "node api.js && node dist/server.js",
-    "dev": "node api.js && tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
     "test": "tsx test-auth.ts",
     "test:storage": "tsx --test src/services/__tests__/storageAndDeletion.test.ts",
     "test:auth": "tsx src/scripts/testAuth.ts",
