@@ -24,14 +24,17 @@ import { mapFolderToCategory } from "../config/storage";
 dotenv.config();
 
 const REPO_ROOT = path.resolve(__dirname, "../../..");
-const MAPPING_PATH = path.join(
-  REPO_ROOT,
-  "frontend/assets/cloudinary/_metadata/url-mapping.json"
+/**
+ * Local Cloudinary export root. Production staging default:
+ *   /var/storage/_import/cloudinary
+ * Override with CLOUDINARY_IMPORT_DIR.
+ */
+const IMPORT_ROOT = path.resolve(
+  process.env.CLOUDINARY_IMPORT_DIR ||
+    path.join(REPO_ROOT, "frontend/assets/cloudinary")
 );
-const REPORT_DIR = path.join(
-  REPO_ROOT,
-  "frontend/assets/cloudinary/_metadata/migration-reports"
-);
+const MAPPING_PATH = path.join(IMPORT_ROOT, "_metadata/url-mapping.json");
+const REPORT_DIR = path.join(IMPORT_ROOT, "_metadata/migration-reports");
 
 type MappingItem = {
   asset_id?: string;
@@ -80,21 +83,25 @@ function loadMapping(): Map<string, MappingItem> {
 
 function localFileExists(item: MappingItem): boolean {
   if (item.local_file && fs.existsSync(item.local_file)) return true;
+
+  // /assets/cloudinary/<public_id>.<ext> → IMPORT_ROOT/<public_id>.<ext>
   if (item.local_path) {
-    const candidate = path.join(
+    const rel = item.local_path
+      .replace(/\\/g, "/")
+      .replace(/^\/?assets\/cloudinary\//, "");
+    const underImport = path.join(IMPORT_ROOT, rel);
+    if (fs.existsSync(underImport)) return true;
+
+    const underRepo = path.join(
       REPO_ROOT,
       "frontend",
       item.local_path.replace(/^\//, "")
     );
-    if (fs.existsSync(candidate)) return true;
+    if (fs.existsSync(underRepo)) return true;
   }
-  // fallback: public_id under assets/cloudinary
+
   if (item.public_id && item.format) {
-    const p = path.join(
-      REPO_ROOT,
-      "frontend/assets/cloudinary",
-      `${item.public_id}.${item.format}`
-    );
+    const p = path.join(IMPORT_ROOT, `${item.public_id}.${item.format}`);
     if (fs.existsSync(p)) return true;
   }
   return false;
