@@ -8,21 +8,30 @@ import {
   handleUploadError,
 } from "../middleware/upload";
 import {
-  uploadImageFromBuffer,
-  uploadDocumentFromBuffer,
-  deleteImage,
-} from "../services/cloudinaryService";
-import { CLOUDINARY_FOLDERS } from "../config/cloudinary";
+  saveDocumentFromBuffer,
+  saveImageFromBuffer,
+  StorageError,
+} from "../services/storageService";
+import { safeDeleteImage } from "../services/imageDeletion";
+import { mapFolderToCategory } from "../config/storage";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
 
-// Authentication is handled per route
-// router.use(authenticate);
+function sendStorageError(res: Response, err: unknown) {
+  if (err instanceof StorageError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+    });
+  }
+  throw err;
+}
 
 /**
  * POST /api/v1/upload/image
- * Upload a single image
+ * Upload a single image → VPS storage (WebP)
+ * Response shape unchanged: { success, data: UploadResult }
  */
 router.post(
   "/image",
@@ -31,23 +40,29 @@ router.post(
   uploadSingleImage.single("image"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
-    if (!(req as any).file) {
+    if (!req.file) {
       return res.status(400).json({
         success: false,
         message: "No image file provided",
       });
     }
 
-    const folder = (req.body.folder as string) || CLOUDINARY_FOLDERS.PRODUCTS;
-    const result = await uploadImageFromBuffer((req as any).file.buffer, {
-      folder,
-      resourceType: "image",
-    });
+    try {
+      const folder = (req.body.folder as string) || undefined;
+      const result = await saveImageFromBuffer(req.file.buffer, {
+        folder,
+        category: mapFolderToCategory(folder),
+        mimeType: req.file.mimetype,
+        originalName: req.file.originalname,
+      });
 
-    return res.status(200).json({
-      success: true,
-      data: result,
-    });
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (err) {
+      return sendStorageError(res, err);
+    }
   })
 );
 
@@ -59,75 +74,83 @@ router.post(
   "/images",
   authenticate,
   requireUserType("Admin", "Seller", "Delivery"),
-  uploadMultipleImages.array("images", 10), // Max 10 images
+  uploadMultipleImages.array("images", 10),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
-    if (!(req as any).files || ((req as any).files as any[]).length === 0) {
+    const files = req.files as Express.Multer.File[] | undefined;
+    if (!files || files.length === 0) {
       return res.status(400).json({
         success: false,
         message: "No image files provided",
       });
     }
 
-    const folder = (req.body.folder as string) || CLOUDINARY_FOLDERS.PRODUCTS;
-    const files = (req as any).files as any[];
+    try {
+      const folder = (req.body.folder as string) || undefined;
+      const category = mapFolderToCategory(folder);
+      const results = await Promise.all(
+        files.map((file) =>
+          saveImageFromBuffer(file.buffer, {
+            folder,
+            category,
+            mimeType: file.mimetype,
+            originalName: file.originalname,
+          })
+        )
+      );
 
-    const uploadPromises = files.map((file) =>
-      uploadImageFromBuffer(file.buffer, {
-        folder,
-        resourceType: "image",
-      })
-    );
-
-    const results = await Promise.all(uploadPromises);
-
-    return res.status(200).json({
-      success: true,
-      data: results,
-    });
+      return res.status(200).json({
+        success: true,
+        data: results,
+      });
+    } catch (err) {
+      return sendStorageError(res, err);
+    }
   })
 );
 
 /**
  * POST /api/v1/upload/document
- * Upload a document (image or PDF)
+ * Upload a document (image or PDF) — 10 MB limit
+ * Unauthenticated to allow registration flows (unchanged).
  */
 router.post(
   "/document",
-  // No authenticate here to allow uploads during registration
   uploadDocument.single("document"),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
-    if (!(req as any).file) {
+    if (!req.file) {
       return res.status(400).json({
         success: false,
         message: "No document file provided",
       });
     }
 
-    // Determine folder from request body or default based on user type
-    let folder: string = req.body.folder || CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
-    const userType = (req as any).user?.userType;
+    try {
+      let folder: string =
+        (req.body.folder as string) || "klydocart/sellers/documents";
+      const userType = (req as any).user?.userType;
 
-    if (userType === "Delivery") {
-      folder = CLOUDINARY_FOLDERS.DELIVERY_DOCUMENTS;
-    } else if (userType === "Seller") {
-      folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+      if (userType === "Delivery") {
+        folder = (req.body.folder as string) || "klydocart/delivery/documents";
+      } else if (userType === "Seller") {
+        folder = (req.body.folder as string) || "klydocart/sellers/documents";
+      }
+
+      const result = await saveDocumentFromBuffer(req.file.buffer, {
+        folder,
+        category: mapFolderToCategory(folder),
+        mimeType: req.file.mimetype,
+        originalName: req.file.originalname,
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (err) {
+      return sendStorageError(res, err);
     }
-
-    // Check if it's an image or PDF
-    const isImage = (req as any).file.mimetype.startsWith("image/");
-    const resourceType = isImage ? "image" : "raw";
-
-    const result = await uploadDocumentFromBuffer((req as any).file.buffer, {
-      folder,
-      resourceType,
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: result,
-    });
   })
 );
 
@@ -137,50 +160,99 @@ router.post(
  */
 router.post(
   "/documents",
-  // No authenticate here to allow uploads during registration
-  uploadMultipleDocuments.array("documents", 5), // Max 5 documents
+  uploadMultipleDocuments.array("documents", 5),
   handleUploadError,
   asyncHandler(async (req: Request, res: Response) => {
-    if (!(req as any).files || ((req as any).files as any[]).length === 0) {
+    const files = req.files as Express.Multer.File[] | undefined;
+    if (!files || files.length === 0) {
       return res.status(400).json({
         success: false,
         message: "No document files provided",
       });
     }
 
-    // Determine folder from request body or default based on user type
-    let folder: string = req.body.folder || CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
-    const userType = (req as any).user?.userType;
+    try {
+      let folder: string =
+        (req.body.folder as string) || "klydocart/sellers/documents";
+      const userType = (req as any).user?.userType;
 
-    if (userType === "Delivery") {
-      folder = CLOUDINARY_FOLDERS.DELIVERY_DOCUMENTS;
-    } else if (userType === "Seller") {
-      folder = CLOUDINARY_FOLDERS.SELLER_DOCUMENTS;
+      if (userType === "Delivery") {
+        folder = (req.body.folder as string) || "klydocart/delivery/documents";
+      } else if (userType === "Seller") {
+        folder = (req.body.folder as string) || "klydocart/sellers/documents";
+      }
+
+      const category = mapFolderToCategory(folder);
+      const results = await Promise.all(
+        files.map((file) =>
+          saveDocumentFromBuffer(file.buffer, {
+            folder,
+            category,
+            mimeType: file.mimetype,
+            originalName: file.originalname,
+          })
+        )
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: results,
+      });
+    } catch (err) {
+      return sendStorageError(res, err);
+    }
+  })
+);
+
+/**
+ * DELETE /api/v1/upload
+ * Preferred delete: JSON body or query { publicId } (supports nested keys).
+ */
+router.delete(
+  "/",
+  authenticate,
+  requireUserType("Admin", "Seller", "Delivery"),
+  asyncHandler(async (req: Request, res: Response) => {
+    const publicId =
+      (req.body?.publicId as string) ||
+      (req.query.publicId as string) ||
+      (req.body?.url as string) ||
+      (req.query.url as string);
+
+    if (!publicId) {
+      return res.status(400).json({
+        success: false,
+        message: "Public ID is required",
+      });
     }
 
-    const files = (req as any).files as any[];
+    try {
+      const result = await safeDeleteImage(decodeURIComponent(publicId));
+      if (result.skipped && result.reason?.includes("multiple")) {
+        return res.status(409).json({
+          success: false,
+          message: result.reason,
+          data: result,
+        });
+      }
 
-    const uploadPromises = files.map((file) => {
-      const isImage = file.mimetype.startsWith("image/");
-      const resourceType = isImage ? "image" : "raw";
-      return uploadDocumentFromBuffer(file.buffer, {
-        folder,
-        resourceType,
+      return res.status(200).json({
+        success: true,
+        message: result.deleted
+          ? "Image deleted successfully"
+          : result.reason || "Nothing to delete",
+        data: result,
       });
-    });
-
-    const results = await Promise.all(uploadPromises);
-
-    return res.status(200).json({
-      success: true,
-      data: results,
-    });
+    } catch (err) {
+      return sendStorageError(res, err);
+    }
   })
 );
 
 /**
  * DELETE /api/v1/upload/:publicId
- * Delete an image from Cloudinary
+ * Legacy path-param delete (works for simple keys without slashes).
+ * Prefer DELETE /upload?publicId=encoded/key.webp for nested keys.
  */
 router.delete(
   "/:publicId",
@@ -196,12 +268,26 @@ router.delete(
       });
     }
 
-    await deleteImage(publicId);
+    try {
+      const result = await safeDeleteImage(decodeURIComponent(publicId));
+      if (result.skipped && result.reason?.includes("multiple")) {
+        return res.status(409).json({
+          success: false,
+          message: result.reason,
+          data: result,
+        });
+      }
 
-    return res.status(200).json({
-      success: true,
-      message: "Image deleted successfully",
-    });
+      return res.status(200).json({
+        success: true,
+        message: result.deleted
+          ? "Image deleted successfully"
+          : result.reason || "Nothing to delete",
+        data: result,
+      });
+    } catch (err) {
+      return sendStorageError(res, err);
+    }
   })
 );
 

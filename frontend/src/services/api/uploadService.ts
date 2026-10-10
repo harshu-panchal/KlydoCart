@@ -17,7 +17,7 @@ export interface UploadResponse {
 }
 
 /**
- * Upload a single image to Cloudinary via backend
+ * Upload a single image via backend (VPS storage; response shape unchanged)
  */
 export async function uploadImage(
   file: File,
@@ -45,7 +45,7 @@ export async function uploadImage(
 }
 
 /**
- * Upload multiple images to Cloudinary via backend
+ * Upload multiple images via backend (VPS storage)
  */
 export async function uploadImages(
   files: File[],
@@ -75,7 +75,7 @@ export async function uploadImages(
 }
 
 /**
- * Upload a document (image or PDF) to Cloudinary via backend
+ * Upload a document (image or PDF) via backend (VPS storage)
  */
 export async function uploadDocument(
   file: File,
@@ -107,7 +107,7 @@ export async function uploadDocument(
 }
 
 /**
- * Upload multiple documents to Cloudinary via backend
+ * Upload multiple documents via backend (VPS storage)
  */
 export async function uploadDocuments(
   files: File[],
@@ -141,11 +141,13 @@ export async function uploadDocuments(
 }
 
 /**
- * Delete an image from Cloudinary by public_id
+ * Delete an image from VPS storage by publicId (relative storage key).
+ * Uses query param so nested keys like products/2026/10/uuid.webp work.
  */
 export async function deleteImage(publicId: string): Promise<void> {
   const response = await api.delete<{ success: boolean; message?: string }>(
-    `/upload/${publicId}`
+    `/upload`,
+    { params: { publicId } }
   );
 
   if (!response.data.success) {

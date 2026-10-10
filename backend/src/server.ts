@@ -7,6 +7,7 @@ console.log('RAZORPAY_KEY_ID exists:', !!process.env.RAZORPAY_KEY_ID);
 
 import express, { Application, Request, Response } from "express";
 import { createServer } from "http";
+import path from "path";
 import cors from "cors";
 import connectDB from "./config/db";
 import routes from "./routes";
@@ -16,6 +17,7 @@ import { ensureDefaultAdmin } from "./utils/ensureDefaultAdmin";
 import { seedHeaderCategories } from "./utils/seedHeaderCategories";
 import { initializeSocket } from "./socket/socketService";
 import { startDeliveryAutoRelease } from "./services/deliveryAutoReleaseService";
+import { storageConfig } from "./config/storage";
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -115,6 +117,28 @@ app.use((req: Request, _res: Response, next) => {
 
 // API Routes
 app.use("/api/v1", routes);
+
+/**
+ * Serve VPS-stored images in development / when Nginx is not in front.
+ * Production should prefer Nginx `location /images/` → STORAGE_ROOT.
+ * Directory listing disabled; only files under STORAGE_ROOT are reachable.
+ */
+app.use(
+  "/images",
+  express.static(storageConfig.root, {
+    fallthrough: true,
+    index: false,
+    redirect: false,
+    dotfiles: "deny",
+    setHeaders: (res, filePath) => {
+      const ext = path.extname(filePath).toLowerCase();
+      if ([".webp", ".jpg", ".jpeg", ".png", ".gif", ".pdf"].includes(ext)) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      }
+      res.setHeader("X-Content-Type-Options", "nosniff");
+    },
+  })
+);
 
 // Error handling middleware (must be last)
 app.use(notFound);

@@ -9,9 +9,11 @@
     "start": "node api.js && node dist/server.js",
     "dev": "node api.js && tsx watch src/server.ts",
     "test": "tsx test-auth.ts",
+    "test:storage": "tsx --test src/services/__tests__/storageAndDeletion.test.ts",
     "test:auth": "tsx src/scripts/testAuth.ts",
     "test:integration": "tsx src/scripts/test-frontend-backend-auth.ts",
     "test:vendor-approval": "tsx src/scripts/test-vendor-approval.ts",
+    "migrate:images:dry-run": "tsx src/scripts/migrateCloudinaryUrlsToVps.ts",
     "seed:grocery-kitchen": "tsx src/scripts/seedGroceryKitchen.ts",
     "seed:personal-care": "tsx src/scripts/seedPersonalCare.ts",
     "seed:grocery-categories": "tsx src/scripts/seedGroceryCategories.ts",
@@ -57,6 +59,7 @@
     "mongoose": "^8.0.3",
     "multer": "^2.0.2",
     "razorpay": "^2.9.6",
+    "sharp": "^0.35.5",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {

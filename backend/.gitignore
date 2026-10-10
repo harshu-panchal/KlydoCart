@@ -1,3 +1,6 @@
+# Local VPS image storage (dev). Production uses STORAGE_ROOT outside the app.
+.storage/
+
 # Dependencies
 node_modules/
 

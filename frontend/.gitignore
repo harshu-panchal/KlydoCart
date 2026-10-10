@@ -40,3 +40,6 @@ dist-ssr
 # Large asset directories (if not needed in repo)
 # assets/Image-20251130T081301Z-1-001/Image/product.zip
 
+# Local Cloudinary export (regenerate via backend download script; ~700MB)
+assets/cloudinary/
+

@@ -1,17 +1,17 @@
 import multer from "multer";
 import { Request } from "express";
+import { storageConfig } from "../config/storage";
 
-// File size limits (in bytes)
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024; // 10MB
+// File size limits (in bytes) — keep image and document limits separate
+const MAX_IMAGE_SIZE = storageConfig.maxImageBytes; // 5MB
+const MAX_DOCUMENT_SIZE = storageConfig.maxDocumentBytes; // 10MB
 
-// Allowed file types
+// Allowed file types (MIME claim; magic-byte validation happens in storageService)
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
   "image/png",
   "image/webp",
-  "image/gif",
 ];
 const ALLOWED_DOCUMENT_TYPES = [
   "image/jpeg",
@@ -29,7 +29,7 @@ const storage = multer.memoryStorage();
 // File filter for images
 const imageFileFilter = (
   _req: Request,
-  file: any,
+  file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
   if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
@@ -46,7 +46,7 @@ const imageFileFilter = (
 // File filter for documents (images + PDF)
 const documentFileFilter = (
   _req: Request,
-  file: any,
+  file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
   if (ALLOWED_DOCUMENT_TYPES.includes(file.mimetype)) {
